@@ -122,7 +122,7 @@ export interface WebDef {
  * page heading). Write for what people search, not the plugin's name.
  */
 export interface Listing {
-  /** The full page title, brand included, 60 characters at most: "Habit Tracker on WhatsApp: Daily Check-ins | whatodo". */
+  /** Page title, 60 characters at most: "Habit Tracker on WhatsApp: Daily Check-ins". */
   title: string;
   /** Meta description, 155 characters at most. */
   description: string;
