@@ -125,7 +125,7 @@ describe("lmp-tracker: pregnancy", () => {
   it("starts from an LMP and answers with weeks and due date", async () => {
     const t = T();
     await t.message(lmp, "pregnant lmp 3 oct");
-    expect(t.sent[0].text).toContain("*6 weeks 1 day* pregnant (first trimester)");
+    expect(t.sent[0].text).toContain("*6 weeks 1 day* pregnant: 2nd month (approx.), first trimester");
     expect(t.sent[0].text).toContain("Due date: *Sat 10 Jul 2027*");
     await t.message(lmp, "week");
     expect(t.sent[1].text).toContain("6 weeks 1 day");
@@ -158,7 +158,7 @@ describe("lmp-tracker: pregnancy", () => {
     await t.schedule(lmp, "daily");
     await t.schedule(lmp, "daily");
     expect(t.sent).toHaveLength(2);
-    expect(t.sent[1].text).toContain("*7 weeks* pregnant today");
+    expect(t.sent[1].text).toContain("*7 weeks* pregnant today (2nd month, approx.)");
     t.setToday("2027-01-09"); // 14 weeks
     await t.schedule(lmp, "daily");
     expect(t.sent.at(-1)!.text).toContain("second trimester starts");
@@ -180,6 +180,16 @@ describe("lmp-tracker: pregnancy", () => {
     const before = t.sent.length;
     await t.schedule(lmp, "daily");
     expect(t.sent).toHaveLength(before);
+  });
+});
+
+describe("lmp-tracker: early and late notes", () => {
+  it("notes an LMP under 2 weeks, and 42 weeks or more", async () => {
+    const t = T();
+    await t.message(lmp, "lmp 5 nov");
+    expect(t.sent[0].text).toContain("less than 2 weeks");
+    await t.message(lmp, "lmp 2026-01-25"); // exactly 294 days: 42w0d
+    expect(t.sent[1].text).toContain("42 weeks or more");
   });
 });
 

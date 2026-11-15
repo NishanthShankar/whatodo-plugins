@@ -128,6 +128,21 @@ export function pregnancy(lmp: string, today: string): PregnancyStatus {
   };
 }
 
+/**
+ * Pregnancy month (1-9), the way people in India count it. Approximate: doctors count weeks.
+ * Map aligned to ACOG trimesters: 1: 0-4, 2: 5-8, 3: 9-13, 4: 14-17, 5: 18-22, 6: 23-27,
+ * 7: 28-31, 8: 32-35, 9: 36 on.
+ */
+export function pregnancyMonth(weeks: number): number {
+  const ends = [4, 8, 13, 17, 22, 27, 31, 35];
+  const i = ends.findIndex((e) => weeks <= e);
+  return i === -1 ? 9 : i + 1;
+}
+
+export function ordinal(n: number): string {
+  return `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
+}
+
 export function weeksLabel(s: PregnancyStatus): string {
   const w = `${s.weeks} week${s.weeks === 1 ? "" : "s"}`;
   return s.days ? `${w} ${s.days} day${s.days === 1 ? "" : "s"}` : w;

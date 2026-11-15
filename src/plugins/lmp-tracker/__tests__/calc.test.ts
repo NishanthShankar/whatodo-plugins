@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { averageCycle, cycles, predict, pregnancy, weeksLabel } from "../calc";
+import { averageCycle, cycles, predict, pregnancy, pregnancyMonth, weeksLabel } from "../calc";
 import { parseDay } from "../dates";
 
 const today = "2026-11-15";
@@ -60,5 +60,13 @@ describe("pregnancy math", () => {
     expect(pregnancy("2026-08-09", today).trimester).toBe(2); // 14w0d
     expect(pregnancy("2026-05-03", today).trimester).toBe(3); // 28w+
     expect(pregnancy("2026-08-10", today).trimester).toBe(1); // 13w6d
+  });
+});
+
+describe("pregnancy month", () => {
+  it("maps weeks to the 9-month count", () => {
+    expect([0, 4, 5, 8, 9, 13, 14, 17, 18, 22, 23, 27, 28, 31, 32, 35, 36, 40, 42].map(pregnancyMonth)).toEqual([
+      1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 9,
+    ]);
   });
 });
