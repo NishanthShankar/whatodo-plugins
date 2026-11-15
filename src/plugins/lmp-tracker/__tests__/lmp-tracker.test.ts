@@ -78,16 +78,48 @@ describe("lmp-tracker: periods", () => {
 });
 
 describe("lmp-tracker: reminders", () => {
-  it("warns 2 days before, once, and logs a start from a reply", async () => {
-    const t = T({ today: "2026-11-16" });
+  it("checks in on cycle days 27 and 28, once each, and logs a start from a reply", async () => {
+    const t = T({ today: "2026-11-15" }); // 21 Oct start: 15 Nov is day 26
     await t.message(lmp, "period started 21 oct");
+    await t.schedule(lmp, "daily");
+    expect(t.sent).toHaveLength(0);
+    t.setToday("2026-11-16"); // day 27
     await t.schedule(lmp, "daily");
     await t.schedule(lmp, "daily");
     expect(t.sent).toHaveLength(1);
-    expect(t.sent[0].text).toContain("may start in about 2 days");
-    t.setToday("2026-11-18");
-    await t.message(lmp, "started", t.sent[0].ref);
-    expect(starts(t)).toEqual(["2026-10-21", "2026-11-18"]);
+    expect(t.sent[0].text).toContain("Day 27 of your cycle. Has your period started?");
+    t.setToday("2026-11-17"); // day 28
+    await t.schedule(lmp, "daily");
+    expect(t.sent[1].text).toContain("Day 28 of your cycle. Has your period started yet?");
+    await t.message(lmp, "started", t.sent[1].ref);
+    expect(starts(t)).toEqual(["2026-10-21", "2026-11-17"]);
+  });
+
+  it("logs a start from ✅ on a check-in, and takes it back when removed", async () => {
+    const t = T({ today: "2026-11-16" });
+    await t.message(lmp, "period started 21 oct");
+    await t.schedule(lmp, "daily");
+    await t.react(lmp, "✅", t.sent[0].ref);
+    expect(starts(t)).toEqual(["2026-10-21", "2026-11-16"]);
+    await t.react(lmp, null, t.sent[0].ref);
+    expect(starts(t)).toEqual(["2026-10-21"]);
+    await t.react(lmp, "✅", { other: true });
+    expect(starts(t)).toEqual(["2026-10-21"]);
+  });
+
+  it("follows the person's own cycle length for the check-in days", async () => {
+    const t = T({ today: "2026-11-30" });
+    await t.message(lmp, "cycle length 32");
+    await t.message(lmp, "period started 30 oct"); // 30 Nov is day 32
+    await t.schedule(lmp, "daily");
+    expect(t.sent[0].text).toContain("Day 32 of your cycle");
+  });
+
+  it("still understands replies to 1.x 'may start soon' messages", async () => {
+    const t = T();
+    await t.message(lmp, "period started 21 oct");
+    await t.message(lmp, "started", { kind: "period-soon", date: "2026-11-18" });
+    expect(starts(t)).toEqual(["2026-10-21", "2026-11-15"]);
   });
 
   it("nudges once when 3 days late; replies can give the date", async () => {

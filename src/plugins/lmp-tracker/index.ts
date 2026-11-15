@@ -32,8 +32,16 @@ interface Pregnancy {
 
 /** Refs on the reminders a person can answer. */
 interface PeriodRef {
-  kind: "period-soon" | "period-late";
+  /** period-check: the day-27/28 check-in (2.0); period-soon: the old "in about 2 days" (1.x); period-late: 3 days late. */
+  kind: "period-check" | "period-soon" | "period-late";
   date: string;
+}
+
+const PERIOD_REF_KINDS = ["period-check", "period-soon", "period-late"];
+const LOG_EMOJI = new Set(["✅", "✔️", "☑️", "👍", "🩸"]);
+
+function isPeriodRef(ref: unknown): ref is PeriodRef {
+  return !!ref && typeof ref === "object" && PERIOD_REF_KINDS.includes((ref as PeriodRef).kind);
 }
 
 /** A start this close to a logged one is the same period, moved. */
@@ -166,20 +174,20 @@ function weeklyUpdate(lmp: string, today: string): string {
 
 export default definePlugin({
   id: "lmp-tracker",
-  version: "1.1.0",
+  version: "2.0.0",
   sdk: "1",
   name: "LMP Tracker",
   icon: "🌸",
   tagline: "Period and pregnancy tracker on WhatsApp: next period, due date, reminders.",
   description:
-    "Log the day your period starts and I predict the next one and your fertile window, and remind you ahead of time. Pregnant? Send your LMP and I tell you how many weeks along you are, your due date, and send a short update every week.",
+    "Track your period on WhatsApp. Log the day it starts and I predict the next one and your fertile window, and on days 27 and 28 of your cycle I ask if it has started so you never forget to log it. Pregnant? Send your LMP for your due date and a weekly update.",
   groupName: "🌸 LMP Tracker",
   price: 0,
   tier: 1,
   listing: {
     title: "Period & Pregnancy Tracker on WhatsApp | whatodo",
     description:
-      "Log your period on WhatsApp and get next-period and fertile window reminders. Pregnant? Set your LMP for your due date and weekly updates.",
+      "Track your period on WhatsApp. Log the day it starts, see your next period and fertile window, and get a check-in on day 27 and 28. Free.",
     h1: "Period and pregnancy tracker on WhatsApp",
   },
   welcome:
@@ -193,9 +201,9 @@ export default definePlugin({
     const text = event.text.trim();
     const lower = text.toLowerCase().replace(/\s+/g, " ");
 
-    // Replies to "may start soon" / "is late": "started" logs today.
-    const ref = event.quotedRef as PeriodRef | null;
-    if (ref && typeof ref === "object" && (ref.kind === "period-soon" || ref.kind === "period-late")) {
+    // Replies to a check-in or "is late": "started" logs today.
+    const ref = event.quotedRef;
+    if (isPeriodRef(ref)) {
       if (/^(started|it started|yes|yep|today|came|got it)[!. ]*$/.test(lower)) {
         await logStart(kit, kit.today);
         return kit.react("👍");
@@ -297,6 +305,19 @@ export default definePlugin({
     kit.send("I didn't get that. Send _help_ to see what I can do.");
   },
 
+  async onReaction(event, kit) {
+    // ✅ on a period check-in logs today as the start; removing it takes today's start back.
+    if (!isPeriodRef(event.ref)) return;
+    if (event.emoji && LOG_EMOJI.has(event.emoji)) return await logStart(kit, kit.today);
+    if (!event.emoji && (await kit.store.get("periods", kit.today))) await kit.store.delete("periods", kit.today);
+  },
+
+  async onUpgrade(fromVersion) {
+    // 1.x -> 2.0: reminders moved to cycle-day check-ins; old refs ("period-soon") are still
+    // understood. No stored data changes.
+    void fromVersion;
+  },
+
   async onSchedule(event, kit) {
     if (event.id !== "daily") return;
     const once = async (kind: string, day: string, text: string, ref?: PeriodRef) => {
@@ -320,12 +341,14 @@ export default definePlugin({
     const p = predict(list.map((x) => x.start), fallbackCycle(kit), kit.today);
     if (!p) return;
     if (kit.settings.periodReminders !== false) {
-      if (daysBetween(kit.today, p.nextPeriod) === 2) {
+      // Check in on the last two days of the usual cycle: days 27 and 28 of a 28-day cycle.
+      const cycleDay = daysBetween(p.lastStart, kit.today) + 1;
+      if (cycleDay === p.cycle - 1 || cycleDay === p.cycle) {
         await once(
-          "soon",
-          p.nextPeriod,
-          `🌸 Your period may start in about 2 days (around ${pretty(p.nextPeriod, kit.today)}).\n\n_Reply started when it does._`,
-          { kind: "period-soon", date: p.nextPeriod },
+          "check",
+          kit.today,
+          `🌸 Day ${cycleDay} of your cycle. Has your period started${cycleDay === p.cycle ? " yet" : ""}?\n\n_React ✅ or reply started to log it._`,
+          { kind: "period-check", date: kit.today },
         );
       }
       if (p.daysLate === 3) {

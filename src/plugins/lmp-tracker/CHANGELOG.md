@@ -2,6 +2,18 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-11-16
+
+### Changed
+- Period reminders are now check-ins on the last two days of your usual cycle (days 27 and 28 of a 28-day cycle; they follow your average cycle): "Day 27 of your cycle. Has your period started?" so the start always gets logged.
+- Reacting ✅ (or 👍) to a check-in logs today as the start; removing the reaction takes it back. Replying `started` still works.
+
+### Removed
+- The "your period may start in about 2 days" message.
+
+### Data
+- No stored data changes. Messages sent by 1.x (refs of kind `period-soon`) are still understood.
+
 ## [1.1.0] - 2026-11-16
 
 ### Added
