@@ -123,7 +123,7 @@ export default definePlugin({
   price: 0,
   tier: 1,
   listing: {
-    title: "Habit Tracker on WhatsApp: Daily Check-ins",
+    title: "Habit Tracker on WhatsApp: Daily Check-ins | whatodo",
     description:
       "Track habits on WhatsApp. Get a daily check-in, react to mark it done and watch your streak grow. Free, in its own WhatsApp group. No app.",
     h1: "Habit tracker on WhatsApp",
