@@ -22,6 +22,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `tier` | `1 \| 2 \| 3` | yes in this repo (optional in the SDK type) | Platform cost tier: how much the plugin costs whatodo to run, not its price. See [Tiers](#tiers). |
 | `welcome` | string | yes | Posted in the group right after install. |
 | `help` | string | yes | Posted when the person sends `help`, `?`, `menu` or `commands` (whatodo handles this; `onMessage` doesn't see those). |
+| `listing` | `{ title, description, h1 }` | yes in this repo (optional in the SDK type) | The plugin's public page on whatodo.today: search title (≤ 60), meta description (≤ 155), main heading (≤ 80). Write for what people search ("Habit tracker on WhatsApp"), not the plugin's name. |
 | `settings` | `Record<string, Json>` | no | Defaults for a new install. |
 | `schedules` | `ScheduleDef[]` | no | Daily or hourly triggers. |
 | `onInstall` | `(kit) => Promise<void>` | no | Once, when an install is created (before the group exists: don't `send` here). |
@@ -111,9 +112,9 @@ list<T>(collection, { prefix?, from?, to?, limit? }): Promise<{ key, data: T, so
 
 | Export | Meaning |
 |---|---|
-| `SDK_VERSION` | the SDK version (`"1.1.0"`). |
+| `SDK_VERSION` | the SDK version (`"1.2.0"`). |
 | `compareVersions(a, b)` | Negative, zero or positive, comparing semver strings. Use in `onUpgrade`. |
-| `Json`, `Kit`, `PluginDef`, `Tier`, … | Types. |
+| `Json`, `Kit`, `PluginDef`, `Tier`, `Listing`, … | Types. |
 
 ## Testing
 

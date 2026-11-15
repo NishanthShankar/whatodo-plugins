@@ -20,6 +20,11 @@ export default definePlugin({
   groupName: "__ICON__ __NAME__",
   price: 0,
   tier: 1,
+  listing: {
+    title: "__NAME__ on WhatsApp: what people search for",
+    description: "One or two sentences for search results: what it does, that it runs in WhatsApp, free, no app.",
+    h1: "__NAME__ on WhatsApp",
+  },
   welcome: "__ICON__ You've installed *__NAME__*.\n\nTry _example_. Send _help_ any time.",
   help: HELP,
 

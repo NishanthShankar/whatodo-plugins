@@ -14,7 +14,7 @@
  * The SDK's own version. Plugins are written against a major version; whatodo refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.1.0";
+export const SDK_VERSION = "1.2.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -117,6 +117,19 @@ export interface WebDef {
   actions?: Record<string, (kit: Kit, args: Record<string, Json>) => Promise<Json | void>>;
 }
 
+/**
+ * How the plugin is presented on its public page on whatodo.today (search results and the
+ * page heading). Write for what people search, not the plugin's name.
+ */
+export interface Listing {
+  /** Page title, 60 characters at most: "Habit Tracker on WhatsApp: Daily Check-ins". */
+  title: string;
+  /** Meta description, 155 characters at most. */
+  description: string;
+  /** The page's main heading: "Habit tracker on WhatsApp". */
+  h1: string;
+}
+
 export interface PluginDef {
   /** Stable id, lowercase: "habits". Never changes once released. */
   id: string;
@@ -139,6 +152,8 @@ export interface PluginDef {
    * A plugin that keeps state and posts a few messages a day is tier 1.
    */
   tier?: Tier;
+  /** Public page text for search. Optional in SDK 1.x; plugins in this repo must set it. */
+  listing?: Listing;
   /** Sent in the group right after install. */
   welcome: string;
   /** Sent when the person writes "help" in the group. */
@@ -174,5 +189,11 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (def.sdk !== SDK_VERSION.split(".")[0]) throw new Error(`${def.id}: written for SDK ${def.sdk}, this is SDK ${SDK_VERSION}`);
   if (!Number.isInteger(def.price) || def.price < 0) throw new Error(`${def.id}: price must be a whole number >= 0`);
   if (def.tier !== undefined && ![1, 2, 3].includes(def.tier)) throw new Error(`${def.id}: tier must be 1, 2 or 3`);
+  if (def.listing) {
+    const { title, description, h1 } = def.listing;
+    if (!title || title.length > 60) throw new Error(`${def.id}: listing.title must be 1-60 characters`);
+    if (!description || description.length > 155) throw new Error(`${def.id}: listing.description must be 1-155 characters`);
+    if (!h1 || h1.length > 80) throw new Error(`${def.id}: listing.h1 must be 1-80 characters`);
+  }
   return def;
 }
