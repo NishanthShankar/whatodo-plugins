@@ -112,6 +112,8 @@ const HELP = [
 
 export default definePlugin({
   id: "habits",
+  version: "1.1.0",
+  sdk: "1",
   name: "Habits",
   icon: "🌱",
   tagline: "Build habits with a nightly check-in and streaks.",
@@ -209,6 +211,12 @@ export default definePlugin({
       return kit.react("👍");
     }
     kit.send("I didn't get that. Send _help_ to see what I can do.");
+  },
+
+  async onUpgrade(fromVersion) {
+    // 1.0.0 -> 1.1.0: habits gained an optional `hour`; existing rows without it use the
+    // default time, and the schedule moved from "nightly" to "checkin". No data to change.
+    void fromVersion;
   },
 
   async onReaction(event, kit) {

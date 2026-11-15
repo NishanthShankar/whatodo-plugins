@@ -10,6 +10,12 @@
  * deterministic: no network calls, no timers. Use kit.now instead of Date.now().
  */
 
+/**
+ * The SDK's own version. Plugins are written against a major version; whatodo refuses a
+ * plugin whose `sdk` major differs from the one it runs.
+ */
+export const SDK_VERSION = "1.0.0";
+
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 
@@ -106,8 +112,12 @@ export interface WebDef {
 }
 
 export interface PluginDef {
-  /** Stable id, lowercase: "habits". */
+  /** Stable id, lowercase: "habits". Never changes once released. */
   id: string;
+  /** The plugin's version, semver "MAJOR.MINOR.PATCH". Every release bumps it and adds a CHANGELOG entry. */
+  version: string;
+  /** The SDK major it was written for: "1". */
+  sdk: string;
   name: string;
   /** One emoji shown in the marketplace. */
   icon: string;
@@ -126,13 +136,31 @@ export interface PluginDef {
   settings?: Record<string, Json>;
   schedules?: ScheduleDef[];
   onInstall?(kit: Kit): Promise<void>;
+  /**
+   * Runs once per install, before any other handler, the first time a new version of the
+   * plugin handles an event for it. Migrate stored data here. Must be idempotent.
+   */
+  onUpgrade?(fromVersion: string, kit: Kit): Promise<void>;
   onMessage?(event: MessageEvent, kit: Kit): Promise<void>;
   onReaction?(event: ReactionEvent, kit: Kit): Promise<void>;
   onSchedule?(event: ScheduleEvent, kit: Kit): Promise<void>;
   web?: WebDef;
 }
 
+const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+
+/** Compare two "MAJOR.MINOR.PATCH" versions: negative, zero or positive. */
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+  return 0;
+}
+
 export function definePlugin(def: PluginDef): PluginDef {
   if (!/^[a-z][a-z0-9-]{1,30}$/.test(def.id)) throw new Error(`Bad plugin id: ${def.id}`);
+  if (!SEMVER.test(def.version)) throw new Error(`${def.id}: version must be MAJOR.MINOR.PATCH, got ${def.version}`);
+  if (def.sdk !== SDK_VERSION.split(".")[0]) throw new Error(`${def.id}: written for SDK ${def.sdk}, this is SDK ${SDK_VERSION}`);
+  if (!Number.isInteger(def.price) || def.price < 0) throw new Error(`${def.id}: price must be a whole number >= 0`);
   return def;
 }

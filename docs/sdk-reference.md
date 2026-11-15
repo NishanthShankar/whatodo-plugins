@@ -1,0 +1,111 @@
+# SDK reference
+
+The contract between a plugin and whatodo, SDK version **1** (`src/sdk.ts` is the source of truth; this page explains it). Import from `whatodo-plugins/sdk` (or `../../sdk` inside this repo).
+
+## definePlugin(def)
+
+Validates and returns the definition. Throws on a bad `id`, a `version` that isn't `MAJOR.MINOR.PATCH`, an `sdk` major that doesn't match `SDK_VERSION`, or a `price` that isn't a whole number ≥ 0.
+
+### PluginDef
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `id` | string | yes | Stable id, `^[a-z][a-z0-9-]{1,30}$`. Never changes once released: installs and stored data hang off it. |
+| `version` | string | yes | Plugin version, semver. Bumped on every release (see [releasing.md](releasing.md)). |
+| `sdk` | string | yes | SDK major the plugin targets: `"1"`. |
+| `name` | string | yes | Display name, ≤ 30 chars. |
+| `icon` | string | yes | One emoji. |
+| `tagline` | string | yes | Marketplace card line, ≤ 80 chars. |
+| `description` | string | yes | Marketplace description, ≥ 40 chars. |
+| `groupName` | string | yes | Name of the WhatsApp group created on install, ≤ 25 chars. |
+| `price` | number | yes | Smallest currency unit (paise). Must be `0` today. |
+| `welcome` | string | yes | Posted in the group right after install. |
+| `help` | string | yes | Posted when the person sends `help`, `?`, `menu` or `commands` (whatodo handles this; `onMessage` doesn't see those). |
+| `settings` | `Record<string, Json>` | no | Defaults for a new install. |
+| `schedules` | `ScheduleDef[]` | no | Daily or hourly triggers. |
+| `onInstall` | `(kit) => Promise<void>` | no | Once, when an install is created (before the group exists: don't `send` here). |
+| `onUpgrade` | `(fromVersion, kit) => Promise<void>` | no | Once per install, before any other handler, the first time a newer version handles an event for it. Migrate stored data. Must be idempotent. |
+| `onMessage` | `(event: MessageEvent, kit) => Promise<void>` | no | A message from the installer in the plugin's group. |
+| `onReaction` | `(event: ReactionEvent, kit) => Promise<void>` | no | The installer reacted to (or un-reacted) a message the plugin sent with a `ref`. |
+| `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
+| `web` | `WebDef` | no | Data and actions for the plugin's web page. |
+
+### ScheduleDef
+
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | string | Unique within the plugin. Shows up as `event.id`. |
+| `hour` | `number` | Once a day at that local hour (0-23). |
+| | `{ setting: string }` | Once a day at the hour stored in that setting; `null` in the setting turns it off. The setting must have a default in `settings`. |
+| | `"hourly"` | Once at the start of every local hour. Decide what's due with `kit.time.hour(kit.now)`. |
+
+Slots run at most once per install: a daily schedule once per local day, an hourly one once per local hour. whatodo checks twice an hour, so a slot may fire up to ~30 minutes into its hour.
+
+### WebDef
+
+| Field | Type | Meaning |
+|---|---|---|
+| `lockable` | boolean | The person may lock the page behind their whatodo PIN. Use it for anything personal. |
+| `load` | `(kit, args) => Promise<Json>` | Data for the page. Runs **read-only**: `store.put`, `store.delete`, `setSettings` and `send` throw. |
+| `actions` | `Record<string, (kit, args) => Promise<Json \| void>>` | Changes the page can ask for. Throw `Error("Plain sentence")` to show the person a message. |
+
+## Events
+
+```ts
+interface MessageEvent  { text: string; quotedRef: Json | null }
+interface ReactionEvent { emoji: string | null; ref: Json }   // emoji null: reaction removed
+interface ScheduleEvent { id: string }
+```
+
+- `text` is trimmed by whatodo; it is never empty.
+- `quotedRef` is the `ref` of **your** message the person replied to, or `null`. Replies to their own messages or to messages without a ref give `null`.
+- Only the installer's messages and reactions reach the plugin.
+
+## Kit
+
+| Member | Type | Meaning |
+|---|---|---|
+| `now` | number | The event's moment (ms). Use instead of `Date.now()`. |
+| `today` | string | Today in the person's zone, `YYYY-MM-DD`. |
+| `person` | `{ name: string \| null; timezone: string }` | The installer. `name` is what they set in whatodo (may be null). |
+| `settings` | `Record<string, Json>` | Defaults merged with the install's values. |
+| `setSettings(patch)` | `Promise<void>` | Merge a patch into the install's settings. |
+| `store` | `Store` | Per-install storage, below. |
+| `send(text, { ref? })` | void | Post in the plugin's group after the handler finishes. ≤ 4000 chars. WhatsApp formatting (`*bold*`, `_italic_`) works. Attach `ref` to recognise reactions and replies. |
+| `react(emoji)` | void | React to the message being handled (message events only; the last call wins). |
+| `id()` | string | A short random id for new records. |
+| `time.day(ms)` | string | `YYYY-MM-DD` of an instant in the person's zone. |
+| `time.shiftDay(day, n)` | string | Add `n` days to a `YYYY-MM-DD`. |
+| `time.hour(ms)` | number | Local hour (0-23) of an instant. |
+
+`send` and `react` are queued and carried out after the handler returns, only if it didn't throw. Delivery goes through whatodo's WhatsApp gateway: inside 24 hours of the person's last message in the group it is immediate; otherwise it is queued and rate-limited, so scheduled posts can arrive a little late. Keep scheduled posts few.
+
+### Store
+
+```ts
+get<T>(collection, key): Promise<T | null>
+put(collection, key, data: Json, sort?: string | number): Promise<void>
+delete(collection, key): Promise<void>
+list<T>(collection, { prefix?, from?, to?, limit? }): Promise<{ key, data: T, sort }[]>
+```
+
+- Scoped to one install: no two people, and no two plugins, ever share rows.
+- `put` replaces the whole value; keeps the previous `sort` if you omit it on an update.
+- `list` returns items in `sort` order, then key. `prefix` filters keys; `from`/`to` (inclusive) filter `sort`. Without a sort value, items come last.
+- Values must be JSON. Keep each value small (a record, not a whole history).
+
+## Helpers
+
+| Export | Meaning |
+|---|---|
+| `SDK_VERSION` | `"1.0.0"`: the SDK version. |
+| `compareVersions(a, b)` | Negative, zero or positive, comparing semver strings. Use in `onUpgrade`. |
+| `Json`, `Kit`, `PluginDef`, … | Types. |
+
+## Testing
+
+`whatodo-plugins/testing` exports `createTestKit`: see [testing.md](testing.md).
+
+## Versioning of the SDK
+
+The SDK follows semver. A minor version adds things (new kit methods, new schedule kinds) without breaking plugins. A major version may break them; whatodo runs plugins only against the SDK major they declare in `sdk`. Changes are listed in [../CHANGELOG.md](../CHANGELOG.md).
