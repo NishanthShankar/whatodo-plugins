@@ -30,7 +30,7 @@ The goal is a marketplace where developers publish plugins and **earn from them*
 | Plugin | Version | Tier | What it does |
 |---|---|---|---|
 | 🌱 [Habits](src/plugins/habits) | 1.1.2 | 1 | Daily check-ins per habit; react ✅ or 👍 if you did it. Streaks as 🟩⬜. |
-| 🌸 [LMP Tracker](src/plugins/lmp-tracker) | 1.1.0 | 1 | Period and pregnancy tracker: next period, fertile window, due date, weekly updates. |
+| 🌸 [LMP Tracker](src/plugins/lmp-tracker) | 2.0.0 | 1 | Period and pregnancy tracker: next period, fertile window, due date, weekly updates. |
 
 ## How a plugin works
 

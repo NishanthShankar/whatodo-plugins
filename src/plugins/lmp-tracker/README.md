@@ -1,6 +1,6 @@
 # 🌸 LMP Tracker
 
-Track your period or your pregnancy on WhatsApp. Log the day your period starts and it predicts the next one and your fertile window, and reminds you ahead of time. Pregnant? Send your LMP (the first day of your last menstrual period) and it tells you how many weeks pregnant you are, your due date, and sends a short update every week. Lives in its own WhatsApp group, "🌸 LMP Tracker".
+Track your period or your pregnancy on WhatsApp. Log the day your period starts and it predicts the next one and your fertile window. On days 27 and 28 of your cycle it asks whether your period has started, so you never forget to log it. Pregnant? Send your LMP (the first day of your last menstrual period) and it tells you how many weeks pregnant you are, your due date, and sends a short update every week. Lives in its own WhatsApp group, "🌸 LMP Tracker".
 
 Predictions are estimates from your own dates, not medical advice. Follow your doctor.
 
@@ -17,7 +17,7 @@ Send these in the LMP Tracker group. Dates can be `today`, `yesterday`, `3 days 
 | `undo` | Removes the most recent period start. 👍 |
 | `delete 12 nov` | Removes the period that started on that day. 👍 |
 | `cycle length 30` | Cycle length to use until two cycles are logged (21-45 days). 👍 |
-| `reminders off` / `reminders on` | Period reminders off or on. 👍 |
+| `reminders off` / `reminders on` | Cycle check-ins and late nudges off or on. 👍 |
 | `fertile reminders on` / `fertile reminders off` | A message when the fertile window starts (off by default). 👍 |
 | `reminder time 8am` | When reminders and weekly updates arrive. 👍 |
 | `pregnant lmp 3 oct` / `lmp 3 oct` | Starts pregnancy tracking from that LMP and answers with weeks pregnant, the month, the trimester and the due date (with a note if it's under 2 weeks or 42 weeks or more). |
@@ -26,13 +26,13 @@ Send these in the LMP Tracker group. Dates can be `today`, `yesterday`, `3 days 
 | `not pregnant` / `stop pregnancy` | Stops pregnancy tracking and goes back to period tracking. 👍 |
 | `help` | This list. |
 
-Replying `started` (or `yes`) to a "your period may start soon" or "your period is late" message logs today as the start.
+Reacting ✅ (or 👍) to a cycle check-in, or replying `started` (or `yes`, or `started 2 days ago`) to a check-in or a "late" message, logs the start. Removing the reaction takes today's start back.
 
 ## Schedules
 
 | Id | When | Does |
 |---|---|---|
-| `daily` | once a day at `reminderHour` | Period mode: "may start in about 2 days" (2 days before the predicted start), "fertile window starts today" (if fertile reminders are on), and one "it's 3 days late, did it start?" nudge. Pregnancy mode: a short update on each new week (the LMP's weekday). Each message is sent once. |
+| `daily` | once a day at `reminderHour` | Period mode: a check-in on the last two days of your usual cycle (days 27 and 28 of a 28-day cycle: "Has your period started?"), one "it's 3 days late, did it start?" nudge, and "fertile window starts today" if fertile reminders are on. Pregnancy mode: a short update on each new week (the LMP's weekday). Each message is sent once. |
 
 ## Settings
 
@@ -40,7 +40,7 @@ Replying `started` (or `yes`) to a "your period may start soon" or "your period 
 |---|---|---|
 | `reminderHour` | `9` | Local hour (0-23) for reminders and weekly updates. |
 | `cycleLength` | `28` | Cycle length used until two cycles are logged. |
-| `periodReminders` | `true` | "May start soon" and "late" messages. |
+| `periodReminders` | `true` | The cycle check-ins and the "late" message. |
 | `fertileReminders` | `false` | "Fertile window starts today" messages. |
 
 ## How predictions work
