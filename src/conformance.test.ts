@@ -80,6 +80,15 @@ for (const plugin of plugins) {
       expect(plugin.price).toBe(0);
     });
 
+    it("has a public page listing written for search", () => {
+      expect(plugin.listing, "set listing: { title, description, h1 } (see docs/sdk-reference.md)").toBeTruthy();
+      const l = plugin.listing!;
+      expect(l.title.length).toBeLessThanOrEqual(60);
+      expect(l.description.length).toBeLessThanOrEqual(155);
+      expect(l.description.length).toBeGreaterThanOrEqual(70);
+      expect(/whatsapp/i.test(l.title), "the listing title should say WhatsApp").toBe(true);
+    });
+
     it("declares its platform cost tier", () => {
       expect([1, 2, 3], "set tier: 1, 2 or 3 (see docs/sdk-reference.md)").toContain(plugin.tier);
     });

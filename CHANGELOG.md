@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.2.1] - 2026-11-16
+
+### Changed
+- `Listing.title` is documented as the full page title, brand included ("... | whatodo").
+- The conformance suite now requires `listing` on every plugin in this repo, with a title that names WhatsApp.
+
 ## [1.2.0] - 2026-11-16
 
 ### Added

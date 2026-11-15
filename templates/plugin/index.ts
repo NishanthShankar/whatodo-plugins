@@ -21,7 +21,7 @@ export default definePlugin({
   price: 0,
   tier: 1,
   listing: {
-    title: "__NAME__ on WhatsApp: what people search for",
+    title: "__NAME__ on WhatsApp: what people search for | whatodo",
     description: "One or two sentences for search results: what it does, that it runs in WhatsApp, free, no app.",
     h1: "__NAME__ on WhatsApp",
   },

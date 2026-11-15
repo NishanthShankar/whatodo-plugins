@@ -10,6 +10,7 @@ What a maintainer checks before merging a plugin change, and what an author chec
   - field lengths (name ≤ 30, tagline ≤ 80, description ≥ 40, groupName ≤ 25, one-emoji icon, welcome/help non-empty and ≤ 4000)
   - `price` is 0
   - `tier` is 1, 2 or 3
+  - `listing` is set: title ≤ 60 and names WhatsApp, description 70-155, heading
   - schedules have unique ids, valid hours, settings that exist, and an `onSchedule`
   - README has Commands, Data, Privacy (plus Schedules / Settings / Web page when used)
   - CHANGELOG's newest entry equals `version`; versions and dates go down; no empty entries
