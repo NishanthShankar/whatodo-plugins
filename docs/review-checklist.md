@@ -16,7 +16,7 @@ What a maintainer checks before merging a plugin change, and what an author chec
   - tests exist
   - imports only from the SDK and the plugin's own folder
   - no `fetch`, network classes, `Date.now()`, argument-less `new Date()`, `Math.random()`, `crypto`, timers, `process`, `require`, dynamic `import()`, `eval`, `new Function`, globals
-- [ ] Release rules (`node scripts/check-release.mjs origin/main`): a changed plugin has a higher version and a CHANGELOG entry for it; no released plugin removed; SDK changes bump the SDK version and changelog.
+- [ ] Release rules (`node scripts/check-release.mjs origin/main`): a changed plugin has a higher version and a CHANGELOG entry for it; a raised `tier` is a MAJOR; no released plugin removed; SDK changes bump the SDK version and changelog.
 
 ## Behaviour
 
@@ -45,8 +45,7 @@ What a maintainer checks before merging a plugin change, and what an author chec
 
 ## Release
 
-- [ ] `tier` matches what the plugin costs to run ([sdk-reference.md#tiers](sdk-reference.md#tiers)); a raised tier is a MAJOR with maintainer approval.
-
+- [ ] `tier` matches what the plugin costs to run ([sdk-reference.md#tiers](sdk-reference.md#tiers)); a raised tier is a MAJOR with maintainer approval (the release check enforces the MAJOR).
 - [ ] The version bump matches the change ([releasing.md](releasing.md)): PATCH for fixes, MINOR for additions, MAJOR only with maintainer approval and an impact note.
 - [ ] The CHANGELOG entry is written for the person using the plugin, with a `### Data` section when stored data, refs or settings changed.
 - [ ] Data written by every earlier released version still works.
