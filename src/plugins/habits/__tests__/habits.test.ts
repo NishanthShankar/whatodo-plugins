@@ -4,7 +4,10 @@ import type { Json, Kit, StoredItem } from "../../../sdk";
 import { shiftDay } from "../streaks";
 
 /** An in-memory kit, the way whatodo runs a plugin. */
+const currentHour = { value: 21 };
+
 function fakeKit(today = "2026-11-15") {
+  currentHour.value = 21;
   const data = new Map<string, { data: Json; sort: string | number | null }>();
   const sent: { text: string; ref?: Json }[] = [];
   const reactions: string[] = [];
@@ -45,7 +48,7 @@ function fakeKit(today = "2026-11-15") {
       reactions.push(e);
     },
     id: () => `h${++n}`,
-    time: { day: () => today, shiftDay, hour: () => 21 },
+    time: { day: () => today, shiftDay, hour: () => currentHour.value },
   };
   return { kit, sent, reactions };
 }
@@ -64,7 +67,7 @@ describe("habits plugin", () => {
   it("checks in nightly and logs from a reaction", async () => {
     const { kit, sent } = fakeKit();
     await habits.onMessage!({ text: "add read", quotedRef: null }, kit);
-    await habits.onSchedule!({ id: "nightly" }, kit);
+    await habits.onSchedule!({ id: "checkin" }, kit);
     expect(sent).toHaveLength(1);
     expect(sent[0].text).toContain("Did you *Read* today?");
     await habits.onReaction!({ emoji: "👍", ref: sent[0].ref! }, kit);
@@ -74,8 +77,26 @@ describe("habits plugin", () => {
     expect(((await habits.web!.load(kit, {})) as { habits: { streak: number }[] }).habits[0].streak).toBe(0);
     // Logged habits are skipped the next time
     await habits.onMessage!({ text: "done read", quotedRef: null }, kit);
-    await habits.onSchedule!({ id: "nightly" }, kit);
+    await habits.onSchedule!({ id: "checkin" }, kit);
     expect(sent).toHaveLength(1);
+  });
+
+  it("asks each habit at its own time, else the default", async () => {
+    const { kit, sent } = fakeKit();
+    await habits.onMessage!({ text: "add meditate at 7am", quotedRef: null }, kit);
+    await habits.onMessage!({ text: "add read", quotedRef: null }, kit);
+    currentHour.value = 7;
+    await habits.onSchedule!({ id: "checkin" }, kit);
+    expect(sent.map((s) => s.text.match(/\*(.+?)\*/)![1])).toEqual(["Meditate"]);
+    currentHour.value = 21;
+    await habits.onSchedule!({ id: "checkin" }, kit);
+    expect(sent.map((s) => s.text.match(/\*(.+?)\*/)![1])).toEqual(["Meditate", "Read"]);
+    await habits.onMessage!({ text: "time read 6am", quotedRef: null }, kit);
+    await habits.onMessage!({ text: "time meditate default", quotedRef: null }, kit);
+    const page = (await habits.web!.load(kit, {})) as { habits: { name: string; hour: number | null }[] };
+    expect(page.habits.map((h) => [h.name, h.hour])).toEqual([["Meditate", null], ["Read", 6]]);
+    await habits.onMessage!({ text: "habits", quotedRef: null }, kit);
+    expect(sent.at(-1)!.text).toContain("*Read*  ⏰ 6am");
   });
 
   it("changes the check-in time", async () => {

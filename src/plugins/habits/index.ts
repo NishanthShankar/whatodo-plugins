@@ -5,7 +5,7 @@ import { bestStreak, cleanName, grid, streak } from "./streaks";
  * Habits: one message per habit every night; react ✅ or 👍 if you did it.
  *
  * Storage
- *   habits  key = habit id   data = { name, createdDay, archived }   sort = createdAt
+ *   habits  key = habit id   data = { name, createdDay, archived, hour? }   sort = createdAt
  *   logs    key = "<habitId>:<day>"   data = 1   sort = day
  */
 
@@ -13,6 +13,8 @@ interface Habit {
   name: string;
   createdDay: string;
   archived: boolean;
+  /** Its own check-in hour (0-23). Unset: the default check-in time. */
+  hour?: number | null;
 }
 
 interface PromptRef {
@@ -59,6 +61,21 @@ function to24(h: number, ampm?: string): number | null {
   return ampm.startsWith("p") ? (h % 12) + 12 : h % 12;
 }
 
+const TIME = String.raw`(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?`;
+
+/** "7am", "19:00", "10 pm" → hour, or null when it isn't a time. */
+function parseHour(text: string): number | null {
+  const m = text.trim().toLowerCase().match(new RegExp(`^${TIME}$`));
+  return m ? to24(+m[1], m[3]) : null;
+}
+
+/** The hour a habit is checked at: its own, else the default (null: no check-in). */
+function hourOf(h: Habit, kit: Kit): number | null {
+  if (typeof h.hour === "number") return h.hour;
+  const d = kit.settings.checkinHour;
+  return typeof d === "number" ? d : null;
+}
+
 async function summary(kit: Kit): Promise<string> {
   const list = await active(kit);
   if (!list.length) return "No habits yet. Add one: _add meditate_";
@@ -66,10 +83,16 @@ async function summary(kit: Kit): Promise<string> {
   for (const [i, { id, habit }] of list.entries()) {
     const done = await doneDays(kit, id);
     const s = streak(done, kit.today);
-    lines.push("", `${i + 1}. *${habit.name}*${s ? `  🔥 ${s}` : ""}`, grid(done, kit.today, 14, habit.createdDay));
+    const own = typeof habit.hour === "number" ? `  ⏰ ${hourLabel(habit.hour)}` : "";
+    lines.push("", `${i + 1}. *${habit.name}*${s ? `  🔥 ${s}` : ""}${own}`, grid(done, kit.today, 14, habit.createdDay));
   }
   const hour = kit.settings.checkinHour;
-  lines.push("", typeof hour === "number" ? `_I'll ask at ${hourLabel(hour)} every night._` : "_Nightly check-ins are off. Send time 9pm to turn them on._");
+  lines.push(
+    "",
+    typeof hour === "number"
+      ? `_I check in at ${hourLabel(hour)} unless a habit has its own time (⏰)._`
+      : "_The default check-in is off; habits with their own time (⏰) still get one. Send time 9pm to turn it on._",
+  );
   return lines.join("\n");
 }
 
@@ -80,7 +103,9 @@ const HELP = [
   "_habits_ shows your streaks",
   "_done meditate_ logs it for today, _undo meditate_ takes it back",
   "_stop meditate_ stops tracking it",
-  "_time 10pm_ changes when I check in, _time off_ stops the check-ins",
+  "_time 10pm_ sets the default check-in time, _time off_ turns it off",
+  "_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back",
+  "_add read at 10pm_ adds a habit with its own time",
   "",
   "Every night I send one message per habit. React ✅ or 👍 if you did it.",
 ].join("\n");
@@ -97,7 +122,8 @@ export default definePlugin({
   welcome: "🌱 You've installed *Habits*.\n\nStart with _add meditate_ (or any habit). Every night I'll ask about each one; react ✅ or 👍 if you did it.\n\nSend _help_ any time.",
   help: HELP,
   settings: { checkinHour: 21 },
-  schedules: [{ id: "nightly", hour: { setting: "checkinHour" } }],
+  // Hourly, so each habit can be asked at its own time (the default time otherwise).
+  schedules: [{ id: "checkin", hour: "hourly" }],
 
   async onMessage(event, kit) {
     const text = event.text.trim();
@@ -117,6 +143,20 @@ export default definePlugin({
 
     if (/^(help|\?|menu|commands)$/i.test(lower)) return kit.send(HELP);
     if (/^(habits|list|streaks?|show|my habits|status)$/i.test(lower)) return kit.send(await summary(kit));
+
+    // "time meditate 7am" / "time meditate default": one habit's own time
+    const own = text.match(new RegExp(`^(?:time|check[- ]?in|reminder)\\s+(.+?)\\s+(?:at\\s+)?(default|reset|off|none|${TIME})$`, "i"));
+    if (own && parseHour(own[1]) === null) {
+      const list0 = await active(kit);
+      const h = find(list0, own[1].trim());
+      if (h) {
+        const word = own[2].toLowerCase();
+        const hour = /^(default|reset)$/.test(word) ? null : /^(off|none)$/.test(word) ? null : parseHour(own[2]);
+        if (hour === null && !/^(default|reset|off|none)$/.test(word)) return kit.send("Give me a time like _time meditate 7am_.");
+        await kit.store.put("habits", h.id, { ...h.habit, hour });
+        return kit.react("👍");
+      }
+    }
 
     const time = lower.match(/^(?:time|check[- ]?in|reminder)\s+(?:at\s+)?(off|none|stop|(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?)$/);
     if (time) {
@@ -150,10 +190,21 @@ export default definePlugin({
     }
     m = text.match(/^(?:add|new|start|track|habit)\s*:?\s+(.+)$/i);
     if (m) {
-      const name = cleanName(m[1]);
+      // "add read at 10pm": its own check-in time
+      let raw = m[1];
+      let hour: number | null = null;
+      const at = raw.match(new RegExp(`\\s+(?:at|@|every day at|daily at)\\s+(${TIME})$`, "i"));
+      if (at && parseHour(at[1]) !== null) {
+        hour = parseHour(at[1]);
+        raw = raw.slice(0, at.index);
+      }
+      const name = cleanName(raw);
       if (!name) return kit.send("Name the habit, like _add meditate_.");
-      if (!list.some((h) => h.habit.name.toLowerCase() === name.toLowerCase())) {
-        await kit.store.put("habits", kit.id(), { name, createdDay: kit.today, archived: false }, kit.now);
+      const same = list.find((h) => h.habit.name.toLowerCase() === name.toLowerCase());
+      if (same) {
+        if (hour !== null) await kit.store.put("habits", same.id, { ...same.habit, hour });
+      } else {
+        await kit.store.put("habits", kit.id(), { name, createdDay: kit.today, archived: false, hour }, kit.now);
       }
       return kit.react("👍");
     }
@@ -167,8 +218,10 @@ export default definePlugin({
   },
 
   async onSchedule(event, kit) {
-    if (event.id !== "nightly") return;
+    if (event.id !== "checkin" && event.id !== "nightly") return;
+    const now = kit.time.hour(kit.now);
     for (const { id, habit } of await active(kit)) {
+      if (event.id === "checkin" && hourOf(habit, kit) !== now) continue;
       const done = await doneDays(kit, id);
       if (done.has(kit.today)) continue;
       const s = streak(done, kit.today);
@@ -189,6 +242,7 @@ export default definePlugin({
         out.push({
           id,
           name: habit.name,
+          hour: typeof habit.hour === "number" ? habit.hour : null,
           createdDay: habit.createdDay,
           streak: streak(all, kit.today),
           best: bestStreak(all),
@@ -221,6 +275,14 @@ export default definePlugin({
         if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d > kit.today) throw new Error("Pick a day up to today.");
         if (!(await kit.store.get("habits", String(id)))) throw new Error("No such habit.");
         await setDone(kit, String(id), d, !!done);
+      },
+      /** One habit's own check-in hour; null puts it back on the default time. */
+      async setHabitHour(kit, { id, hour }) {
+        const h = await kit.store.get<Habit>("habits", String(id));
+        if (!h) throw new Error("No such habit.");
+        const v = hour === null || hour === undefined ? null : Number(hour);
+        if (v !== null && (!Number.isInteger(v) || v < 0 || v > 23)) throw new Error("Pick an hour.");
+        await kit.store.put("habits", String(id), { ...h, hour: v });
       },
       async setHour(kit, { hour }) {
         const h = hour === null ? null : Number(hour);

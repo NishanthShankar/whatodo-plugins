@@ -87,8 +87,13 @@ export interface ScheduleEvent {
 
 export interface ScheduleDef {
   id: string;
-  /** Runs once a day at this local hour; a number, or the name of a setting holding one (null in the setting: off). */
-  hour: number | { setting: string };
+  /**
+   * When it runs, in the person's zone:
+   * - a number: once a day at that hour
+   * - { setting }: once a day at the hour held in that setting (null in the setting: off)
+   * - "hourly": at the start of every hour (use kit.time.hour(kit.now) to decide what to do)
+   */
+  hour: number | { setting: string } | "hourly";
 }
 
 export interface WebDef {
