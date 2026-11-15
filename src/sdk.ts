@@ -14,7 +14,7 @@
  * The SDK's own version. Plugins are written against a major version; whatodo refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.2.0";
+export const SDK_VERSION = "1.2.1";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -122,7 +122,7 @@ export interface WebDef {
  * page heading). Write for what people search, not the plugin's name.
  */
 export interface Listing {
-  /** Page title, 60 characters at most: "Habit Tracker on WhatsApp: Daily Check-ins". */
+  /** The full page title, brand included, 60 characters at most: "Habit Tracker on WhatsApp: Daily Check-ins | whatodo". */
   title: string;
   /** Meta description, 155 characters at most. */
   description: string;
@@ -152,7 +152,7 @@ export interface PluginDef {
    * A plugin that keeps state and posts a few messages a day is tier 1.
    */
   tier?: Tier;
-  /** Public page text for search. Optional in SDK 1.x; plugins in this repo must set it. */
+  /** Public page text for search. Optional in SDK 1.x; the conformance suite requires it in this repo. */
   listing?: Listing;
   /** Sent in the group right after install. */
   welcome: string;
