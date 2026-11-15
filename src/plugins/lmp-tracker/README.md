@@ -20,7 +20,7 @@ Send these in the LMP Tracker group. Dates can be `today`, `yesterday`, `3 days 
 | `reminders off` / `reminders on` | Period reminders off or on. 👍 |
 | `fertile reminders on` / `fertile reminders off` | A message when the fertile window starts (off by default). 👍 |
 | `reminder time 8am` | When reminders and weekly updates arrive. 👍 |
-| `pregnant lmp 3 oct` / `lmp 3 oct` | Starts pregnancy tracking from that LMP and answers with weeks pregnant and the due date. |
+| `pregnant lmp 3 oct` / `lmp 3 oct` | Starts pregnancy tracking from that LMP and answers with weeks pregnant, the month, the trimester and the due date (with a note if it's under 2 weeks or 42 weeks or more). |
 | `due date 10 jul` | Starts pregnancy tracking from a due date (LMP is 280 days earlier). |
 | `week` / `status` (while pregnant) | Weeks and days, trimester, due date and days to go. |
 | `not pregnant` / `stop pregnancy` | Stops pregnancy tracking and goes back to period tracking. 👍 |
@@ -48,7 +48,7 @@ Replying `started` (or `yes`) to a "your period may start soon" or "your period 
 - **Average cycle:** the mean of the last 6 cycles between logged starts (cycles of 15-60 days count; others are treated as a missed log). With fewer than one usable cycle, `cycleLength` is used.
 - **Next period:** last start + average cycle.
 - **Ovulation:** about 14 days before the next period. **Fertile window:** the 5 days before ovulation and the day of ovulation.
-- **Pregnancy:** due date = LMP + 280 days (Naegele's rule). Weeks pregnant = days since LMP ÷ 7. Trimesters: first up to 13 weeks 6 days, second 14 weeks to 27 weeks 6 days, third from 28 weeks.
+- **Pregnancy:** due date = LMP + 280 days (Naegele's rule). Weeks pregnant = days since LMP ÷ 7. Trimesters: first up to 13 weeks 6 days, second 14 weeks to 27 weeks 6 days, third from 28 weeks (ACOG). Month (approximate, as commonly counted in India): 1st weeks 0-4, 2nd 5-8, 3rd 9-13, 4th 14-17, 5th 18-22, 6th 23-27, 7th 28-31, 8th 32-35, 9th from 36.
 
 ## Data
 

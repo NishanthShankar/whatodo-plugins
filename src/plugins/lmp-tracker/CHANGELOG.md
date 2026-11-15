@@ -2,6 +2,16 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-11-16
+
+### Added
+- Pregnancy answers and weekly updates include the month (approximate, 1st to 9th, as commonly counted in India).
+- A note when an LMP is under 2 weeks ago (early; test after a missed period) or 42 weeks or more (check in with your doctor).
+- Public page listing (search title, description and heading) for whatodo.today.
+
+### Data
+- No change.
+
 ## [1.0.0] - 2026-11-16
 
 ### Added

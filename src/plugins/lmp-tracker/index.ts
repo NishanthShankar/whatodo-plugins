@@ -4,8 +4,10 @@ import {
   averagePeriodLength,
   cycles,
   daysBetween,
+  ordinal,
   predict,
   pregnancy,
+  pregnancyMonth,
   pretty,
   PREGNANCY_DAYS,
   weeksLabel,
@@ -140,9 +142,11 @@ function pregnancyText(lmp: string, today: string, first: boolean): string {
   const lines = [
     first ? "🌸 Pregnancy tracking is on." : "🌸 *Your pregnancy*",
     "",
-    `You're *${weeksLabel(s)}* pregnant (${tri} trimester).`,
+    `You're *${weeksLabel(s)}* pregnant: ${ordinal(pregnancyMonth(s.weeks))} month (approx.), ${tri} trimester.`,
     `Due date: *${pretty(s.dueDate, today)}*${s.daysToGo > 0 ? ` (${s.daysToGo} days to go)` : s.daysToGo === 0 ? " (today)" : ` (${-s.daysToGo} days ago)`}`,
   ];
+  if (first && s.daysPregnant < 14) lines.push("", "That's less than 2 weeks since your LMP, so it's early. A home test is most reliable after a missed period.");
+  if (s.weeks >= 42) lines.push("", "That's 42 weeks or more. Please check in with your doctor.");
   if (first) lines.push("", "I'll send a short update each week. Send _week_ any time.");
   lines.push("", NOTE);
   return lines.join("\n");
@@ -151,7 +155,7 @@ function pregnancyText(lmp: string, today: string, first: boolean): string {
 /** A short note for the start of a pregnancy week. Milestones only, nothing clinical. */
 function weeklyUpdate(lmp: string, today: string): string {
   const s = pregnancy(lmp, today);
-  const lines = [`🌸 You're *${s.weeks} weeks* pregnant today.`];
+  const lines = [`🌸 You're *${s.weeks} weeks* pregnant today (${ordinal(pregnancyMonth(s.weeks))} month, approx.).`];
   if (s.weeks === 14) lines.push("The second trimester starts this week.");
   if (s.weeks === 28) lines.push("The third trimester starts this week.");
   if (s.weeks === 37) lines.push("From this week the pregnancy is considered early term.");
@@ -162,7 +166,7 @@ function weeklyUpdate(lmp: string, today: string): string {
 
 export default definePlugin({
   id: "lmp-tracker",
-  version: "1.0.0",
+  version: "1.1.0",
   sdk: "1",
   name: "LMP Tracker",
   icon: "🌸",
@@ -172,6 +176,12 @@ export default definePlugin({
   groupName: "🌸 LMP Tracker",
   price: 0,
   tier: 1,
+  listing: {
+    title: "Period & Pregnancy Tracker on WhatsApp | whatodo",
+    description:
+      "Log your period on WhatsApp and get next-period and fertile window reminders. Pregnant? Set your LMP for your due date and weekly updates.",
+    h1: "Period and pregnancy tracker on WhatsApp",
+  },
   welcome:
     "🌸 You've installed *LMP Tracker*.\n\nTracking periods: send _period started_ on the first day of your period (or _period started 12 nov_ for your last one).\nPregnant: send _lmp 3 oct_ with the first day of your last period.\n\nSend _help_ any time. " +
     NOTE,
