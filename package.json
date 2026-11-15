@@ -1,0 +1,19 @@
+{
+  "name": "whatodo-plugins",
+  "version": "0.1.0",
+  "description": "Plugins for whatodo, the todo list you run from WhatsApp.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sdk": "./src/sdk.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
