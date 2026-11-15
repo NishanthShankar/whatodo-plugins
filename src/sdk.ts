@@ -14,7 +14,13 @@
  * The SDK's own version. Plugins are written against a major version; whatodo refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.0.0";
+export const SDK_VERSION = "1.1.0";
+
+/**
+ * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
+ * 2 = medium, 3 = high. Used for pricing and limits later; names will come.
+ */
+export type Tier = 1 | 2 | 3;
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -128,6 +134,11 @@ export interface PluginDef {
   groupName: string;
   /** Price in the smallest currency unit. Everything is free for now: 0. */
   price: number;
+  /**
+   * Platform cost tier. Optional in SDK 1.x for compatibility; plugins in this repo must set it.
+   * A plugin that keeps state and posts a few messages a day is tier 1.
+   */
+  tier?: Tier;
   /** Sent in the group right after install. */
   welcome: string;
   /** Sent when the person writes "help" in the group. */
@@ -162,5 +173,6 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (!SEMVER.test(def.version)) throw new Error(`${def.id}: version must be MAJOR.MINOR.PATCH, got ${def.version}`);
   if (def.sdk !== SDK_VERSION.split(".")[0]) throw new Error(`${def.id}: written for SDK ${def.sdk}, this is SDK ${SDK_VERSION}`);
   if (!Number.isInteger(def.price) || def.price < 0) throw new Error(`${def.id}: price must be a whole number >= 0`);
+  if (def.tier !== undefined && ![1, 2, 3].includes(def.tier)) throw new Error(`${def.id}: tier must be 1, 2 or 3`);
   return def;
 }

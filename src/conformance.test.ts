@@ -80,6 +80,10 @@ for (const plugin of plugins) {
       expect(plugin.price).toBe(0);
     });
 
+    it("declares its platform cost tier", () => {
+      expect([1, 2, 3], "set tier: 1, 2 or 3 (see docs/sdk-reference.md)").toContain(plugin.tier);
+    });
+
     it("has unique, valid schedules", () => {
       const ids = (plugin.schedules ?? []).map((s) => s.id);
       expect(new Set(ids).size).toBe(ids.length);

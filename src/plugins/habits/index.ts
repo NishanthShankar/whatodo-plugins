@@ -112,7 +112,7 @@ const HELP = [
 
 export default definePlugin({
   id: "habits",
-  version: "1.1.0",
+  version: "1.1.1",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -121,6 +121,7 @@ export default definePlugin({
     "Add the habits you want to keep. Every night I message you once per habit; react ✅ or 👍 if you did it. Your streaks show as green squares, and the web page shows the last month.",
   groupName: "🌱 Habits",
   price: 0,
+  tier: 1,
   welcome: "🌱 You've installed *Habits*.\n\nStart with _add meditate_ (or any habit). Every night I'll ask about each one; react ✅ or 👍 if you did it.\n\nSend _help_ any time.",
   help: HELP,
   settings: { checkinHour: 21 },

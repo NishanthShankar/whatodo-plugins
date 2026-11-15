@@ -9,13 +9,14 @@ What a maintainer checks before merging a plugin change, and what an author chec
   - folder name equals `id`; the plugin is registered in `src/index.ts`; ids are unique
   - field lengths (name ≤ 30, tagline ≤ 80, description ≥ 40, groupName ≤ 25, one-emoji icon, welcome/help non-empty and ≤ 4000)
   - `price` is 0
+  - `tier` is 1, 2 or 3
   - schedules have unique ids, valid hours, settings that exist, and an `onSchedule`
   - README has Commands, Data, Privacy (plus Schedules / Settings / Web page when used)
   - CHANGELOG's newest entry equals `version`; versions and dates go down; no empty entries
   - tests exist
   - imports only from the SDK and the plugin's own folder
   - no `fetch`, network classes, `Date.now()`, argument-less `new Date()`, `Math.random()`, `crypto`, timers, `process`, `require`, dynamic `import()`, `eval`, `new Function`, globals
-- [ ] Release rules (`node scripts/check-release.mjs origin/main`): a changed plugin has a higher version and a CHANGELOG entry for it; no released plugin removed; SDK changes bump the SDK version and changelog.
+- [ ] Release rules (`node scripts/check-release.mjs origin/main`): a changed plugin has a higher version and a CHANGELOG entry for it; a raised `tier` is a MAJOR; no released plugin removed; SDK changes bump the SDK version and changelog.
 
 ## Behaviour
 
@@ -44,6 +45,7 @@ What a maintainer checks before merging a plugin change, and what an author chec
 
 ## Release
 
+- [ ] `tier` matches what the plugin costs to run ([sdk-reference.md#tiers](sdk-reference.md#tiers)); a raised tier is a MAJOR with maintainer approval (the release check enforces the MAJOR).
 - [ ] The version bump matches the change ([releasing.md](releasing.md)): PATCH for fixes, MINOR for additions, MAJOR only with maintainer approval and an impact note.
 - [ ] The CHANGELOG entry is written for the person using the plugin, with a `### Data` section when stored data, refs or settings changed.
 - [ ] Data written by every earlier released version still works.

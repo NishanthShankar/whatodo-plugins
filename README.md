@@ -27,9 +27,9 @@ The goal is a marketplace where developers publish plugins and **earn from them*
 
 ## Plugins
 
-| Plugin | Version | What it does |
-|---|---|---|
-| 🌱 [Habits](src/plugins/habits) | 1.1.0 | Daily check-ins per habit; react ✅ or 👍 if you did it. Streaks as 🟩⬜. |
+| Plugin | Version | Tier | What it does |
+|---|---|---|---|
+| 🌱 [Habits](src/plugins/habits) | 1.1.1 | 1 | Daily check-ins per habit; react ✅ or 👍 if you did it. Streaks as 🟩⬜. |
 
 ## How a plugin works
 
@@ -55,6 +55,7 @@ export default definePlugin({
   description: "Send a 💧 every time you finish a glass. I keep count for the day and nudge you in the afternoon.",
   groupName: "💧 Water",
   price: 0,
+  tier: 1,
   welcome: "💧 You've installed *Water*. Send 💧 after each glass.",
   help: "*Water*\n\n💧 logs a glass\n_today_ shows the count",
   async onMessage(event, kit) {

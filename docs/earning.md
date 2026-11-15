@@ -8,6 +8,7 @@ Developers publish plugins on whatodo and earn when people pay for them. whatodo
 
 ## What's decided
 
+- **Plugins declare a platform cost tier.** `tier` (1 low, 2 medium, 3 high) says what a plugin costs whatodo to run. Pricing will be built on it, so it is set honestly and changed only through a reviewed release.
 - **Prices live in the definition.** `price` is in the smallest currency unit (paise for INR). Today it must be 0.
 - **No paid feature without a release.** Turning on a price, or changing it, is a plugin release with a CHANGELOG entry, reviewed like any other.
 - **Strict quality first.** The review bar ([review-checklist.md](review-checklist.md)), versioning and data-compatibility rules ([releasing.md](releasing.md)) exist now so paid plugins can be trusted later.

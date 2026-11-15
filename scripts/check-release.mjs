@@ -2,6 +2,7 @@
 // Release rules, checked against the base branch (CI passes it, default origin/main):
 //   1. A plugin whose files changed must have a higher version than on the base branch,
 //      and a CHANGELOG entry for it. A brand-new plugin starts at 1.0.0 (or 0.x for a preview).
+//      Raising a plugin's `tier` needs a MAJOR bump.
 //   2. A released plugin id can't disappear (removing a plugin breaks everyone who installed it).
 //   3. If the SDK or the test kit changed, package.json's version goes up and CHANGELOG.md
 //      (the SDK changelog) gets an entry for it. A major bump of the SDK needs SDK_VERSION to match.
@@ -25,6 +26,7 @@ const cmp = (a, b) => {
   return 0;
 };
 const versionIn = (src) => src?.match(/version:\s*"(\d+\.\d+\.\d+)"/)?.[1] ?? null;
+const tierIn = (src) => Number(src?.match(/\btier:\s*([123])\b/)?.[1] ?? 0) || null;
 const topEntry = (md) => md?.match(/^## \[(\d+\.\d+\.\d+)\]/m)?.[1] ?? null;
 
 const changed = sh(`git diff --name-only ${base}...HEAD`).split("\n").filter(Boolean);
@@ -57,6 +59,12 @@ for (const id of pluginIds) {
   if (before && cmp(now, before) <= 0) errors.push(`${id}: files changed but version is still ${now} (base has ${before}). Bump it (see docs/releasing.md).`);
   if (!before && !existedUnversioned && !/^(1\.0\.0|0\.\d+\.\d+)$/.test(now)) errors.push(`${id}: a new plugin starts at 1.0.0 (or 0.x.y for a preview), not ${now}.`);
   if (topEntry(log) !== now) errors.push(`${id}: CHANGELOG.md has no entry for ${now} at the top.`);
+  // Raising the platform cost tier changes what people may pay: it's a MAJOR release.
+  const tierNow = tierIn(readFileSync(path, "utf8"));
+  const tierBefore = tierIn(baseSrc);
+  if (before && tierBefore && tierNow && tierNow > tierBefore && Number(now.split(".")[0]) <= Number(before.split(".")[0])) {
+    errors.push(`${id}: tier went from ${tierBefore} to ${tierNow}; raising the tier needs a MAJOR version bump (see docs/releasing.md).`);
+  }
 }
 
 // 3: SDK
