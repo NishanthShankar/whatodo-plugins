@@ -112,16 +112,22 @@ const HELP = [
 
 export default definePlugin({
   id: "habits",
-  version: "1.1.1",
+  version: "1.1.2",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
-  tagline: "Build habits with a nightly check-in and streaks.",
+  tagline: "Build habits with a daily check-in and streaks.",
   description:
-    "Add the habits you want to keep. Every night I message you once per habit; react ✅ or 👍 if you did it. Your streaks show as green squares, and the web page shows the last month.",
+    "Add the habits you want to keep. Every day I message you once per habit, at the time you pick for each; react ✅ or 👍 if you did it. Your streaks show as green squares, and the web page shows the last month.",
   groupName: "🌱 Habits",
   price: 0,
   tier: 1,
+  listing: {
+    title: "Habit Tracker on WhatsApp: Daily Check-ins",
+    description:
+      "Track habits on WhatsApp. Get a daily check-in, react to mark it done and watch your streak grow. Free, in its own WhatsApp group. No app.",
+    h1: "Habit tracker on WhatsApp",
+  },
   welcome: "🌱 You've installed *Habits*.\n\nStart with _add meditate_ (or any habit). Every night I'll ask about each one; react ✅ or 👍 if you did it.\n\nSend _help_ any time.",
   help: HELP,
   settings: { checkinHour: 21 },

@@ -2,6 +2,12 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2026-11-16
+
+### Changed
+- Marketplace text says "daily check-in at the time you pick" instead of "nightly", matching per-habit check-in times from 1.1.0.
+- Adds its public page listing (search title, description and heading) for whatodo.today.
+
 ## [1.1.1] - 2026-11-16
 
 ### Changed
