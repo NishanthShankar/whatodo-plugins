@@ -19,6 +19,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `description` | string | yes | Marketplace description, ≥ 40 chars. |
 | `groupName` | string | yes | Name of the WhatsApp group created on install, ≤ 25 chars. |
 | `price` | number | yes | Smallest currency unit (paise). Must be `0` today. |
+| `tier` | `1 \| 2 \| 3` | yes in this repo (optional in the SDK type) | Platform cost tier: how much the plugin costs whatodo to run, not its price. See [Tiers](#tiers). |
 | `welcome` | string | yes | Posted in the group right after install. |
 | `help` | string | yes | Posted when the person sends `help`, `?`, `menu` or `commands` (whatodo handles this; `onMessage` doesn't see those). |
 | `settings` | `Record<string, Json>` | no | Defaults for a new install. |
@@ -48,6 +49,18 @@ Slots run at most once per install: a daily schedule once per local day, an hour
 | `lockable` | boolean | The person may lock the page behind their whatodo PIN. Use it for anything personal. |
 | `load` | `(kit, args) => Promise<Json>` | Data for the page. Runs **read-only**: `store.put`, `store.delete`, `setSettings` and `send` throw. |
 | `actions` | `Record<string, (kit, args) => Promise<Json \| void>>` | Changes the page can ask for. Throw `Error("Plain sentence")` to show the person a message. |
+
+## Tiers
+
+`tier` describes what a plugin costs the platform, so pricing and limits can be fair later (see [earning.md](earning.md)). Pick the lowest that's true and say why in the PR:
+
+| Tier | Platform cost | Typical plugin |
+|---|---|---|
+| 1 | No or low | Keeps a little state, posts a few messages a day (Habits) |
+| 2 | Medium | Posts many messages a day, stores a lot, or runs hourly work for most installs |
+| 3 | High | Needs paid services or heavy processing (reserved; hosted plugins later) |
+
+Raising a plugin's tier changes what people may pay for it, so it is a MAJOR release with maintainer approval. Lowering it is a MINOR.
 
 ## Events
 
@@ -98,9 +111,9 @@ list<T>(collection, { prefix?, from?, to?, limit? }): Promise<{ key, data: T, so
 
 | Export | Meaning |
 |---|---|
-| `SDK_VERSION` | `"1.0.0"`: the SDK version. |
+| `SDK_VERSION` | the SDK version (`"1.1.0"`). |
 | `compareVersions(a, b)` | Negative, zero or positive, comparing semver strings. Use in `onUpgrade`. |
-| `Json`, `Kit`, `PluginDef`, … | Types. |
+| `Json`, `Kit`, `PluginDef`, `Tier`, … | Types. |
 
 ## Testing
 

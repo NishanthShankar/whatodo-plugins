@@ -10,7 +10,7 @@ Every plugin has its own semver `version` in its definition. Every change to a p
 |---|---|---|
 | **PATCH** `1.1.0 → 1.1.1` | Fixes; nothing new for the person to learn | Parser accepts a typo it should have; wording fix; a check-in no longer sent twice |
 | **MINOR** `1.1.0 → 1.2.0` | New behaviour that keeps everything old working | A new command, a new optional setting, a new web action, a new optional field in stored data |
-| **MAJOR** `1.1.0 → 2.0.0` | Something an existing person relies on changes or goes away | Removing or renaming a command, changing what a command does, removing a setting, changing stored data in a way `onUpgrade` can't fully migrate |
+| **MAJOR** `1.1.0 → 2.0.0` | Something an existing person relies on changes or goes away | Removing or renaming a command, changing what a command does, removing a setting, changing stored data in a way `onUpgrade` can't fully migrate, raising `tier` |
 
 Prefer MINOR: add the new way, keep the old way working, mark it deprecated in the README and CHANGELOG, and remove it in the next MAJOR. A MAJOR needs a maintainer's explicit approval and a note in the PR on how existing installs are affected.
 

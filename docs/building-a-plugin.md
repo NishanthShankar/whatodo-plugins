@@ -50,6 +50,7 @@ This copies `templates/plugin` into `src/plugins/<id>`, fills in the names and r
 | `description` | at least 40 chars: what it does and how you use it in WhatsApp |
 | `groupName` | 1-25 chars, usually `"<icon> <Name>"` |
 | `price` | `0` (paid plugins are not enabled yet) |
+| `tier` | `1`, `2` or `3`: what it costs the platform to run ([sdk-reference.md#tiers](sdk-reference.md#tiers)) |
 | `welcome` | posted right after install: what it is, the first thing to try, "send help" |
 | `help` | the command list, posted when the person sends `help` |
 

@@ -19,6 +19,7 @@ export default definePlugin({
   description: "Two or three sentences for the marketplace card: what it does, how you use it in WhatsApp.",
   groupName: "__ICON__ __NAME__",
   price: 0,
+  tier: 1,
   welcome: "__ICON__ You've installed *__NAME__*.\n\nTry _example_. Send _help_ any time.",
   help: HELP,
 
