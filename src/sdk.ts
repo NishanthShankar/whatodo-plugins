@@ -14,7 +14,7 @@
  * The SDK's own version. Plugins are written against a major version; whatodo refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.2.1";
+export const SDK_VERSION = "1.3.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -65,7 +65,11 @@ export interface Kit {
    * message later (they come back with the same ref).
    */
   send(text: string, opts?: { ref?: Json }): void;
-  /** React to the message being handled (message events only). */
+  /**
+   * React to the message being handled. In onMessage that is the person's message; in
+   * onReaction it is the plugin's own message they reacted to (so you can acknowledge their
+   * reaction). Pass "" to remove the reaction. Ignored in schedules and web calls.
+   */
   react(emoji: string): void;
   /** A short random id for new records. */
   id(): string;

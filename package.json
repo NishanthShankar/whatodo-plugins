@@ -1,6 +1,6 @@
 {
   "name": "whatodo-plugins",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Plugins for whatodo, the todo list you run from WhatsApp.",
   "type": "module",
   "license": "MIT",
