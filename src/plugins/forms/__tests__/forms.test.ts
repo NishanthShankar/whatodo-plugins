@@ -1,0 +1,168 @@
+import { describe, expect, it } from "vitest";
+import forms, { size, slug } from "..";
+import { createTestKit } from "../../../testing";
+import type { HookFile } from "../../../sdk";
+
+const T = (o = {}) => createTestKit({ today: "2026-11-17", hour: 10, ...o });
+const last = (t: ReturnType<typeof T>) => t.sent.at(-1)!.text;
+const file = (id: string, name: string, bytes = 240_000): HookFile => ({ id, field: "id_proof", name, type: "application/pdf", size: bytes });
+type Page = { forms: { key: string; url: string; closed: boolean; count: number }[]; submissions: { id: string; form: string; fields: Record<string, string>; files: HookFile[]; done: boolean }[]; total: number };
+
+describe("forms: helpers", () => {
+  it("makes keys from names and sizes for people", () => {
+    expect(slug("Partner Applications!")).toBe("partner-applications");
+    expect(slug("  ")).toBe("");
+    expect([size(500), size(240_000), size(1_300_000)]).toEqual(["500 B", "234 KB", "1.2 MB"]);
+  });
+});
+
+describe("forms: making and listing", () => {
+  it("new form opens a hook and replies with the address", async () => {
+    const t = T();
+    await t.message(forms, "new form Contact");
+    expect(t.hooks.has("contact")).toBe(true);
+    expect(last(t)).toContain("Your form *Contact* is ready.");
+    expect(last(t)).toContain("https://hooks.test/contact");
+    await t.message(forms, "new form contact");
+    expect(last(t)).toContain("You already have a form called *Contact*");
+    await t.message(forms, "new form !!!");
+    expect(last(t)).toContain("Give the form a name");
+  });
+
+  it("forms, address and unknown names", async () => {
+    const t = T();
+    await t.message(forms, "forms");
+    expect(last(t)).toContain("No forms yet");
+    await t.message(forms, "new form partner applications");
+    await t.message(forms, "forms");
+    expect(last(t)).toContain("*partner applications*: 0 submissions");
+    await t.message(forms, "address partner applications");
+    expect(last(t)).toContain("https://hooks.test/partner-applications");
+    await t.message(forms, "address nope");
+    expect(last(t)).toContain(`I don't have a form called "nope"`);
+    await t.message(forms, "what");
+    expect(last(t)).toContain("help");
+  });
+});
+
+describe("forms: submissions", () => {
+  it("stores a submission and posts its fields and file names", async () => {
+    const t = T();
+    await t.message(forms, "new form contact");
+    await t.hook(forms, "contact", { name: "Asha", email: "asha@example.com", message: "Hello" }, [file("f1", "id-proof.pdf"), file("f2", "photo.jpg", 1_300_000)], "https://example.com");
+    expect(last(t)).toBe(
+      "📬 *contact*\n*name:* Asha\n*email:* asha@example.com\n*message:* Hello\n📎 id-proof.pdf (234 KB), photo.jpg (1.2 MB)\n_Open the files on app.whatodo.today._",
+    );
+    const page = (await t.load(forms)) as unknown as Page;
+    expect(page.total).toBe(1);
+    expect(page.forms[0]).toMatchObject({ key: "contact", count: 1, closed: false });
+    expect(page.submissions[0]).toMatchObject({ form: "contact", fields: { name: "Asha" }, done: false });
+    expect(page.submissions[0].files.map((f) => f.id)).toEqual(["f1", "f2"]);
+    expect(t.sent.at(-1)!.ref).toEqual({ kind: "submission", id: page.submissions[0].id });
+  });
+
+  it("cuts long values and long field lists short in the message, but keeps them", async () => {
+    const t = T();
+    await t.message(forms, "new form contact");
+    const fields: Record<string, string> = { note: "x".repeat(500) };
+    for (let i = 0; i < 14; i++) fields[`f${i}`] = String(i);
+    await t.hook(forms, "contact", fields);
+    expect(last(t)).toContain(`*note:* ${"x".repeat(300)}…`);
+    expect(last(t)).toContain("_and 3 more fields_");
+    const page = (await t.load(forms)) as unknown as Page;
+    expect(page.submissions[0].fields.note).toHaveLength(500);
+    expect(Object.keys(page.submissions[0].fields)).toHaveLength(15);
+  });
+
+  it("✅ marks a submission done; taking it off undoes that", async () => {
+    const t = T();
+    await t.message(forms, "new form contact");
+    await t.hook(forms, "contact", { name: "Asha" });
+    const ref = t.sent.at(-1)!.ref;
+    await t.react(forms, "✅", ref);
+    expect(((await t.load(forms)) as unknown as Page).submissions[0].done).toBe(true);
+    await t.react(forms, null, ref);
+    expect(((await t.load(forms)) as unknown as Page).submissions[0].done).toBe(false);
+    await t.react(forms, "✅", { other: true });
+  });
+
+  it("last shows the latest, of all forms or one", async () => {
+    const t = T();
+    await t.message(forms, "last");
+    expect(last(t)).toBe("Nothing has come in yet.");
+    await t.message(forms, "new form contact");
+    await t.message(forms, "new form demo");
+    await t.hook(forms, "contact", { name: "Asha" });
+    t.setHour(11);
+    await t.hook(forms, "demo", { name: "Ravi" });
+    await t.message(forms, "last");
+    expect(last(t)).toContain("*demo*\n*name:* Ravi");
+    await t.message(forms, "last contact");
+    expect(last(t)).toContain("*contact*\n*name:* Asha");
+  });
+
+  it("stops messaging after the daily number, says so once, and keeps everything", async () => {
+    const t = T({ settings: { dailyMessages: 2 } });
+    await t.message(forms, "new form contact");
+    const n = t.sent.length;
+    for (let i = 0; i < 6; i++) await t.hook(forms, "contact", { n: String(i) });
+    expect(t.sent.slice(n).map((s) => s.text.split("\n")[0])).toEqual([
+      "📬 *contact*",
+      "📬 *contact*",
+      "📬 *contact* has had more than 2 submissions today. I'll stop messaging about it until tomorrow. They're all on app.whatodo.today.",
+    ]);
+    expect(((await t.load(forms)) as unknown as Page).total).toBe(6);
+    t.setToday("2026-11-18");
+    await t.hook(forms, "contact", { n: "next day" });
+    expect(last(t)).toContain("*n:* next day");
+  });
+});
+
+describe("forms: closing and deleting", () => {
+  it("close stops the address; a late request keeps nothing, files included", async () => {
+    const t = T();
+    await t.message(forms, "new form contact");
+    await t.message(forms, "close contact");
+    expect(t.hooks.has("contact")).toBe(false);
+    expect(last(t)).toContain("*contact* is closed");
+    await expect(t.hook(forms, "contact", { a: "b" })).rejects.toThrow("isn't open");
+    // A request already on its way when the form closed reaches onHook: nothing is kept.
+    await forms.onHook!({ key: "contact", fields: { a: "b" }, files: [file("late", "x.pdf")], origin: null }, t.kit);
+    expect(t.removedFiles).toEqual(["late"]);
+    expect(((await t.load(forms)) as unknown as Page).total).toBe(0);
+    await t.message(forms, "address contact");
+    expect(last(t)).toContain("is closed");
+    await t.message(forms, "new form contact");
+    expect(t.hooks.has("contact")).toBe(true);
+  });
+
+  it("the page can make a form, mark done, and delete a submission or a whole form with its files", async () => {
+    const t = T();
+    expect(await t.act(forms, "createForm", { name: "KYC" })).toEqual({ key: "kyc", url: "https://hooks.test/kyc" });
+    await expect(t.act(forms, "createForm", { name: "kyc" })).rejects.toThrow("already have a form");
+    await t.hook(forms, "kyc", { name: "Asha" }, [file("a1", "pan.pdf")]);
+    t.setHour(11);
+    await t.hook(forms, "kyc", { name: "Ravi" }, [file("b1", "aadhaar.pdf"), file("b2", "selfie.jpg")]);
+    let page = (await t.load(forms)) as unknown as Page;
+    expect(page.submissions.map((s) => s.fields.name)).toEqual(["Ravi", "Asha"]);
+    await t.act(forms, "setDone", { id: page.submissions[0].id, done: true });
+    await t.act(forms, "deleteSubmission", { id: page.submissions[1].id });
+    expect(t.removedFiles).toEqual(["a1"]);
+    page = (await t.load(forms)) as unknown as Page;
+    expect(page.submissions).toHaveLength(1);
+    expect(page.submissions[0].done).toBe(true);
+    await t.act(forms, "deleteForm", { key: "kyc" });
+    expect(t.removedFiles).toEqual(["a1", "b1", "b2"]);
+    expect(t.hooks.has("kyc")).toBe(false);
+    expect(Object.keys(t.dump())).toEqual([]);
+  });
+});
+
+describe("forms: basics", () => {
+  it("is unlisted and answers help", async () => {
+    expect(forms.unlisted).toBe(true);
+    const t = T();
+    await t.message(forms, "help");
+    expect(last(t)).toBe(forms.help);
+  });
+});
