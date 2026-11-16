@@ -17,7 +17,7 @@ Send these in the Habits group.
 | `time meditate 7am` / `time meditate default` | One habit's own time, or back to the default. 👍 |
 | `help` | This list. |
 
-Check-ins: at each habit's hour (its own, else the default) the plugin posts one message per habit not yet done that day. Reacting ✅ 👍 💪 🔥 logs it; removing the reaction undoes it; replying `yes` / `no` also works.
+Check-ins: at each habit's hour (its own, else the default) the plugin posts one message per habit not yet done that day. Reacting ✅ 👍 💪 🔥 logs it; reacting ❌ ✖️ ❎ 👎 🚫 says you didn't (counts like no answer, but closes the day so it isn't asked again); removing the reaction undoes either. Every reaction gets a 👍 back, removed again with yours. Replying `yes` / `no` also works.
 
 ## Schedules
 
@@ -37,6 +37,7 @@ Check-ins: at each habit's hour (its own, else the default) the plugin posts one
 |---|---|---|---|
 | `habits` | habit id | `{ name, createdDay, archived, hour? }` | created time (ms) |
 | `logs` | `<habitId>:<day>` | `1` | day |
+| `missed` | `<habitId>:<day>` | `1` | day |
 
 ## Web page
 

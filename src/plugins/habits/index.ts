@@ -2,11 +2,14 @@ import { definePlugin, type Kit } from "../../sdk";
 import { bestStreak, cleanName, grid, streak } from "./streaks";
 
 /**
- * Habits: one message per habit every night; react ✅ or 👍 if you did it.
+ * Habits: one message per habit every day; react ✅ or 👍 if you did it, ❌ if you didn't.
+ * Every reaction gets a 👍 back so you know it landed.
  *
  * Storage
  *   habits  key = habit id   data = { name, createdDay, archived, hour? }   sort = createdAt
- *   logs    key = "<habitId>:<day>"   data = 1   sort = day
+ *   logs    key = "<habitId>:<day>"   data = 1   sort = day   (did it)
+ *   missed  key = "<habitId>:<day>"   data = 1   sort = day   (said they didn't: the day is
+ *           closed, it counts like no answer for streaks, and that day isn't asked again)
  */
 
 interface Habit {
@@ -23,6 +26,7 @@ interface PromptRef {
 }
 
 const DONE = new Set(["✅", "✔️", "☑️", "👍", "💪", "🔥"]);
+const MISSED = new Set(["❌", "✖️", "❎", "👎", "🚫"]);
 
 async function active(kit: Kit): Promise<{ id: string; habit: Habit }[]> {
   const all = await kit.store.list<Habit>("habits");
@@ -34,9 +38,19 @@ async function doneDays(kit: Kit, habitId: string): Promise<Set<string>> {
   return new Set(logs.map((l) => l.key.slice(habitId.length + 1)));
 }
 
+type DayState = "done" | "missed" | null;
+
+/** Record a day: did it, said they didn't, or nothing (as if never answered). */
+async function setDay(kit: Kit, habitId: string, day: string, state: DayState) {
+  const key = `${habitId}:${day}`;
+  if (state === "done") await kit.store.put("logs", key, 1, day);
+  else await kit.store.delete("logs", key);
+  if (state === "missed") await kit.store.put("missed", key, 1, day);
+  else await kit.store.delete("missed", key);
+}
+
 async function setDone(kit: Kit, habitId: string, day: string, done: boolean) {
-  if (done) await kit.store.put("logs", `${habitId}:${day}`, 1, day);
-  else await kit.store.delete("logs", `${habitId}:${day}`);
+  await setDay(kit, habitId, day, done ? "done" : null);
 }
 
 function find(list: { id: string; habit: Habit }[], which: string) {
@@ -107,12 +121,12 @@ const HELP = [
   "_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back",
   "_add read at 10pm_ adds a habit with its own time",
   "",
-  "Every night I send one message per habit. React ✅ or 👍 if you did it.",
+  "Every day I send one message per habit. React ✅ or 👍 if you did it, ❌ if you didn't.",
 ].join("\n");
 
 export default definePlugin({
   id: "habits",
-  version: "1.1.2",
+  version: "1.2.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -128,7 +142,7 @@ export default definePlugin({
       "Track habits on WhatsApp. Get a daily check-in, react to mark it done and watch your streak grow. Free, in its own WhatsApp group. No app.",
     h1: "Habit tracker on WhatsApp",
   },
-  welcome: "🌱 You've installed *Habits*.\n\nStart with _add meditate_ (or any habit). Every night I'll ask about each one; react ✅ or 👍 if you did it.\n\nSend _help_ any time.",
+  welcome: "🌱 You've installed *Habits*.\n\nStart with _add meditate_ (or any habit). Every day I'll ask about each one; react ✅ or 👍 if you did it, ❌ if you didn't.\n\nSend _help_ any time.",
   help: HELP,
   settings: { checkinHour: 21 },
   // Hourly, so each habit can be asked at its own time (the default time otherwise).
@@ -144,7 +158,7 @@ export default definePlugin({
       const yes = /^(y|yes|yep|yeah|done|did it|did|ok|✅|👍|💪|🔥)[!. ]*$/i.test(lower);
       const no = /^(n|no|nope|nah|skip|skipped|missed|not today|❌|👎)[!. ]*$/i.test(lower);
       if (yes || no) {
-        await setDone(kit, ref.habitId, ref.day, yes);
+        await setDay(kit, ref.habitId, ref.day, yes ? "done" : "missed");
         kit.react(yes ? "✅" : "👍");
         return;
       }
@@ -229,7 +243,12 @@ export default definePlugin({
   async onReaction(event, kit) {
     const ref = event.ref as PromptRef | null;
     if (!ref || typeof ref !== "object" || !("habitId" in ref)) return;
-    await setDone(kit, ref.habitId, ref.day, !!event.emoji && DONE.has(event.emoji));
+    const e = event.emoji;
+    // ✅ did it, ❌ didn't (closes the day), removed: back to no answer. Anything else counts
+    // as not done, as before.
+    await setDay(kit, ref.habitId, ref.day, e && DONE.has(e) ? "done" : e && MISSED.has(e) ? "missed" : null);
+    // Acknowledge every reaction so the person knows it landed; take it back when theirs goes.
+    kit.react(e ? "👍" : "");
   },
 
   async onSchedule(event, kit) {
@@ -239,8 +258,9 @@ export default definePlugin({
       if (event.id === "checkin" && hourOf(habit, kit) !== now) continue;
       const done = await doneDays(kit, id);
       if (done.has(kit.today)) continue;
+      if (await kit.store.get("missed", `${id}:${kit.today}`)) continue; // they already said no
       const s = streak(done, kit.today);
-      kit.send(`🌙 Did you *${habit.name}* today?\n${grid(done, kit.today, 7, habit.createdDay)}${s ? `  🔥 ${s}` : ""}\n\n_React ✅ or 👍 if you did._`, {
+      kit.send(`🌙 Did you *${habit.name}* today?\n${grid(done, kit.today, 7, habit.createdDay)}${s ? `  🔥 ${s}` : ""}\n\n_React ✅ if you did, ❌ if you didn't._`, {
         ref: { habitId: id, day: kit.today },
       });
     }

@@ -2,6 +2,21 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-11-16
+
+### Added
+- React ❌ (or ✖️ ❎ 👎 🚫) to a check-in to say you didn't do it. It counts the same as no answer for streaks, but closes the day: that habit isn't asked again that day. Removing the ❌ reopens it, and `done read` still logs it later. Replying _no_ to a check-in closes the day the same way.
+- Every reaction to a check-in gets a 👍 back, so you know it was recorded. Removing your reaction removes the 👍.
+
+### Changed
+- Check-in, welcome and help text mention ❌.
+
+### Data
+- New `missed` collection: key `<habitId>:<day>`, data `1`, sort = day. Nothing existing changes.
+
+### Requires
+- The whatodo runtime that delivers `kit.react` in `onReaction` (SDK 1.3.0). On an older runtime the 👍 is simply not sent.
+
 ## [1.1.2] - 2026-11-16
 
 ### Changed
