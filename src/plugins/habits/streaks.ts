@@ -87,6 +87,23 @@ export function parseDays(text: string): number[] | null | undefined {
   return set.size === 7 ? null : [...set].sort((a, b) => a - b);
 }
 
+/**
+ * Day words found anywhere in a sentence ("I go to the gym on mondays and thursdays"):
+ * sorted weekdays, null for every day, undefined when it names none.
+ */
+export function scanDays(text: string): number[] | null | undefined {
+  const t = text.toLowerCase();
+  if (/\b(?:every ?day|daily|each day|all days|every single day)\b/.test(t)) return null;
+  const set = new Set<number>();
+  for (const w of t.split(/[^a-z]+/)) {
+    if (w === "weekdays" || w === "weekday") [1, 2, 3, 4, 5].forEach((d) => set.add(d));
+    else if (w === "weekends" || w === "weekend") [0, 6].forEach((d) => set.add(d));
+    else if (w in WORDS) set.add(WORDS[w]);
+  }
+  if (!set.size) return undefined;
+  return set.size === 7 ? null : [...set].sort((a, b) => a - b);
+}
+
 /** "every day", "weekdays", "weekends" or "Mon, Wed, Fri". */
 export function daysLabel(days: Days): string {
   if (!days || !days.length || days.length === 7) return "every day";

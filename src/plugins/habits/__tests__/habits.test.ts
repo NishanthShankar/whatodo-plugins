@@ -192,12 +192,13 @@ describe("habits", () => {
     expect(after.habits).toHaveLength(0);
   });
 
-  it("help and unknown messages answer in words", async () => {
+  it("help answers in words; unknown messages go to whatodo with a help fallback", async () => {
     const t = createTestKit();
     await t.message(habits, "help");
     expect(t.sent[0].text).toBe(habits.help);
     await t.message(habits, "what is this");
-    expect(t.sent[1].text).toContain("help");
+    expect(t.sent).toHaveLength(1);
+    expect(t.unsures[0]).toContain("help");
   });
 
   it("upgrading from 1.0.0 keeps existing habits working", async () => {
@@ -206,5 +207,91 @@ describe("habits", () => {
     await t.upgrade(habits, "1.0.0");
     await t.schedule(habits, "checkin");
     expect(t.sent[0].text).toContain("*Stretch*");
+  });
+});
+
+describe("habits: unclear messages", () => {
+  const habitRows = (t: ReturnType<typeof createTestKit>) =>
+    Object.entries(t.dump())
+      .filter(([k]) => k.startsWith("habits/"))
+      .map(([k, v]) => ({ id: k.slice(7), ...(v as { name: string; days: number[] | null; hour: number | null; archived: boolean }) }));
+
+  it("hands what it can't read to whatodo with a fallback, instead of answering", async () => {
+    const t = createTestKit();
+    await t.message(habits, "I want to start going to the gym on mondays and thursdays");
+    expect(t.sent).toHaveLength(0);
+    expect(t.unsures).toEqual(["I didn't get that. Send _help_ to see what I can do."]);
+  });
+
+  it.each([
+    ["I want to start going to the gym on mondays and thursdays", "Gym", [1, 4], null],
+    ["can you track reading every day at 10pm", "Reading", null, 22],
+    ["start a habit of meditation in the morning at 7", "Meditation", null, 7],
+    ["I'd like to run on weekends", "Run", [0, 6], null],
+    ["new habit: drink 8 glasses of water", "Drink 8 glasses of water", null, null],
+    ["yoga tue, thu and sat at 6:30am", "Yoga", [2, 4, 6], 6],
+  ])("add_habit: %s", async (text, name, days, hour) => {
+    const t = createTestKit();
+    await t.intent(habits, text, "add_habit");
+    expect(habitRows(t).map((h) => [h.name, h.days, h.hour])).toEqual([[name, days, hour]]);
+    expect(t.reactions).toEqual(["👍"]);
+  });
+
+  it("asks for a name when there is none", async () => {
+    const t = createTestKit();
+    await t.intent(habits, "I want to start a new habit", "add_habit");
+    expect(habitRows(t)).toHaveLength(0);
+    expect(t.sent.at(-1)!.text).toContain("What should I call it?");
+  });
+
+  it("acts on one habit, by the model's target or by name in the text", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add gym");
+    await t.message(habits, "add read");
+    const [gym, read] = habitRows(t);
+    expect(await t.targets(habits)).toEqual({ [gym.id]: "Gym", [read.id]: "Read" });
+
+    await t.intent(habits, "finished my workout", "log_done", gym.id);
+    expect(t.reactions.at(-1)).toBe("✅");
+    expect(t.dump()).toHaveProperty([`logs/${gym.id}:${t.kit.today}`]);
+
+    await t.intent(habits, "oops I didn't actually do gym", "undo_done");
+    expect(t.dump()).not.toHaveProperty([`logs/${gym.id}:${t.kit.today}`]);
+
+    await t.intent(habits, "skipped reading today", "missed", read.id);
+    expect(t.dump()).toHaveProperty([`missed/${read.id}:${t.kit.today}`]);
+
+    await t.intent(habits, "move gym to tuesdays and fridays", "set_days", gym.id);
+    await t.intent(habits, "remind me about read at 8 in the morning... 8am", "set_time", read.id);
+    expect(habitRows(t).map((h) => [h.name, h.days, h.hour])).toEqual([
+      ["Gym", [2, 5], null],
+      ["Read", null, 8],
+    ]);
+
+    await t.intent(habits, "I'm done with the gym thing, stop asking", "remove_habit", gym.id);
+    expect(habitRows(t)[0].archived).toBe(true);
+  });
+
+  it("asks which habit or which days when the text doesn't say", async () => {
+    const t = createTestKit();
+    await t.message(habits, "add gym");
+    await t.message(habits, "add read");
+    await t.intent(habits, "I did it", "log_done");
+    expect(t.sent.at(-1)!.text).toBe("Which habit? Send _habits_ to see them.");
+    const [gym] = habitRows(t);
+    await t.intent(habits, "change the days for gym", "set_days", gym.id);
+    expect(t.sent.at(-1)!.text).toContain("days gym mon wed fri");
+  });
+
+  it("default time, list and help", async () => {
+    const t = createTestKit();
+    await t.intent(habits, "please check in with me at 8pm instead", "default_time");
+    expect(t.kit.settings.checkinHour).toBe(20);
+    await t.intent(habits, "stop the nightly messages", "default_time");
+    expect(t.kit.settings.checkinHour).toBe(null);
+    await t.intent(habits, "how am I doing", "list");
+    expect(t.sent.at(-1)!.text).toContain("No habits yet");
+    await t.intent(habits, "what can you do", "help");
+    expect(t.sent.at(-1)!.text).toContain("*Habits*");
   });
 });
