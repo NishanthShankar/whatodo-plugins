@@ -118,6 +118,26 @@ describe("forms: submissions", () => {
   });
 });
 
+describe("forms: field order", () => {
+  it("keeps the order the form sent, even when storage sorts the fields", async () => {
+    const t = T();
+    await t.message(forms, "new form contact");
+    await t.hook(forms, "contact", { name: "Asha", email: "a@example.com", city: "Pune" });
+    const page = (await t.load(forms)) as unknown as Page & { submissions: { order: string[] }[] };
+    expect(page.submissions[0].order).toEqual(["name", "email", "city"]);
+    // What a database that sorts object keys hands back: the order comes from `order`.
+    const id = page.submissions[0].id;
+    const row = (await t.kit.store.get<Record<string, unknown>>("submissions", id))!;
+    await t.kit.store.put("submissions", id, { ...row, fields: { city: "Pune", email: "a@example.com", name: "Asha" } }, row.at as number);
+    await t.message(forms, "last");
+    expect(last(t)).toBe("📬 *contact*\n*name:* Asha\n*email:* a@example.com\n*city:* Pune");
+    // A 1.0.0 row has no order: it still shows.
+    await t.kit.store.put("submissions", id, { form: "contact", at: row.at as number, fields: { b: "2", a: "1" }, files: [], origin: null }, row.at as number);
+    await t.message(forms, "last");
+    expect(last(t)).toBe("📬 *contact*\n*b:* 2\n*a:* 1");
+  });
+});
+
 describe("forms: closing and deleting", () => {
   it("close stops the address; a late request keeps nothing, files included", async () => {
     const t = T();

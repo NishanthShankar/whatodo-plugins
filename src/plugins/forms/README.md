@@ -67,7 +67,7 @@ Actions: `createForm { name }`, `closeForm { key }`, `deleteForm { key }`, `dele
 | Collection | Key | Data | Sort |
 |---|---|---|---|
 | `forms` | form key | `{ name, url, createdDay, created, closed?, count }` | created (ms) |
-| `submissions` | id | `{ form, at, fields, files: [{ id, field, name, type, size }], origin, done? }` | received (ms) |
+| `submissions` | id | `{ form, at, fields, order, files: [{ id, field, name, type, size }], origin, done? }` (`order`: field names as sent) | received (ms) |
 | `days` | `<form>:<day>` | messages sent that day | day |
 
 Files themselves are held by whatodo, not in these rows.

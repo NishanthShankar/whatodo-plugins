@@ -2,6 +2,14 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-11-17
+
+### Fixed
+- Fields are shown in the order your form sent them, in the message and on the page. They were coming out alphabetically.
+
+### Data
+- `submissions` rows gain `order` (the field names in the order sent). Rows from 1.0.0 have none and fall back to the stored order.
+
 ## [1.0.0] - 2026-11-17
 
 ### Added
