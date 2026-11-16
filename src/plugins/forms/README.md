@@ -42,6 +42,7 @@ Send these in the Forms group.
 | `group contact` | Gives a form you already have its own group. |
 | `forms` | Your forms, how many submissions each has had, and their addresses. |
 | `address contact` | One form's address again. In a form's own group, `address` is enough. |
+| `new address contact` | Replaces the form's address, for when the old one got out and is being misused. The old address stops working at once; update your website with the new one. Everything the form received stays. In a form's own group, `new address` is enough. |
 | `last` / `last contact` | The latest submission, of any form or of one. In a form's own group, `last` means that form. |
 | `close contact` | In a form's own group, `close` is enough. The form stops taking submissions; its address no longer works. What it received stays. `new form contact` opens it again with a new address. 👍 |
 | `help` | This list. |
@@ -62,7 +63,7 @@ On app.whatodo.today, behind your PIN if you've set one:
 - Every submission, newest first: when, from which site, its fields, and its files to open or download.
 - Mark a submission done, or delete it (its files go with it).
 
-Actions: `createForm { name, ownGroup? }`, `giveGroup { key }`, `closeForm { key }`, `deleteForm { key }`, `deleteSubmission { id }`, `setDone { id, done }`.
+Actions: `createForm { name, ownGroup? }`, `giveGroup { key }`, `newAddress { key }`, `closeForm { key }`, `deleteForm { key }`, `deleteSubmission { id }`, `setDone { id, done }`.
 
 ## Data
 

@@ -65,6 +65,7 @@ const HELP = [
   "_forms_ lists your forms and their addresses",
   "_address contact_ shows one form's address again",
   "_last_ (or _last contact_) shows the latest submission",
+  "_new address contact_ replaces a form's address if the old one is being misused",
   "_close contact_ stops a form taking submissions",
   "",
   "Each submission arrives here as a message. React ✅ when you've dealt with it.",
@@ -124,6 +125,17 @@ async function createForm(kit: Kit, name: string, ownGroup = false): Promise<{ k
   return { key, form };
 }
 
+/**
+ * Give a form a new address. The old one stops working at once; everything the form received
+ * stays where it is. For an address that got out and is being misused.
+ */
+async function replaceAddress(kit: Kit, key: string, form: Form): Promise<Form> {
+  await kit.hooks.remove(key);
+  const next = { ...form, url: await kit.hooks.url(key) };
+  await kit.store.put("forms", key, next as unknown as Json, next.created);
+  return next;
+}
+
 function addressText(key: string, form: Form, fresh: boolean): string {
   return [
     fresh ? `📬 Your form *${form.name}* is ready.` : `📬 *${form.name}*`,
@@ -167,7 +179,7 @@ async function removeSubmission(kit: Kit, id: string) {
 
 export default definePlugin({
   id: "forms",
-  version: "1.1.1",
+  version: "1.2.0",
   sdk: "1",
   name: "Forms",
   icon: "📬",
@@ -227,6 +239,15 @@ export default definePlugin({
       await openGroup(kit, found.key, form);
       await kit.store.put("forms", found.key, form as unknown as Json, form.created);
       return kit.send(`📬 I'm making a WhatsApp group just for *${form.name}*. Its submissions will arrive there (here until it's ready).`);
+    }
+
+    m = lower.match(/^(?:new|change|replace|reset|rotate)\s+(?:the\s+)?(?:address|url|link)(?:(?:\s+(?:of|for))?\s+(.+))?$/);
+    if (m && (m[1] || hereKey)) {
+      const found = await findForm(kit, m[1] ?? hereKey!);
+      if (!found) return kit.send(`I don't have a form called "${m[1] ?? hereKey}". Send _forms_ to see yours.`);
+      if (found.form.closed) return kit.send(`*${found.form.name}* is closed. Send _new form ${found.key}_ to open it again with a new address.`);
+      const next = await replaceAddress(kit, found.key, found.form);
+      return kit.send(`📬 *${next.name}* has a new address. The old one no longer works, so update your website:\n\n${next.url}\n\nEverything it received is still here.`);
     }
 
     m = lower.match(/^(?:address|url|link|endpoint)(?:(?:\s+(?:of|for))?\s+(.+))?$/);
@@ -327,6 +348,13 @@ export default definePlugin({
         if (!form) return;
         await kit.hooks.remove(String(key));
         await kit.store.put("forms", String(key), { ...form, closed: true } as unknown as Json, form.created);
+      },
+      /** Replace a form's address; its submissions stay. Returns the new one. */
+      async newAddress(kit, { key }) {
+        const k = String(key);
+        const form = await kit.store.get<Form>("forms", k);
+        if (!form || form.closed) throw new Error("That form isn't open.");
+        return { key: k, url: (await replaceAddress(kit, k, form)).url };
       },
       /** Give a form its own WhatsApp group. */
       async giveGroup(kit, { key }) {

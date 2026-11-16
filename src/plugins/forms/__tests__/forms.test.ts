@@ -118,6 +118,43 @@ describe("forms: submissions", () => {
   });
 });
 
+describe("forms: a new address", () => {
+  it("replaces the address and keeps what the form received", async () => {
+    const t = T();
+    await t.message(forms, "new form contact");
+    await t.hook(forms, "contact", { name: "Asha" }, [file("f1", "id.pdf")]);
+    // Watch the hook being closed and opened again: that is what gives it a new address.
+    const calls: string[] = [];
+    const { url, remove } = t.kit.hooks;
+    t.kit.hooks.remove = async (k) => (calls.push(`remove ${k}`), remove(k));
+    t.kit.hooks.url = async (k) => (calls.push(`url ${k}`), url(k));
+    await t.message(forms, "new address contact");
+    expect(calls).toEqual(["remove contact", "url contact"]);
+    expect(last(t)).toContain("*contact* has a new address. The old one no longer works");
+    expect(t.hooks.has("contact")).toBe(true);
+    const page = (await t.load(forms)) as unknown as Page;
+    expect(page.total).toBe(1);
+    expect(page.forms[0]).toMatchObject({ key: "contact", count: 1, closed: false });
+    expect(t.removedFiles).toEqual([]);
+    // From the page, and for forms that can't have one.
+    expect(await t.act(forms, "newAddress", { key: "contact" })).toEqual({ key: "contact", url: "https://hooks.test/contact" });
+    await t.message(forms, "new address nope");
+    expect(last(t)).toContain(`I don't have a form called "nope"`);
+    await t.message(forms, "close contact");
+    await t.message(forms, "new address contact");
+    expect(last(t)).toContain("is closed");
+    await expect(t.act(forms, "newAddress", { key: "contact" })).rejects.toThrow("isn't open");
+  });
+
+  it("in a form's own group, new address needs no name", async () => {
+    const t = T();
+    await t.message(forms, "new form kyc in its own group");
+    await t.message(forms, "new address", null, "kyc");
+    expect(t.sent.at(-1)).toMatchObject({ group: "kyc" });
+    expect(last(t)).toContain("*kyc* has a new address");
+  });
+});
+
 describe("forms: marking done from WhatsApp", () => {
   it("any tick or thumbs up marks it done and is ticked back; other emoji don't", async () => {
     for (const emoji of ["✅", "✔️", "✔", "☑️", "✓", "👍", "👍🏽", "👌", "🆗"]) {
