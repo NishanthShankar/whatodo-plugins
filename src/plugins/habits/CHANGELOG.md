@@ -2,6 +2,18 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-11-16
+
+### Added
+- Understands messages that aren't exact commands, through whatodo's intent model (SDK 1.4.0): "I want to start going to the gym on mondays and thursdays", "finished my workout", "skipped reading today", "move gym to tuesdays", "check in with me at 8pm instead". Intents: add_habit, log_done, missed, undo_done, remove_habit, set_days, set_time, default_time, list, help. Targets are your habits by name. Names, days and times are read from the text by the plugin.
+- When the text doesn't say which habit, days or time, it asks with the exact command.
+
+### Changed
+- A message it can't read goes to whatodo's intent model first (`kit.unsure`); "I didn't get that" is only sent when the model isn't sure either.
+
+### Requires
+- whatodo with SDK 1.4.0 intent support. On an older runtime nothing changes: unclear messages get "I didn't get that".
+
 ## [1.3.0] - 2026-11-16
 
 ### Added

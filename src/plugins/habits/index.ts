@@ -1,5 +1,5 @@
 import { definePlugin, type Kit } from "../../sdk";
-import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, streak } from "./streaks";
+import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
  * Habits: one message per habit every day; react ✅ or 👍 if you did it, ❌ if you didn't.
@@ -124,6 +124,63 @@ function splitAdd(raw: string): { name: string; hour: number | null; days: numbe
   return { name, hour, days };
 }
 
+/** A time anywhere in a sentence: "at 7", "7am", "19:30", "10 pm". undefined when there's none. */
+function scanHour(text: string): number | undefined {
+  const t = text.toLowerCase();
+  const ampm = t.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)/);
+  if (ampm) return to24(+ampm[1], ampm[3][0] === "p" ? "pm" : "am") ?? undefined;
+  const at = t.match(/\b(?:at|@|by)\s+(\d{1,2})(?:[:.](\d{2}))?\b/);
+  if (at) return to24(+at[1]) ?? undefined;
+  return undefined;
+}
+
+const FILLER = new RegExp(
+  "^(?:i(?:\\s+|')(?:want|wanna|would like|would love|d like|d love|need|have|plan|am going|m going)\\s+to|i\\s+will|i'll|help me|can you|could you|please|pls|let'?s|i\\s+want|start(?:ing)?|begin|track(?:ing)?|add|create|make|set up|new|a|an|my|the|habit(?:s)?|of|to|for me|remind me to|going to|go to)(?:\\s+|$)",
+  "i",
+);
+
+/** The habit's name out of a sentence: drops the asking, the days and the time. */
+function habitName(text: string): string {
+  let t = text.trim().replace(/[.!?]+$/, "").replace(/:/g, " ");
+  // days and times, wherever they are
+  t = t.replace(/\s*\b(?:every|each|on|only on)?\s*(?:(?:mon|tue|tues|wed|weds|thu|thur|thurs|fri|sat|sun)(?:day|nesday|rsday|urday|sday)?s?|weekdays?|weekends?)(?:\s*(?:,|and|&|\/)\s*(?:(?:mon|tue|tues|wed|weds|thu|thur|thurs|fri|sat|sun)(?:day|nesday|rsday|urday|sday)?s?|weekdays?|weekends?))*\b/gi, " ");
+  t = t.replace(/\s*\b(?:every ?day|daily|each day|every single day)\b/gi, " ");
+  t = t.replace(/\s*\b(?:at|@|by|around)\s*\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?(?=\s|$)/gi, " ");
+  t = t.replace(/\s*\b\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)(?=\s|$)/gi, " ");
+  t = t.replace(/\s*\b(?:in the )?(?:morning|evening|night|afternoon)s?\b/gi, " ");
+  t = t.replace(/\s+/g, " ").trim();
+  for (let i = 0; i < 8; i++) {
+    const next = t.replace(FILLER, "");
+    if (next === t) break;
+    t = next;
+  }
+  t = t.replace(/\s+(?:habit|as a habit|regularly|again)$/i, "");
+  return cleanName(t);
+}
+
+/** The habit a message is about: the model's pick, else one whose name appears in the text. */
+function habitFor(list: { id: string; habit: Habit }[], target: string | null, text: string) {
+  if (target) {
+    const h = list.find((x) => x.id === target);
+    if (h) return h;
+  }
+  const lower = text.toLowerCase();
+  const named = list.filter((x) => lower.includes(x.habit.name.toLowerCase()));
+  return named.length === 1 ? named[0] : undefined;
+}
+
+async function addHabit(kit: Kit, list: { id: string; habit: Habit }[], name: string, hour: number | null, days: number[] | null | undefined) {
+  const same = list.find((h) => h.habit.name.toLowerCase() === name.toLowerCase());
+  if (same) {
+    const patch: Partial<Habit> = {};
+    if (hour !== null) patch.hour = hour;
+    if (days !== undefined) patch.days = days;
+    if (Object.keys(patch).length) await kit.store.put("habits", same.id, { ...same.habit, ...patch });
+  } else {
+    await kit.store.put("habits", kit.id(), { name, createdDay: kit.today, archived: false, hour, days: days ?? null }, kit.now);
+  }
+}
+
 async function summary(kit: Kit): Promise<string> {
   const list = await active(kit);
   if (!list.length) return "No habits yet. Add one: _add meditate_";
@@ -172,7 +229,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "1.3.0",
+  version: "1.4.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -279,18 +336,82 @@ export default definePlugin({
       const { name: raw, hour, days } = splitAdd(m[1]);
       const name = cleanName(raw);
       if (!name) return kit.send("Name the habit, like _add meditate_.");
-      const same = list.find((h) => h.habit.name.toLowerCase() === name.toLowerCase());
-      if (same) {
-        const patch: Partial<Habit> = {};
-        if (hour !== null) patch.hour = hour;
-        if (days !== undefined) patch.days = days;
-        if (Object.keys(patch).length) await kit.store.put("habits", same.id, { ...same.habit, ...patch });
-      } else {
-        await kit.store.put("habits", kit.id(), { name, createdDay: kit.today, archived: false, hour, days: days ?? null }, kit.now);
-      }
+      await addHabit(kit, list, name, hour, days);
       return kit.react("👍");
     }
-    kit.send("I didn't get that. Send _help_ to see what I can do.");
+    // Not a command: whatodo works out what was meant and calls onIntent below.
+    kit.unsure("I didn't get that. Send _help_ to see what I can do.");
+  },
+
+  understand: {
+    intents: {
+      add_habit: "Start tracking a new habit, every day or only on some days of the week, maybe at a set time",
+      log_done: "Say they did one of their habits today",
+      missed: "Say they did not do one of their habits today",
+      undo_done: "Take back a habit they marked done today by mistake",
+      remove_habit: "Stop tracking one of their habits",
+      set_days: "Change which days of the week one of their habits is on",
+      set_time: "Change the time of day one habit's check-in message is sent",
+      default_time: "Change the usual check-in time for all habits, or stop the check-ins",
+      list: "See their habits, streaks or progress",
+      help: "Ask how this works or what they can say",
+    },
+    async targets(kit) {
+      return Object.fromEntries((await active(kit)).map((h) => [h.id, h.habit.name]));
+    },
+  },
+
+  async onIntent({ text, intent, target }, kit) {
+    const list = await active(kit);
+    if (intent === "help") return kit.send(HELP);
+    if (intent === "list") return kit.send(await summary(kit));
+    if (intent === "add_habit") {
+      const name = habitName(text);
+      if (!name) return kit.send("What should I call it? Like _add gym on mon wed fri_.");
+      await addHabit(kit, list, name, scanHour(text) ?? null, scanDays(text));
+      return kit.react("👍");
+    }
+    if (intent === "default_time") {
+      if (/\b(?:off|stop|no more|don'?t|pause)\b/i.test(text)) {
+        await kit.setSettings({ checkinHour: null });
+        return kit.react("👍");
+      }
+      const hour = scanHour(text);
+      if (hour === undefined) return kit.send("What time? Like _time 9pm_, or _time off_.");
+      await kit.setSettings({ checkinHour: hour });
+      return kit.react("👍");
+    }
+
+    // The rest are about one habit.
+    const h = habitFor(list, target, text);
+    if (!h) return kit.send(list.length ? "Which habit? Send _habits_ to see them." : "You don't have any habits yet. Start with _add meditate_.");
+    switch (intent) {
+      case "log_done":
+        await setDay(kit, h.id, kit.today, "done");
+        return kit.react("✅");
+      case "missed":
+        await setDay(kit, h.id, kit.today, "missed");
+        return kit.react("👍");
+      case "undo_done":
+        await setDay(kit, h.id, kit.today, null);
+        return kit.react("👍");
+      case "remove_habit":
+        await kit.store.put("habits", h.id, { ...h.habit, archived: true });
+        return kit.react("👍");
+      case "set_days": {
+        const days = scanDays(text);
+        if (days === undefined) return kit.send(`Which days? Like _days ${h.habit.name.toLowerCase()} mon wed fri_.`);
+        await kit.store.put("habits", h.id, { ...h.habit, days });
+        return kit.react("👍");
+      }
+      case "set_time": {
+        const back = /\b(?:default|usual|reset)\b/i.test(text);
+        const hour = back ? null : scanHour(text);
+        if (hour === undefined) return kit.send(`What time? Like _time ${h.habit.name.toLowerCase()} 7am_.`);
+        await kit.store.put("habits", h.id, { ...h.habit, hour });
+        return kit.react("👍");
+      }
+    }
   },
 
   async onUpgrade(fromVersion) {
