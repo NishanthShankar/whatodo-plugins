@@ -1,63 +1,66 @@
-# 🌸 LMP Tracker
+# 🩸 LMP Tracker
 
-Track your period or your pregnancy on WhatsApp. Log the day your period starts and it predicts the next one and your fertile window. On days 27 and 28 of your cycle it asks whether your period has started, so you never forget to log it. Pregnant? Send your LMP (the first day of your last menstrual period) and it tells you how many weeks pregnant you are, your due date, and sends a short update every week. Lives in its own WhatsApp group, "🌸 LMP Tracker".
+Keeps your LMP on WhatsApp: the first day of your last menstrual period. When your period starts, send `LMP`. That's all you do. If the next one hasn't come when it usually does, it reminds you, reminds you again a week later, and then suggests a home pregnancy test. It learns your usual cycle from the dates you send. Lives in its own WhatsApp group, "🌙 LMP Tracker".
 
-Predictions are estimates from your own dates, not medical advice. Follow your doctor.
+Reminders are estimates from your own dates, not medical advice. Follow your doctor.
 
 ## Commands
 
-Send these in the LMP Tracker group. Dates can be `today`, `yesterday`, `3 days ago`, `12 nov`, `nov 12`, `12/11`, `12/11/2026` or `2026-11-12` (day first).
+Send these in the LMP Tracker group. Dates can be `today`, `yesterday`, `3 days ago`, `9 nov`, `nov 9`, `9th Nov`, `9/11`, `9/11/2026` or `2026-11-09` (day first).
 
 | Message | What happens |
 |---|---|
-| `period started` / `period today` / `period started 12 nov` | Logs the first day of a period. A start within 10 days of one already logged moves it instead of adding another. 👍 |
-| `period ended` / `period ended 16 nov` | Logs the last day of the current period (used for average period length). 👍 |
-| `cycle` / `next` / `status` | Next period (date and days away, or days late), fertile window, likely ovulation day, average cycle and period length. |
-| `history` | The last 12 period starts with each cycle's length. |
-| `undo` | Removes the most recent period start. 👍 |
-| `delete 12 nov` | Removes the period that started on that day. 👍 |
-| `cycle length 30` | Cycle length to use until two cycles are logged (21-45 days). 👍 |
-| `reminders off` / `reminders on` | Cycle check-ins and late nudges off or on. 👍 |
-| `fertile reminders on` / `fertile reminders off` | A message when the fertile window starts (off by default). 👍 |
-| `reminder time 8am` | When reminders and weekly updates arrive. 👍 |
-| `pregnant lmp 3 oct` / `lmp 3 oct` | Starts pregnancy tracking from that LMP and answers with weeks pregnant, the month, the trimester and the due date (with a note if it's under 2 weeks or 42 weeks or more). |
-| `due date 10 jul` | Starts pregnancy tracking from a due date (LMP is 280 days earlier). |
-| `week` / `status` (while pregnant) | Weeks and days, trimester, due date and days to go. |
-| `not pregnant` / `stop pregnancy` | Stops pregnancy tracking and goes back to period tracking. 👍 |
+| `LMP` / `today` / `now` / `periods came` / `got my period` | Records today as your LMP. No date means the day you send it. |
+| `LMP yesterday` / `LMP nov 9` / `lmp: 9/11` / `my lmp was 9 nov` / `came on 4th` | Records that day as your LMP. Only needed when it didn't start today. |
+| `last lmp` / `when was my last lmp?` / `lmp?` / `my lmp` | Your last LMP, how long ago, and when the next one is (or was) due. |
+| `history` | Your last 12 LMPs, the days between them, and your usual cycle. |
+| `undo` | Removes the most recent LMP. 👍 |
+| `delete 9 nov` | Removes the LMP on that day. 👍 |
+| `pregnant` / `I'm pregnant` | Pregnancy mode: the period reminders stop. It replies with your LMP, about how far along you are and the due date. Your LMP stays what it was. Sending an LMP later (your periods are back) ends pregnancy mode and tracking carries on. In pregnancy mode a bare `lmp` (or `today`, `now`, `period`) could mean either, so it asks: reply `1` to see your last LMP or `2` to record that day as your new LMP. `2` ends pregnancy mode and tracking carries on, which is how a miscarriage, an abortion or the birth is handled without having to say so. |
+| `not pregnant` | Ends pregnancy mode; reminders come back. 👍 |
+| `moon` / `blood` | Messages are marked with 🩸. Right after your first LMP it asks once if that's OK: `no` switches to 🌙, and no reply means yes. `moon` and `blood` switch any time. 👍 |
+| `reminders off` / `reminders on` | Period reminders off or on. 👍 |
+| `reminder time 8am` | The hour reminders arrive. |
 | `help` | This list. |
 
-Reacting ✅ (or 👍) to a cycle check-in, or replying `started` (or `yes`, or `started 2 days ago`) to a check-in or a "late" message, logs the start. Removing the reaction takes today's start back.
+What you get back: the first LMP you ever send is confirmed in words ("Your LMP has been recorded: Mon 9 Nov. From next time you'll just get a 👍."). After that a clear LMP only gets a 👍. Words come back only when something needs saying: the date changed an LMP already recorded ("Your LMP is now Thu 12 Nov (it was Mon 9 Nov)", for a date within 10 days of it), the date is older than your current LMP, it's in the future or unreadable, or it ended pregnancy mode.
+
+Answering a reminder: `yes` (or reacting ✅ to it) means your period started today; `started 2 days ago` or `LMP 14 nov` gives the day; `not yet` is fine too. To the pregnancy test nudge, `yes` or `positive` turns pregnancy mode on and `no` just says OK. You don't have to reply to the message itself: a plain `yes` is read as the answer to the last reminder.
+
+Messages the commands don't cover ("my periods came on 9th nov", "kab tha last period") go to whatodo's intent understanding: an LMP (the date is read from the sentence, today if there isn't one), asking for the last LMP, history, pregnant, not pregnant, undo and help.
 
 ## Schedules
 
 | Id | When | Does |
 |---|---|---|
-| `daily` | once a day at `reminderHour` | Period mode: a check-in on the last two days of your usual cycle (days 27 and 28 of a 28-day cycle: "Has your period started?"), one "it's 3 days late, did it start?" nudge, and "fertile window starts today" if fertile reminders are on. Pregnancy mode: a short update on each new week (the LMP's weekday). Each message is sent once. |
+| `daily` | once a day at `reminderHour` | Counted from your latest LMP with your usual cycle C (28 days until learned): on day C "your period is due around now", on day C+7 "has your period come?", on day C+14 "you might be pregnant, a home test (UPT) can tell you". Each is sent once per LMP (within a week of its day, in case a day is missed), nothing is sent after the test nudge, and a new LMP starts over. Nothing is sent in pregnancy mode. |
 
 ## Settings
 
 | Key | Default | Meaning |
 |---|---|---|
-| `reminderHour` | `9` | Local hour (0-23) for reminders and weekly updates. |
-| `cycleLength` | `28` | Cycle length used until two cycles are logged. |
-| `periodReminders` | `true` | The cycle check-ins and the "late" message. |
-| `fertileReminders` | `false` | "Fertile window starts today" messages. |
+| `reminderHour` | `9` | Local hour (0-23) for reminders. |
+| `cycleLength` | `28` | The cycle assumed until yours is learned. |
+| `periodReminders` | `true` | The period reminders. |
+| `symbol` | `blood` | The mark on its messages: `blood` (🩸) or `moon` (🌙). |
 
-## How predictions work
+## How the timing is learned
 
-- **Average cycle:** the mean of the last 6 cycles between logged starts (cycles of 15-60 days count; others are treated as a missed log). With fewer than one usable cycle, `cycleLength` is used.
-- **Next period:** last start + average cycle.
-- **Ovulation:** about 14 days before the next period. **Fertile window:** the 5 days before ovulation and the day of ovulation.
-- **Pregnancy:** due date = LMP + 280 days (Naegele's rule). Weeks pregnant = days since LMP ÷ 7. Trimesters: first up to 13 weeks 6 days, second 14 weeks to 27 weeks 6 days, third from 28 weeks (ACOG). Month (approximate, as commonly counted in India): 1st weeks 0-4, 2nd 5-8, 3rd 9-13, 4th 14-17, 5th 18-22, 6th 23-27, 7th 28-31, 8th 32-35, 9th from 36.
+- **Cycle:** the days between two LMPs. Gaps of 15 to 45 days count; a longer gap is a month you didn't send (or a pregnancy), not a cycle.
+- **Usual cycle:** the median of your last 6 cycles, kept between 21 and 45 days. Until 3 cycles are known the missing ones count as 28 days, so one late month doesn't move the reminders but two in a row do. If your periods keep coming every 5 weeks, the reminders come at 5 and 6 weeks and the test nudge at 7.
+- **Test nudge:** two weeks after your period was due, and never earlier than a week past your longest recent cycle. If you've gone 40 days before, it waits until day 47.
+- **Weeks along and due date** (pregnancy mode): weeks are counted from the LMP; due date = LMP + 280 days (Naegele's rule).
 
 ## Data
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `periods` | start day | `{ start, end? }` | start day |
-| `pregnancy` | `current` | `{ lmp, since }` | none |
-| `sent` | `<kind>:<day>` | `1` | day |
+| `periods` | LMP day | `{ start }` (2.x rows may also have `end`, ignored) | LMP day |
+| `pregnancy` | `current` | `{ since }`: in pregnancy mode since that day. It holds no LMP: the LMP is always your latest in `periods`. (2.x stored `lmp` here; moved into `periods` on upgrade.) | none |
+| `pending` | `ask` | `{ day }`: the open "see it or record it?" question and the day you wrote. A plain `1` or `2` answers it for 3 days. | none |
+| `pending` | `symbol` | `{ day }`: the open "OK seeing 🩸?" question. A plain `no` or `ok` answers it for 3 days. | none |
+| `sent` | `<stage>:<lmp>` (`due`, `again`, `upt`), and `first-lmp` once the first LMP was confirmed in words; 1.x and 2.x keys are left alone | `1` | LMP day |
 
 ## Privacy
 
-Reads only the messages you send in its own group, its own stored data, your time zone and your name. Stores only the dates you give it (period starts and ends, your LMP) and which reminders it already sent. Nothing leaves whatodo. Stopping pregnancy tracking deletes the stored LMP. This is sensitive health data: on the whatodo website, keep your account behind your PIN.
+Reads only the messages you send in its own group, its own stored data, your time zone and your name. Stores only your LMP dates, whether you're in pregnancy mode (and since when), and which reminders it already sent. Nothing leaves whatodo, except that a message the commands don't understand is passed to whatodo's intent model to work out what you meant. This is sensitive health data: on the whatodo website, keep your account behind your PIN.
