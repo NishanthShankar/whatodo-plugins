@@ -2,7 +2,8 @@
  * The whatodo plugin SDK.
  *
  * A plugin lives in its own WhatsApp group with one person and the whatodo bot. whatodo sends
- * it events (a message, a reaction, a scheduled moment, a call from its web page) and hands it
+ * it events (a message, a reaction, a scheduled moment, a call from its web page, a request from
+ * outside to one of its hooks) and hands it
  * a Kit to act with. Plugins never talk to WhatsApp or the database directly, which keeps them
  * portable: the same plugin can run bundled inside whatodo or, later, as a hosted service.
  *
@@ -14,7 +15,7 @@
  * The SDK's own version. Plugins are written against a major version; whatodo refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.4.0";
+export const SDK_VERSION = "1.5.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -81,6 +82,21 @@ export interface Kit {
   unsure(fallback: string): void;
   /** A short random id for new records. */
   id(): string;
+  /**
+   * Hooks: web addresses of this install that the outside world can POST to (a form on a
+   * website, another service). Each request arrives as `onHook`. Since SDK 1.5.0.
+   */
+  hooks: {
+    /** The address for `key` (lowercase letters, digits and dashes), made on first use. Not on page loads. */
+    url(key: string): Promise<string>;
+    /** Close a hook: its address stops working. Files it already brought stay until removed. */
+    remove(key: string): Promise<void>;
+  };
+  /** Files that arrived through hooks. The plugin holds their ids; whatodo holds the bytes. Since SDK 1.5.0. */
+  files: {
+    /** Delete a file for good. */
+    remove(id: string): Promise<void>;
+  };
   /** Wall-clock helpers in the person's zone. */
   time: {
     /** "YYYY-MM-DD" for an instant. */
@@ -103,6 +119,30 @@ export interface ReactionEvent {
   emoji: string | null;
   /** The ref of the plugin message reacted to. */
   ref: Json;
+}
+
+/** A file that came with a hook request. Only whatodo can read its bytes; the plugin keeps the id. */
+export interface HookFile {
+  id: string;
+  /** The form field it was sent in. */
+  field: string;
+  /** The file's name as uploaded. */
+  name: string;
+  /** MIME type as sent, like "application/pdf". */
+  type: string;
+  /** Bytes. */
+  size: number;
+}
+
+/** A request from outside whatodo to one of the install's hooks. Since SDK 1.5.0. */
+export interface HookEvent {
+  /** The key the hook was made with (`kit.hooks.url(key)`). */
+  key: string;
+  /** The text fields, as sent. Names and values are capped by whatodo. */
+  fields: Record<string, string>;
+  files: HookFile[];
+  /** The site the request came from (its Origin header), when it said. */
+  origin: string | null;
 }
 
 /** What whatodo's intent model made of a message the plugin was unsure about. */
@@ -196,6 +236,11 @@ export interface PluginDef {
   tier?: Tier;
   /** Public page text for search. Optional in SDK 1.x; the conformance suite requires it in this repo. */
   listing?: Listing;
+  /**
+   * Not offered to everyone: left out of the store and the public site, and only people whatodo
+   * allows can add it. For plugins still being tried out. Since SDK 1.5.0.
+   */
+  unlisted?: boolean;
   /** Sent in the group right after install. */
   welcome: string;
   /** Sent when the person writes "help" in the group. */
@@ -212,6 +257,11 @@ export interface PluginDef {
   onMessage?(event: MessageEvent, kit: Kit): Promise<void>;
   onReaction?(event: ReactionEvent, kit: Kit): Promise<void>;
   onSchedule?(event: ScheduleEvent, kit: Kit): Promise<void>;
+  /**
+   * A request arrived at one of this install's hooks. It runs like any other handler (it can
+   * store and `kit.send`); whatodo has already answered the sender. Since SDK 1.5.0.
+   */
+  onHook?(event: HookEvent, kit: Kit): Promise<void>;
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
   /** Called with the intent whatodo found for an unclear message. Required with `understand`. */

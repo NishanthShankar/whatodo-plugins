@@ -30,6 +30,8 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onMessage` | `(event: MessageEvent, kit) => Promise<void>` | no | A message from the installer in the plugin's group. |
 | `onReaction` | `(event: ReactionEvent, kit) => Promise<void>` | no | The installer reacted to (or un-reacted) a message the plugin sent with a `ref`. |
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
+| `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
+| `unlisted` | boolean | no | Left out of the store and the public site; only people whatodo allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
 | `web` | `WebDef` | no | Data and actions for the plugin's web page. |
 
 ### ScheduleDef
@@ -70,6 +72,8 @@ interface MessageEvent  { text: string; quotedRef: Json | null }
 interface ReactionEvent { emoji: string | null; ref: Json }   // emoji null: reaction removed
 interface ScheduleEvent { id: string }
 interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number }
+interface HookEvent     { key: string; fields: Record<string, string>; files: HookFile[]; origin: string | null }
+interface HookFile      { id: string; field: string; name: string; type: string; size: number }
 ```
 
 - `text` is trimmed by whatodo; it is never empty.
@@ -91,6 +95,9 @@ interface IntentEvent   { text: string; intent: string; target: string | null; c
 | `react(emoji)` | void | React to the message being handled; the last call wins. In `onMessage` that is the person's message, in `onReaction` the plugin's own message they reacted to (acknowledge their reaction). `""` removes it. Ignored in schedules and web calls. Since SDK 1.3.0. |
 | `unsure(fallback)` | void | `onMessage` only: you couldn't read the message. With `understand`, whatodo works out the intent and calls `onIntent`; otherwise, or if it isn't sure, it posts `fallback`. Since SDK 1.4.0. |
 | `id()` | string | A short random id for new records. |
+| `hooks.url(key)` | `Promise<string>` | The web address of this install's hook `key` (lowercase letters, digits, dashes), made on first use. Anyone who has it can POST to it; each request arrives as `onHook`. Not on page loads. Since SDK 1.5.0. |
+| `hooks.remove(key)` | `Promise<void>` | Close a hook. Its address stops working. Since SDK 1.5.0. |
+| `files.remove(id)` | `Promise<void>` | Delete a file that arrived through a hook. Since SDK 1.5.0. |
 | `time.day(ms)` | string | `YYYY-MM-DD` of an instant in the person's zone. |
 | `time.shiftDay(day, n)` | string | Add `n` days to a `YYYY-MM-DD`. |
 | `time.hour(ms)` | number | Local hour (0-23) of an instant. |
@@ -110,6 +117,25 @@ list<T>(collection, { prefix?, from?, to?, limit? }): Promise<{ key, data: T, so
 - `put` replaces the whole value; keeps the previous `sort` if you omit it on an update.
 - `list` returns items in `sort` order, then key. `prefix` filters keys; `from`/`to` (inclusive) filter `sort`. Without a sort value, items come last.
 - Values must be JSON. Keep each value small (a record, not a whole history).
+
+## Hooks: requests from outside
+
+A plugin that needs to hear from the outside world (a form on a website, another service) opens a hook. Since SDK 1.5.0.
+
+```ts
+const url = await kit.hooks.url("contact");   // https://.../hook/<token>
+// ...later, someone POSTs to it:
+async onHook({ key, fields, files, origin }, kit) {
+  await kit.store.put("submissions", kit.id(), { key, fields, files: files.map((f) => f.id) }, kit.now);
+  kit.send(`New from ${key}: ${fields.name ?? "someone"}`);
+}
+```
+
+- The address takes a POST with JSON, a URL-encoded form or a multipart form (with files), from any site. whatodo answers the sender (`{ ok: true }`, or a redirect to the `_next` field for a plain form) before the plugin runs, so `onHook` can't answer them.
+- whatodo drops a request whose `_gotcha` field is filled (a trap for bots), caps how many requests a hook takes per minute and per day, and caps field count, field length, file count (5) and file size (10 MB each). What reaches `onHook` is already inside those limits. Fields starting with `_` are whatodo's and are not passed on.
+- Files stay with whatodo. The plugin gets `{ id, field, name, type, size }` for each and stores the ids. Its web page shows a file by id through whatodo, which checks that the file belongs to the person looking. `kit.files.remove(id)` deletes one; removing the plugin's data should remove its files too.
+- A hook brings in other people's details (whoever filled in the form). Store only what the feature needs and give the person a way to delete it. See [data-and-privacy.md](data-and-privacy.md).
+- Every request can turn into a WhatsApp message. Keep `kit.send` to one short message per request, and bundle when many arrive.
 
 ## Understanding unclear messages
 

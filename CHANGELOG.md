@@ -2,6 +2,14 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.5.0] - 2026-11-17
+
+### Added
+- Hooks: a plugin can receive requests from outside whatodo (a form on a website, another service). `kit.hooks.url(key)` gives the install a web address for `key`, `kit.hooks.remove(key)` closes it, and each request arrives as `onHook(event, kit)` with `HookEvent = { key, fields, files, origin }`. whatodo answers the sender itself and caps how often and how much can be sent.
+- Files: a hook request can carry files. The plugin gets `HookFile = { id, field, name, type, size }` and keeps the ids; whatodo keeps the bytes and serves them only to the person on the plugin's page. `kit.files.remove(id)` deletes one.
+- `unlisted` on `PluginDef`: the plugin is left out of the store and the public site, and only people whatodo allows can add it.
+- Test kit: `t.hook(plugin, key, fields?, files?, origin?)`, `t.hooks` (open hook keys) and `t.removedFiles`.
+
 ## [1.4.0] - 2026-11-16
 
 ### Added

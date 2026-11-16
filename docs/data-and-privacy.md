@@ -12,6 +12,7 @@ People trust whatodo with their WhatsApp. A plugin borrows that trust, so it get
 | Person | Time zone; name as set in whatodo | Phone number, contacts, other plugins installed |
 | Storage | Its own rows for this install | Other installs, other plugins, whatodo's tables (todos, lists, users) |
 | Network | Nothing | Any network access |
+| Hooks | With a hook open: the text fields and the file names, types and sizes of each request sent to it | The files' bytes; the sender's IP address |
 | Intent model | With `understand`: an intent id, a target id and a confidence for a message the plugin was unsure about | The model's own text; anything about other messages |
 
 How it's enforced:
@@ -32,7 +33,7 @@ Known gap: `kit.person.name` is available to every plugin. It will move behind a
 - **Derived, not raw.** Store "done on 2026-11-15", not the message that said so.
 - **Small values.** One record per row; use keys and sort values for history instead of growing one big value.
 - **No secrets.** Never ask people to send passwords, OTPs, card numbers or IDs in a plugin group.
-- **Nothing for other people.** A plugin's group has one person in it; don't design features that collect data about anyone else.
+- **Nothing for other people.** A plugin's group has one person in it; don't design features that collect data about anyone else. The exception is a plugin whose job is to receive things for the person, through a hook (a form on their website). It stores what was sent, only for them, shows it only to them, and lets them delete it.
 
 ## Retention and removal
 

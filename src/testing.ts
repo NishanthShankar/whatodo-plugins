@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import type { Json, Kit, PluginDef, StoredItem } from "./sdk";
+import type { HookFile, Json, Kit, PluginDef, StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -38,6 +38,10 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const reactions: string[] = [];
   /** Fallback texts from kit.unsure(), in order. In whatodo these trigger intent understanding. */
   const unsures: string[] = [];
+  /** Hooks that are open, by key. */
+  const hooks = new Set<string>();
+  /** Ids passed to kit.files.remove(), in order. */
+  const removedFiles: string[] = [];
   let counter = 0;
   const state = { today: opts.today ?? "2026-11-15", hour: opts.hour ?? 21 };
   const settings: Record<string, Json> = { ...(opts.settings ?? {}) };
@@ -103,6 +107,21 @@ export function createTestKit(opts: TestKitOptions = {}) {
       unsures.push(fallback);
     },
     id: () => `id${++counter}`,
+    hooks: {
+      async url(key) {
+        if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(key)) throw new Error(`kit.hooks.url: "${key}" must be lowercase letters, digits and dashes`);
+        hooks.add(key);
+        return `https://hooks.test/${key}`;
+      },
+      async remove(key) {
+        hooks.delete(key);
+      },
+    },
+    files: {
+      async remove(id) {
+        removedFiles.push(id);
+      },
+    },
     time: {
       day: () => state.today,
       shiftDay,
@@ -119,6 +138,9 @@ export function createTestKit(opts: TestKitOptions = {}) {
     sent,
     reactions,
     unsures,
+    /** Keys of the hooks that are open. */
+    hooks,
+    removedFiles,
     /** Move the clock. */
     setToday(day: string) {
       state.today = day;
@@ -161,6 +183,16 @@ export function createTestKit(opts: TestKitOptions = {}) {
         if (!(target in targets)) throw new Error(`${plugin.id}: "${target}" isn't one of its targets`);
       }
       await plugin.onIntent({ text, intent, target, confidence }, kit);
+    },
+    /**
+     * Deliver a request to a hook as whatodo would. Throws when the hook isn't open (whatodo
+     * would have answered "not found" without calling the plugin).
+     */
+    async hook(plugin: PluginDef, key: string, fields: Record<string, string> = {}, files: HookFile[] = [], origin: string | null = null) {
+      withDefaults(plugin);
+      if (!hooks.has(key)) throw new Error(`${plugin.id}: hook "${key}" isn't open`);
+      if (!plugin.onHook) throw new Error(`${plugin.id} has no onHook`);
+      await plugin.onHook({ key, fields: { ...fields }, files: files.map((f) => ({ ...f })), origin }, kit);
     },
     async schedule(plugin: PluginDef, id: string) {
       withDefaults(plugin);
