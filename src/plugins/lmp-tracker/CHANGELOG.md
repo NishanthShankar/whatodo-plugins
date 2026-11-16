@@ -2,6 +2,38 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.0.0] - 2026-11-16
+
+A simpler tracker. It keeps one thing, your LMP, and reminds you when the next one is due.
+
+### Changed
+- `LMP` records your last menstrual period (LMP). No date means today (`lmp`, `today`, `now`, `periods came`); add one only if it started another day (`LMP 9 nov`). In 2.x `lmp <date>` started pregnancy tracking.
+- The first LMP you send is confirmed in words. After that a clear LMP just gets a 👍; words come back only when a date changes an LMP already recorded or something isn't clear.
+- Reminders follow your LMP: when the next period is due (4 weeks), again a week later (5 weeks), and then a nudge that you might be pregnant and to take a home pregnancy test (6 weeks). Each is sent once per LMP, and a new LMP starts over.
+- The timing is learned from your own dates. If your periods keep coming every 5 weeks, the reminders move to 5, 6 and 7 weeks. One late month doesn't move them, and the test nudge never comes earlier than a week past your longest recent cycle.
+- Pregnancy is now just a mode: say `pregnant` (or `yes` to the test nudge) and the reminders stop. Your LMP stays the same LMP. When you send an LMP again, pregnancy mode ends and tracking carries on.
+- In pregnancy mode a bare `lmp` is not guessed at. It asks whether you want to see your last LMP (`1`) or record a new one (`2`). Recording ends pregnancy mode and tracking carries on, so a miscarriage, an abortion or the birth needs no special command.
+- A plain `yes`, `not yet` or `no` is read as the answer to the last reminder; you don't have to reply to the message itself.
+
+### Added
+- Messages are marked with 🩸 instead of 🌸. Right after your first LMP it asks once if that's OK: reply `no` for 🌙, and no reply means yes. `moon` and `blood` switch any time. New installs get a group named "🌙 LMP Tracker"; existing groups keep their name.
+- Ask for your LMP any way you like: `last lmp`, `when was my last lmp?`, `lmp?`.
+- Sentences the commands don't cover ("my periods came on 9th nov") go to intent understanding.
+
+### Removed
+- Fertile window, ovulation and the fertile reminder.
+- `period ended` (it says only the start is needed), `cycle length <days>` (the cycle is learned) and the day 27/28 check-ins.
+- The pregnancy tracker's weekly updates, trimester and month, and the `due date <date>` and `week` commands. `last lmp` shows how far along you are. A fuller pregnancy helper will come in a later version.
+
+### Data
+- `periods`: same shape. Rows from 2.x may still carry `end`; it's ignored.
+- `pregnancy`: now `{ since }`. It holds no LMP; the LMP is always the latest in `periods`. `onUpgrade` moves a 2.x pregnancy's `lmp` into `periods`.
+- `sent` keys are now `due:<lmp>`, `again:<lmp>`, `upt:<lmp>`, plus `first-lmp`; older keys are left alone.
+- New collection `pending` (keys `ask` and `symbol`, `{ day }`).
+- New refs `lmp-due` and `lmp-upt` (`date` is the LMP) and `lmp-ask` and `lmp-symbol` (`date` is the day she wrote). 1.x and 2.x refs (`period-soon`, `period-check`, `period-late`) are still answered.
+- New setting `symbol` (`blood` or `moon`, default `blood`).
+- The `fertileReminders` setting is no longer read. `cycleLength` is the cycle assumed until yours is learned.
+
 ## [2.0.0] - 2026-11-16
 
 ### Changed
