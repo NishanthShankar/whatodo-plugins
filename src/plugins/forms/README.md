@@ -1,0 +1,77 @@
+# 📬 Forms
+
+A backend for the forms on your own websites. Make a form, paste its address into your site, and every submission arrives as a WhatsApp message in the "📬 Forms" group, with its fields and files kept on app.whatodo.today. No server of your own, no email.
+
+Unlisted for now: it isn't in the store or on the public site, and only people whatodo allows can add it.
+
+## Using a form on your site
+
+Send `new form contact` in the Forms group. You get an address like `https://.../hook/abc123`. Use it in any of these ways:
+
+```html
+<!-- A plain form. Add enctype for files. -->
+<form action="THE_ADDRESS" method="POST" enctype="multipart/form-data">
+  <input name="name" />
+  <input name="email" type="email" />
+  <input name="id_proof" type="file" />
+  <input name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" />
+  <input name="_next" type="hidden" value="https://example.com/thanks" />
+  <button>Send</button>
+</form>
+```
+
+```js
+// From a script: JSON, or FormData when there are files.
+await fetch("THE_ADDRESS", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email }) });
+await fetch("THE_ADDRESS", { method: "POST", body: new FormData(formElement) });
+```
+
+- The answer is `{ "ok": true }`. A plain form with a `_next` field is sent on to that page.
+- `_gotcha` is a trap for bots: leave it empty and hidden. A request that fills it is dropped.
+- Up to 5 files per submission, 10 MB each. Fields whose names start with `_` are not kept.
+- whatodo caps how many requests a form takes per minute and per day.
+
+## Commands
+
+Send these in the Forms group.
+
+| Message | What happens |
+|---|---|
+| `new form contact` | Makes a form and replies with its address. Names become keys: "Partner applications" is `partner-applications`. Up to 50 forms. |
+| `forms` | Your forms, how many submissions each has had, and their addresses. |
+| `address contact` | One form's address again. |
+| `last` / `last contact` | The latest submission, of any form or of one. |
+| `close contact` | The form stops taking submissions; its address no longer works. What it received stays. `new form contact` opens it again with a new address. 👍 |
+| `help` | This list. |
+
+Each submission arrives as one message: the form's name, its fields (the first 12, long values cut short) and the names and sizes of its files. React ✅ (or 👍) to mark it dealt with; take the reaction off to undo.
+
+## Settings
+
+| Key | Default | Meaning |
+|---|---|---|
+| `dailyMessages` | `30` | Messages per form per day. After that it says once that it's stopping for the day. Submissions are still kept. |
+
+## Web page
+
+On app.whatodo.today, behind your PIN if you've set one:
+
+- Your forms, their addresses and counts. Make a form, close one, or delete one with everything it received.
+- Every submission, newest first: when, from which site, its fields, and its files to open or download.
+- Mark a submission done, or delete it (its files go with it).
+
+Actions: `createForm { name }`, `closeForm { key }`, `deleteForm { key }`, `deleteSubmission { id }`, `setDone { id, done }`.
+
+## Data
+
+| Collection | Key | Data | Sort |
+|---|---|---|---|
+| `forms` | form key | `{ name, url, createdDay, created, closed?, count }` | created (ms) |
+| `submissions` | id | `{ form, at, fields, files: [{ id, field, name, type, size }], origin, done? }` | received (ms) |
+| `days` | `<form>:<day>` | messages sent that day | day |
+
+Files themselves are held by whatodo, not in these rows.
+
+## Privacy
+
+This plugin receives what other people send through your forms: their names, contact details, messages and files. It keeps them only for you, shows them only to you (in your Forms group and on your page), and deletes them when you delete the submission or the form. It reads only the messages you send in its own group and the requests sent to your forms' addresses. Nothing is passed to anyone else. You are responsible for telling the people who fill in your forms what you collect and why. Keep your whatodo account behind your PIN: these can be sensitive documents.
