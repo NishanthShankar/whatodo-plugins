@@ -21,6 +21,8 @@ interface Form {
   closed?: boolean;
   /** Submissions received, ever. */
   count: number;
+  /** It has its own WhatsApp group (its key is the form's key): submissions go there, not to the main Forms group. */
+  ownGroup?: boolean;
 }
 
 interface Submission {
@@ -56,6 +58,8 @@ const HELP = [
   "*Forms*",
   "",
   "_new form contact_ makes a form and gives you its address",
+  "_new form contact in its own group_ also makes a WhatsApp group just for it",
+  "_group contact_ gives a form you already have its own group",
   "_forms_ lists your forms and their addresses",
   "_address contact_ shows one form's address again",
   "_last_ (or _last contact_) shows the latest submission",
@@ -92,7 +96,15 @@ async function findForm(kit: Kit, text: string): Promise<{ key: string; form: Fo
   return form ? { key, form } : null;
 }
 
-async function createForm(kit: Kit, name: string): Promise<{ key: string; form: Form } | { error: string }> {
+/** The WhatsApp group of a form that has its own: named after the form. */
+async function openGroup(kit: Kit, key: string, form: Form) {
+  await kit.groups.open(key, {
+    name: `📬 ${form.name}`.slice(0, 25),
+    hello: `📬 This group is for your form *${form.name}*. Every submission to it arrives here.\n\nSend _last_ for the latest one or _address_ for the form's address.`,
+  });
+}
+
+async function createForm(kit: Kit, name: string, ownGroup = false): Promise<{ key: string; form: Form } | { error: string }> {
   const clean = name.trim().replace(/\s+/g, " ").slice(0, 40);
   const key = slug(clean);
   if (!key) return { error: "Give the form a name, like _new form contact_." };
@@ -102,6 +114,10 @@ async function createForm(kit: Kit, name: string): Promise<{ key: string; form: 
   // Reopening a closed form gives it a new address; the old one stays dead.
   const url = await kit.hooks.url(key);
   const form: Form = { name: existing?.name ?? clean, url, createdDay: existing?.createdDay ?? kit.today, created: existing?.created ?? kit.now, count: existing?.count ?? 0 };
+  if (ownGroup || existing?.ownGroup) {
+    form.ownGroup = true;
+    await openGroup(kit, key, form);
+  }
   await kit.store.put("forms", key, form as unknown as Json, form.created);
   return { key, form };
 }
@@ -114,7 +130,7 @@ function addressText(key: string, form: Form, fresh: boolean): string {
     form.url,
     "",
     "Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.",
-    fresh ? `\nSubmissions will arrive here. Send _address ${key}_ to see this again.` : "",
+    fresh ? `\n${form.ownGroup ? `I'm making a WhatsApp group just for this form. Submissions will arrive there (here until it's ready).` : "Submissions will arrive here."} Send _address ${key}_ to see this again.` : "",
   ]
     .join("\n")
     .trim();
@@ -149,7 +165,7 @@ async function removeSubmission(kit: Kit, id: string) {
 
 export default definePlugin({
   id: "forms",
-  version: "1.0.2",
+  version: "1.1.0",
   sdk: "1",
   name: "Forms",
   icon: "📬",
@@ -160,7 +176,7 @@ export default definePlugin({
   price: 0,
   tier: 2,
   unlisted: true,
-  permissions: ["hooks"],
+  permissions: ["hooks", "groups"],
   listing: {
     title: "Form Backend on WhatsApp: Get Submissions as Chats | whatodo",
     description: "Point your website's form at whatodo and get every submission as a WhatsApp message. File uploads included. Records kept on the web.",
@@ -175,9 +191,14 @@ export default definePlugin({
     const text = event.text.trim().replace(/\s+/g, " ");
     const lower = text.toLowerCase().replace(/[!.]+$/, "");
 
+    // In a form's own group, "last", "address" and "close" are about that form.
+    const here = event.group ? await kit.store.get<Form>("forms", event.group) : null;
+    const hereKey = here ? event.group! : null;
+
     let m = text.match(/^(?:new|add|create|make)\s+(?:a\s+)?form\s+(.+)$/i);
     if (m) {
-      const made = await createForm(kit, m[1]);
+      const own = m[1].match(/^(.+?)\s+(?:in|with)\s+(?:its\s+|a\s+|an\s+)?(?:own\s+|new\s+|separate\s+)?group$/i);
+      const made = await createForm(kit, own ? own[1] : m[1], !!own);
       if ("error" in made) return kit.send(made.error);
       return kit.send(addressText(made.key, made.form, true));
     }
@@ -194,17 +215,29 @@ export default definePlugin({
       return kit.send(lines.join("\n").trim());
     }
 
-    m = lower.match(/^(?:address|url|link|endpoint)(?:\s+(?:of|for))?\s+(.+)$/);
+    m = lower.match(/^(?:give\s+)?(?:own\s+)?group\s+(?:for\s+)?(.+)$/) ?? lower.match(/^(?:move|put)\s+(.+?)\s+(?:to|in)\s+(?:its\s+)?(?:own\s+)?group$/);
     if (m) {
       const found = await findForm(kit, m[1]);
       if (!found) return kit.send(`I don't have a form called "${m[1]}". Send _forms_ to see yours.`);
+      if (found.form.closed) return kit.send(`*${found.form.name}* is closed. Send _new form ${found.key} in its own group_ to open it again.`);
+      if (found.form.ownGroup) return kit.send(`*${found.form.name}* already has its own group.`);
+      const form = { ...found.form, ownGroup: true };
+      await openGroup(kit, found.key, form);
+      await kit.store.put("forms", found.key, form as unknown as Json, form.created);
+      return kit.send(`📬 I'm making a WhatsApp group just for *${form.name}*. Its submissions will arrive there (here until it's ready).`);
+    }
+
+    m = lower.match(/^(?:address|url|link|endpoint)(?:(?:\s+(?:of|for))?\s+(.+))?$/);
+    if (m && (m[1] || hereKey)) {
+      const found = await findForm(kit, m[1] ?? hereKey!);
+      if (!found) return kit.send(`I don't have a form called "${m[1] ?? hereKey}". Send _forms_ to see yours.`);
       if (found.form.closed) return kit.send(`*${found.form.name}* is closed. Send _new form ${found.key}_ to open it again with a new address.`);
       return kit.send(addressText(found.key, found.form, false));
     }
 
     m = lower.match(/^(?:last|latest|recent)(?:\s+(.+))?$/);
     if (m) {
-      const found = m[1] ? await findForm(kit, m[1]) : null;
+      const found = m[1] ? await findForm(kit, m[1]) : hereKey ? { key: hereKey, form: here! } : null;
       if (m[1] && !found) return kit.send(`I don't have a form called "${m[1]}". Send _forms_ to see yours.`);
       const all = await kit.store.list<Submission>("submissions");
       const mine = found ? all.filter((s) => s.data.form === found.key) : all;
@@ -215,10 +248,10 @@ export default definePlugin({
       return kit.send(submissionText(form?.name ?? latest.data.form, latest.data), { ref: ref as unknown as Json });
     }
 
-    m = lower.match(/^(?:close|stop|pause)(?:\s+form)?\s+(.+)$/);
-    if (m) {
-      const found = await findForm(kit, m[1]);
-      if (!found) return kit.send(`I don't have a form called "${m[1]}". Send _forms_ to see yours.`);
+    m = lower.match(/^(?:close|stop|pause)(?:\s+(?:this\s+)?form)?(?:\s+(.+))?$/);
+    if (m && (m[1] || hereKey)) {
+      const found = await findForm(kit, m[1] ?? hereKey!);
+      if (!found) return kit.send(`I don't have a form called "${m[1] ?? hereKey}". Send _forms_ to see yours.`);
       await kit.hooks.remove(found.key);
       await kit.store.put("forms", found.key, { ...found.form, closed: true } as unknown as Json, found.form.created);
       kit.react("👍");
@@ -247,11 +280,13 @@ export default definePlugin({
     const sentToday = (await kit.store.get<number>("days", dayKey)) ?? 0;
     if (sentToday > limit) return;
     await kit.store.put("days", dayKey, sentToday + 1, kit.today);
+    // A form with its own group is announced there (in the main group until that group exists).
+    const where = form.ownGroup ? { group: event.key } : {};
     if (sentToday === limit) {
-      return kit.send(`📬 *${form.name}* has had more than ${limit} submissions today. I'll stop messaging about it until tomorrow. They're all on app.whatodo.today.`);
+      return kit.send(`📬 *${form.name}* has had more than ${limit} submissions today. I'll stop messaging about it until tomorrow. They're all on app.whatodo.today.`, where);
     }
     const ref: SubmissionRef = { kind: "submission", id };
-    kit.send(submissionText(form.name, s), { ref: ref as unknown as Json });
+    kit.send(submissionText(form.name, s), { ref: ref as unknown as Json, ...where });
   },
 
   async onReaction(event, kit) {
@@ -271,14 +306,14 @@ export default definePlugin({
       const all = await kit.store.list<Submission>("submissions");
       const mine = (only ? all.filter((s) => s.data.form === only) : all).reverse().slice(0, limit);
       return {
-        forms: (await forms(kit)).map((f) => ({ key: f.key, name: f.data.name, url: f.data.url, closed: !!f.data.closed, count: f.data.count, createdDay: f.data.createdDay })),
+        forms: (await forms(kit)).map((f) => ({ key: f.key, name: f.data.name, url: f.data.url, closed: !!f.data.closed, count: f.data.count, createdDay: f.data.createdDay, ownGroup: !!f.data.ownGroup })),
         submissions: mine.map((s) => ({ id: s.key, form: s.data.form, at: s.data.at, fields: s.data.fields, order: ordered(s.data).map(([k]) => k), files: s.data.files, origin: s.data.origin, done: !!s.data.done })),
         total: all.length,
       } as unknown as Json;
     },
     actions: {
-      async createForm(kit, { name }) {
-        const made = await createForm(kit, String(name ?? ""));
+      async createForm(kit, { name, ownGroup }) {
+        const made = await createForm(kit, String(name ?? ""), ownGroup === true);
         if ("error" in made) throw new Error(made.error.replace(/[_*]/g, ""));
         return { key: made.key, url: made.form.url };
       },
@@ -288,10 +323,20 @@ export default definePlugin({
         await kit.hooks.remove(String(key));
         await kit.store.put("forms", String(key), { ...form, closed: true } as unknown as Json, form.created);
       },
+      /** Give a form its own WhatsApp group. */
+      async giveGroup(kit, { key }) {
+        const k = String(key);
+        const form = await kit.store.get<Form>("forms", k);
+        if (!form || form.closed || form.ownGroup) return;
+        const next = { ...form, ownGroup: true };
+        await openGroup(kit, k, next);
+        await kit.store.put("forms", k, next as unknown as Json, next.created);
+      },
       /** Delete a form with everything it received, files included. */
       async deleteForm(kit, { key }) {
         const k = String(key);
         await kit.hooks.remove(k);
+        await kit.groups.close(k);
         for (const s of await kit.store.list<Submission>("submissions")) if (s.data.form === k) await removeSubmission(kit, s.key);
         for (const d of await kit.store.list("days", { prefix: `${k}:` })) await kit.store.delete("days", d.key);
         await kit.store.delete("forms", k);
