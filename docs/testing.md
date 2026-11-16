@@ -36,6 +36,8 @@ it("logs a glass and reacts", async () => {
 | `await t.message(plugin, text, quotedRef?)` | the person sends `text` (as a reply to a message with `quotedRef`). `help`/`?`/`menu`/`commands` post `plugin.help`, as whatodo does. |
 | `await t.react(plugin, emoji \| null, ref)` | the person reacts to (null: un-reacts) a message sent with `ref` |
 | `await t.schedule(plugin, id)` | schedule `id` fires |
+| `await t.intent(plugin, text, intent, target?, confidence?)` | whatodo's intent model read an unclear message as `intent` (about `target`). Checks both were declared, then calls `onIntent`. |
+| `await t.targets(plugin)` | returns what `understand.targets` gives right now |
 | `await t.upgrade(plugin, fromVersion)` | a new version meets an install made with `fromVersion` |
 | `await t.load(plugin, args?)` | the web page loads |
 | `await t.act(plugin, action, args?)` | the web page calls an action |
@@ -46,6 +48,7 @@ it("logs a glass and reacts", async () => {
 |---|---|
 | `t.sent` | `{ text, ref }[]` in order: everything posted in the group |
 | `t.reactions` | emojis reacted, in order |
+| `t.unsures` | fallback texts from `kit.unsure()`, in order (in whatodo these trigger intent understanding) |
 | `t.dump()` | `{ "collection/key": data }` of everything stored |
 | `t.kit.settings` | current settings |
 | `t.setToday(day)`, `t.setHour(h)` | move the clock between events |
@@ -62,6 +65,7 @@ A plugin isn't reviewed until the tests show each of these:
 6. **Settings:** changing them changes behaviour.
 7. **Upgrades** (from your second release): build the stored data exactly as the older version wrote it with `t.kit.store.put`, call `t.upgrade(plugin, "<old version>")`, then exercise the plugin. One test per earlier released version whose data shape differs.
 8. **Duplicates and idempotence:** adding the same thing twice, ticking twice, upgrading twice.
+9. **Intents** (with `understand`): that unreadable messages call `kit.unsure` (not `send`), every intent through `t.intent` with natural phrasings, a missing target, and text that lacks what the intent needs.
 
 ## Running
 

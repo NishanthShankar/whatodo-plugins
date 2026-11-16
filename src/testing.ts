@@ -36,6 +36,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const rows = new Map<string, { data: Json; sort: string | number | null }>();
   const sent: Sent[] = [];
   const reactions: string[] = [];
+  /** Fallback texts from kit.unsure(), in order. In whatodo these trigger intent understanding. */
+  const unsures: string[] = [];
   let counter = 0;
   const state = { today: opts.today ?? "2026-11-15", hour: opts.hour ?? 21 };
   const settings: Record<string, Json> = { ...(opts.settings ?? {}) };
@@ -96,6 +98,10 @@ export function createTestKit(opts: TestKitOptions = {}) {
     react(emoji) {
       reactions.push(emoji);
     },
+    unsure(fallback) {
+      if (typeof fallback !== "string" || !fallback.trim()) throw new Error("kit.unsure: give a fallback message");
+      unsures.push(fallback);
+    },
     id: () => `id${++counter}`,
     time: {
       day: () => state.today,
@@ -112,6 +118,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     kit,
     sent,
     reactions,
+    unsures,
     /** Move the clock. */
     setToday(day: string) {
       state.today = day;
@@ -135,6 +142,25 @@ export function createTestKit(opts: TestKitOptions = {}) {
     async react(plugin: PluginDef, emoji: string | null, ref: Json) {
       withDefaults(plugin);
       await plugin.onReaction?.({ emoji, ref }, kit);
+    },
+    /** What understand.targets() returns right now. */
+    async targets(plugin: PluginDef) {
+      withDefaults(plugin);
+      return (await plugin.understand?.targets?.(kit)) ?? {};
+    },
+    /**
+     * Deliver an intent as whatodo would after kit.unsure(): checks the intent and target are
+     * ones the plugin declared, then calls onIntent.
+     */
+    async intent(plugin: PluginDef, text: string, intent: string, target: string | null = null, confidence = 1) {
+      withDefaults(plugin);
+      if (!plugin.understand || !plugin.onIntent) throw new Error(`${plugin.id} doesn't declare understand/onIntent`);
+      if (!(intent in plugin.understand.intents)) throw new Error(`${plugin.id} has no intent "${intent}"`);
+      if (target !== null) {
+        const targets = (await plugin.understand.targets?.(kit)) ?? {};
+        if (!(target in targets)) throw new Error(`${plugin.id}: "${target}" isn't one of its targets`);
+      }
+      await plugin.onIntent({ text, intent, target, confidence }, kit);
     },
     async schedule(plugin: PluginDef, id: string) {
       withDefaults(plugin);

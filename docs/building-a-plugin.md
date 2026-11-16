@@ -65,7 +65,9 @@ Handlers get an event and a kit. Read [sdk-reference.md](sdk-reference.md) for e
 
 **Imports.** Only `../../sdk` (or `whatodo-plugins/sdk`) and files inside your own folder. Put shared helpers in your folder (`src/plugins/<id>/streaks.ts`).
 
-**Parsing messages.** Trim and lower-case, match the commands you designed, and finish with a friendly "send help" answer. Keep the parser in one place at the top of `onMessage`; test every pattern.
+**Parsing messages.** Trim and lower-case, match the commands you designed, and finish with `kit.unsure("I didn't get that. Send help.")` rather than sending that yourself. Keep the parser in one place at the top of `onMessage`; test every pattern.
+
+**Unclear messages.** Declare `understand` (your intents, and optionally `targets`) and `onIntent`, and whatodo's intent model handles what your parser can't: "I want to start going to the gym on mondays" arrives as `add_habit` and you read the name and days out of the text. See [sdk-reference.md](sdk-reference.md#understanding-unclear-messages).
 
 **Refs.** When you post something the person might react to or reply to, attach a small `ref`: `kit.send(text, { ref: { habitId, day } })`. It comes back on `onReaction` and as `quotedRef` on replies. Keep refs tiny and self-describing; check their shape before trusting them (a reply to an old message brings an old ref back).
 

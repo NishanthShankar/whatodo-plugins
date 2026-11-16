@@ -34,6 +34,6 @@ export default definePlugin({
       await kit.store.put("examples", kit.today, { at: kit.now }, kit.today);
       return kit.react("👍");
     }
-    kit.send("I didn't get that. Send _help_ to see what I can do.");
+    kit.unsure("I didn't get that. Send _help_ to see what I can do.");
   },
 });
