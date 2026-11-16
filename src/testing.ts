@@ -55,6 +55,12 @@ export function createTestKit(opts: TestKitOptions = {}) {
   // Data must survive a JSON round trip, exactly as it does in whatodo's database.
   const clone = (v: Json): Json => JSON.parse(JSON.stringify(v));
 
+  /** The plugin being driven: its permissions decide what the kit allows, as in whatodo. */
+  let current: PluginDef | null = null;
+  const need = (permission: "hooks" | "groups", what: string) => {
+    if (current && !current.permissions?.includes(permission)) throw new Error(`${current.id}: ${what} needs the "${permission}" permission`);
+  };
+
   const kit: Kit = {
     get now() {
       return Date.parse(`${state.today}T${String(state.hour).padStart(2, "0")}:00:00Z`);
@@ -115,6 +121,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     id: () => `id${++counter}`,
     hooks: {
       async url(key) {
+        need("hooks", "kit.hooks.url");
         if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(key)) throw new Error(`kit.hooks.url: "${key}" must be lowercase letters, digits and dashes`);
         hooks.add(key);
         return `https://hooks.test/${key}`;
@@ -130,6 +137,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     },
     groups: {
       async open(key, o) {
+        need("groups", "kit.groups.open");
         if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(key)) throw new Error(`kit.groups.open: "${key}" must be lowercase letters, digits and dashes`);
         if (!o?.name?.trim() || o.name.length > 25) throw new Error("kit.groups.open: give the group a name of 1-25 characters");
         if (!groups.has(key)) groups.set(key, { name: o.name, hello: o.hello ?? null });
@@ -146,6 +154,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
   };
 
   const withDefaults = (plugin: PluginDef) => {
+    current = plugin;
     for (const [k, v] of Object.entries(plugin.settings ?? {})) if (!(k in settings)) settings[k] = v;
   };
 

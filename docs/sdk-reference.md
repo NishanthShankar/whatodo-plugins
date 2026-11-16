@@ -31,6 +31,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onReaction` | `(event: ReactionEvent, kit) => Promise<void>` | no | The installer reacted to (or un-reacted) a message the plugin sent with a `ref`. |
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
 | `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
+| `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`. See [Permissions](#permissions). Since SDK 1.6.0. |
 | `unlisted` | boolean | no | Left out of the store and the public site; only people whatodo allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
 | `web` | `WebDef` | no | Data and actions for the plugin's web page. |
 
@@ -120,6 +121,18 @@ list<T>(collection, { prefix?, from?, to?, limit? }): Promise<{ key, data: T, so
 - `put` replaces the whole value; keeps the previous `sort` if you omit it on an update.
 - `list` returns items in `sort` order, then key. `prefix` filters keys; `from`/`to` (inclusive) filter `sort`. Without a sort value, items come last.
 - Values must be JSON. Keep each value small (a record, not a whole history).
+
+## Permissions
+
+By default a plugin can only hear its own group, post there, and keep its own data. Anything more is a permission it lists in `permissions`. whatodo shows the list to the person before they add the plugin, and refuses a call the plugin didn't ask for. Since SDK 1.6.0.
+
+| Permission | Lets the plugin | Status |
+|---|---|---|
+| `"hooks"` | Receive requests from outside whatodo: `kit.hooks`, `onHook`, and the files that come with them. | Built (SDK 1.5.0) |
+| `"groups"` | Make extra WhatsApp groups for the install: `kit.groups`, `kit.send(text, { group })`. | Built (SDK 1.6.0) |
+| `"replies"` | Be called back when someone replies. | Reserved: the name is fixed so plugins and people can plan for it; nothing is built yet. |
+
+Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
 
 ## Hooks: requests from outside
 

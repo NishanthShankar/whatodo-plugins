@@ -149,7 +149,7 @@ async function removeSubmission(kit: Kit, id: string) {
 
 export default definePlugin({
   id: "forms",
-  version: "1.0.1",
+  version: "1.0.2",
   sdk: "1",
   name: "Forms",
   icon: "📬",
@@ -160,6 +160,7 @@ export default definePlugin({
   price: 0,
   tier: 2,
   unlisted: true,
+  permissions: ["hooks"],
   listing: {
     title: "Form Backend on WhatsApp: Get Submissions as Chats | whatodo",
     description: "Point your website's form at whatodo and get every submission as a WhatsApp message. File uploads included. Records kept on the web.",

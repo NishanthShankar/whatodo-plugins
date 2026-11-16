@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] - 2026-11-17
+
+### Changed
+- Declares the `hooks` permission (receive requests from outside), which SDK 1.6.0 now asks every plugin with a hook to list. Nothing changes in what it does.
+
 ## [1.0.1] - 2026-11-17
 
 ### Fixed
