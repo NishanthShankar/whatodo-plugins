@@ -72,6 +72,12 @@ Actions: `createForm { name }`, `closeForm { key }`, `deleteForm { key }`, `dele
 
 Files themselves are held by whatodo, not in these rows.
 
+## Permissions
+
+| Permission | Why |
+|---|---|
+| `hooks` | To receive what your website's forms post to their addresses, files included. |
+
 ## Privacy
 
 This plugin receives what other people send through your forms: their names, contact details, messages and files. It keeps them only for you, shows them only to you (in your Forms group and on your page), and deletes them when you delete the submission or the form. It reads only the messages you send in its own group and the requests sent to your forms' addresses. Nothing is passed to anyone else. You are responsible for telling the people who fill in your forms what you collect and why. Keep your whatodo account behind your PIN: these can be sensitive documents.

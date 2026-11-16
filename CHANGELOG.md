@@ -2,6 +2,14 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.6.0] - 2026-11-17
+
+### Added
+- Extra groups: `kit.groups.open(key, { name, hello? })` asks whatodo for another WhatsApp group for the install (the person and whatodo, like the main one) and `kit.groups.close(key)` stops using it. `kit.send(text, { group })` posts there; until the group exists the message goes to the main group.
+- `MessageEvent.group` and `ReactionEvent.group`: the key of the extra group an event came from. While handling it, `kit.send` defaults to that group.
+- Permissions: `permissions` on `PluginDef` lists what a plugin may do beyond its own group and storage: `"hooks"` (receive requests from outside), `"groups"` (make extra groups) and `"replies"` (be called back on replies; reserved, not built yet). whatodo shows them before the plugin is added and refuses what isn't listed. `definePlugin` rejects unknown names and an `onHook` without `"hooks"`.
+- Test kit: `t.groups`, `group` on each entry of `t.sent`, and a `group` argument on `t.message` and `t.react`. The kit refuses `kit.hooks.url` and `kit.groups.open` for a plugin that didn't ask for the permission.
+
 ## [1.5.0] - 2026-11-17
 
 ### Added

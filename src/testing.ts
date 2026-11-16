@@ -22,6 +22,8 @@ export interface TestKitOptions {
 export interface Sent {
   text: string;
   ref: Json | null;
+  /** The extra group it was posted in; null for the main group. */
+  group: string | null;
 }
 
 function shiftDay(day: string, n: number): string {
@@ -42,12 +44,22 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const hooks = new Set<string>();
   /** Ids passed to kit.files.remove(), in order. */
   const removedFiles: string[] = [];
+  /** Extra groups that are open, by key. */
+  const groups = new Map<string, { name: string; hello: string | null }>();
+  /** The extra group the event being handled came from: kit.send defaults to it. */
+  let here: string | null = null;
   let counter = 0;
   const state = { today: opts.today ?? "2026-11-15", hour: opts.hour ?? 21 };
   const settings: Record<string, Json> = { ...(opts.settings ?? {}) };
 
   // Data must survive a JSON round trip, exactly as it does in whatodo's database.
   const clone = (v: Json): Json => JSON.parse(JSON.stringify(v));
+
+  /** The plugin being driven: its permissions decide what the kit allows, as in whatodo. */
+  let current: PluginDef | null = null;
+  const need = (permission: "hooks" | "groups", what: string) => {
+    if (current && !current.permissions?.includes(permission)) throw new Error(`${current.id}: ${what} needs the "${permission}" permission`);
+  };
 
   const kit: Kit = {
     get now() {
@@ -97,7 +109,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     send(text, o) {
       if (typeof text !== "string" || !text.trim()) throw new Error("kit.send: empty message");
       if (text.length > MAX_TEXT) throw new Error(`kit.send: message longer than ${MAX_TEXT} characters`);
-      sent.push({ text, ref: o?.ref === undefined ? null : clone(o.ref) });
+      sent.push({ text, ref: o?.ref === undefined ? null : clone(o.ref), group: o?.group ?? here });
     },
     react(emoji) {
       reactions.push(emoji);
@@ -109,6 +121,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     id: () => `id${++counter}`,
     hooks: {
       async url(key) {
+        need("hooks", "kit.hooks.url");
         if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(key)) throw new Error(`kit.hooks.url: "${key}" must be lowercase letters, digits and dashes`);
         hooks.add(key);
         return `https://hooks.test/${key}`;
@@ -122,6 +135,17 @@ export function createTestKit(opts: TestKitOptions = {}) {
         removedFiles.push(id);
       },
     },
+    groups: {
+      async open(key, o) {
+        need("groups", "kit.groups.open");
+        if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(key)) throw new Error(`kit.groups.open: "${key}" must be lowercase letters, digits and dashes`);
+        if (!o?.name?.trim() || o.name.length > 25) throw new Error("kit.groups.open: give the group a name of 1-25 characters");
+        if (!groups.has(key)) groups.set(key, { name: o.name, hello: o.hello ?? null });
+      },
+      async close(key) {
+        groups.delete(key);
+      },
+    },
     time: {
       day: () => state.today,
       shiftDay,
@@ -130,6 +154,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
   };
 
   const withDefaults = (plugin: PluginDef) => {
+    current = plugin;
     for (const [k, v] of Object.entries(plugin.settings ?? {})) if (!(k in settings)) settings[k] = v;
   };
 
@@ -140,6 +165,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
     unsures,
     /** Keys of the hooks that are open. */
     hooks,
+    /** Extra groups that are open: key -> { name, hello }. */
+    groups,
     removedFiles,
     /** Move the clock. */
     setToday(day: string) {
@@ -156,14 +183,25 @@ export function createTestKit(opts: TestKitOptions = {}) {
       withDefaults(plugin);
       await plugin.onInstall?.(kit);
     },
-    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null) {
+    /** `group`: the key of the extra group the message was sent in (null: the main group). */
+    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null) {
       withDefaults(plugin);
-      if (/^(help|\?|menu|commands)$/i.test(text.trim())) return kit.send(plugin.help);
-      await plugin.onMessage?.({ text, quotedRef }, kit);
+      here = group;
+      try {
+        if (/^(help|\?|menu|commands)$/i.test(text.trim())) return kit.send(plugin.help);
+        await plugin.onMessage?.({ text, quotedRef, group }, kit);
+      } finally {
+        here = null;
+      }
     },
-    async react(plugin: PluginDef, emoji: string | null, ref: Json) {
+    async react(plugin: PluginDef, emoji: string | null, ref: Json, group: string | null = null) {
       withDefaults(plugin);
-      await plugin.onReaction?.({ emoji, ref }, kit);
+      here = group;
+      try {
+        await plugin.onReaction?.({ emoji, ref, group }, kit);
+      } finally {
+        here = null;
+      }
     },
     /** What understand.targets() returns right now. */
     async targets(plugin: PluginDef) {

@@ -31,6 +31,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onReaction` | `(event: ReactionEvent, kit) => Promise<void>` | no | The installer reacted to (or un-reacted) a message the plugin sent with a `ref`. |
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
 | `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
+| `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`. See [Permissions](#permissions). Since SDK 1.6.0. |
 | `unlisted` | boolean | no | Left out of the store and the public site; only people whatodo allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
 | `web` | `WebDef` | no | Data and actions for the plugin's web page. |
 
@@ -68,8 +69,8 @@ Raising a plugin's tier changes what people may pay for it, so it is a MAJOR rel
 ## Events
 
 ```ts
-interface MessageEvent  { text: string; quotedRef: Json | null }
-interface ReactionEvent { emoji: string | null; ref: Json }   // emoji null: reaction removed
+interface MessageEvent  { text: string; quotedRef: Json | null; group?: string | null }
+interface ReactionEvent { emoji: string | null; ref: Json; group?: string | null }   // emoji null: reaction removed
 interface ScheduleEvent { id: string }
 interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number }
 interface HookEvent     { key: string; fields: Record<string, string>; files: HookFile[]; origin: string | null }
@@ -79,6 +80,7 @@ interface HookFile      { id: string; field: string; name: string; type: string;
 - `text` is trimmed by whatodo; it is never empty.
 - `quotedRef` is the `ref` of **your** message the person replied to, or `null`. Replies to their own messages or to messages without a ref give `null`.
 - Only the installer's messages and reactions reach the plugin.
+- `group` is the key of the extra group (`kit.groups.open`) the event happened in, or `null` for the main group. Making a group takes a little while and can fail and be retried, so never wait for it: keep working in the main group until events start arriving with the key.
 - `IntentEvent` reaches `onIntent` only after `onMessage` called `kit.unsure()`; see [Understanding unclear messages](#understanding-unclear-messages).
 
 ## Kit
@@ -91,7 +93,9 @@ interface HookFile      { id: string; field: string; name: string; type: string;
 | `settings` | `Record<string, Json>` | Defaults merged with the install's values. |
 | `setSettings(patch)` | `Promise<void>` | Merge a patch into the install's settings. |
 | `store` | `Store` | Per-install storage, below. |
-| `send(text, { ref? })` | void | Post in the plugin's group after the handler finishes. ≤ 4000 chars. WhatsApp formatting (`*bold*`, `_italic_`) works. Attach `ref` to recognise reactions and replies. |
+| `groups.open(key, { name, hello? })` | `Promise<void>` | Ask for an extra WhatsApp group for this install (the person and whatodo). `name` ≤ 25 chars; `hello` is posted once it exists. Does nothing if `key` is already open. Since SDK 1.6.0. |
+| `groups.close(key)` | `Promise<void>` | Stop using that group. whatodo stops listening and posting there. Since SDK 1.6.0. |
+| `send(text, { ref?, group? })` | void | Post in the plugin's group after the handler finishes. With `group`, post in that extra group instead (the main group until it exists). While handling an event from an extra group, that group is the default. ≤ 4000 chars. WhatsApp formatting (`*bold*`, `_italic_`) works. Attach `ref` to recognise reactions and replies. |
 | `react(emoji)` | void | React to the message being handled; the last call wins. In `onMessage` that is the person's message, in `onReaction` the plugin's own message they reacted to (acknowledge their reaction). `""` removes it. Ignored in schedules and web calls. Since SDK 1.3.0. |
 | `unsure(fallback)` | void | `onMessage` only: you couldn't read the message. With `understand`, whatodo works out the intent and calls `onIntent`; otherwise, or if it isn't sure, it posts `fallback`. Since SDK 1.4.0. |
 | `id()` | string | A short random id for new records. |
@@ -117,6 +121,18 @@ list<T>(collection, { prefix?, from?, to?, limit? }): Promise<{ key, data: T, so
 - `put` replaces the whole value; keeps the previous `sort` if you omit it on an update.
 - `list` returns items in `sort` order, then key. `prefix` filters keys; `from`/`to` (inclusive) filter `sort`. Without a sort value, items come last.
 - Values must be JSON. Keep each value small (a record, not a whole history).
+
+## Permissions
+
+By default a plugin can only hear its own group, post there, and keep its own data. Anything more is a permission it lists in `permissions`. whatodo shows the list to the person before they add the plugin, and refuses a call the plugin didn't ask for. Since SDK 1.6.0.
+
+| Permission | Lets the plugin | Status |
+|---|---|---|
+| `"hooks"` | Receive requests from outside whatodo: `kit.hooks`, `onHook`, and the files that come with them. | Built (SDK 1.5.0) |
+| `"groups"` | Make extra WhatsApp groups for the install: `kit.groups`, `kit.send(text, { group })`. | Built (SDK 1.6.0) |
+| `"replies"` | Be called back when someone replies. | Reserved: the name is fixed so plugins and people can plan for it; nothing is built yet. |
+
+Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
 
 ## Hooks: requests from outside
 

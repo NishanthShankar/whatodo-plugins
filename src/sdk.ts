@@ -15,13 +15,25 @@
  * The SDK's own version. Plugins are written against a major version; whatodo refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.5.0";
+export const SDK_VERSION = "1.6.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
  * 2 = medium, 3 = high. Used for pricing and limits later; names will come.
  */
 export type Tier = 1 | 2 | 3;
+
+/**
+ * What a plugin may do beyond its own group and storage. A plugin lists the ones it needs in
+ * `permissions`; whatodo shows them to the person before they add it and refuses the rest.
+ * - "hooks": receive requests from outside whatodo (`kit.hooks`, `onHook`, files).
+ * - "groups": make extra WhatsApp groups for the install (`kit.groups`).
+ * - "replies": be called back when someone replies. Reserved: named so plugins and people can
+ *   plan for it, not built yet.
+ * Since SDK 1.6.0.
+ */
+export type Permission = "hooks" | "groups" | "replies";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -63,9 +75,12 @@ export interface Kit {
   store: Store;
   /**
    * Post in the plugin's group. Attach a ref to recognise reactions and replies to this
-   * message later (they come back with the same ref).
+   * message later (they come back with the same ref). With `group`, post in one of the
+   * install's extra groups (`kit.groups.open`); until that group exists the message goes to
+   * the main group. While handling a message or reaction from an extra group, the default is
+   * that group.
    */
-  send(text: string, opts?: { ref?: Json }): void;
+  send(text: string, opts?: { ref?: Json; group?: string }): void;
   /**
    * React to the message being handled. In onMessage that is the person's message; in
    * onReaction it is the plugin's own message they reacted to (so you can acknowledge their
@@ -92,6 +107,17 @@ export interface Kit {
     /** Close a hook: its address stops working. Files it already brought stay until removed. */
     remove(key: string): Promise<void>;
   };
+  /**
+   * Extra WhatsApp groups for this install, besides its main one: each has the person and
+   * whatodo in it, like the main group. For plugins where one thing deserves its own chat
+   * (a form, a project). Making a group takes a little while. Since SDK 1.6.0.
+   */
+  groups: {
+    /** Ask for a group for `key` (lowercase letters, digits and dashes). Does nothing if it exists. `hello` is posted in it once it's made. */
+    open(key: string, opts: { name: string; hello?: string }): Promise<void>;
+    /** Stop using the group for `key`. whatodo stops listening and posting there; the chat itself stays on the person's phone. */
+    close(key: string): Promise<void>;
+  };
   /** Files that arrived through hooks. The plugin holds their ids; whatodo holds the bytes. Since SDK 1.5.0. */
   files: {
     /** Delete a file for good. */
@@ -112,6 +138,8 @@ export interface MessageEvent {
   text: string;
   /** The ref of the plugin message this one replies to, if any. */
   quotedRef: Json | null;
+  /** The key of the extra group it was sent in; null or unset for the main group. Since SDK 1.6.0. */
+  group?: string | null;
 }
 
 export interface ReactionEvent {
@@ -119,6 +147,8 @@ export interface ReactionEvent {
   emoji: string | null;
   /** The ref of the plugin message reacted to. */
   ref: Json;
+  /** The key of the extra group the message is in; null or unset for the main group. Since SDK 1.6.0. */
+  group?: string | null;
 }
 
 /** A file that came with a hook request. Only whatodo can read its bytes; the plugin keeps the id. */
@@ -236,6 +266,8 @@ export interface PluginDef {
   tier?: Tier;
   /** Public page text for search. Optional in SDK 1.x; the conformance suite requires it in this repo. */
   listing?: Listing;
+  /** What it may do beyond its own group and storage. See `Permission`. Since SDK 1.6.0. */
+  permissions?: Permission[];
   /**
    * Not offered to everyone: left out of the store and the public site, and only people whatodo
    * allows can add it. For plugins still being tried out. Since SDK 1.5.0.
@@ -285,6 +317,10 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (def.sdk !== SDK_VERSION.split(".")[0]) throw new Error(`${def.id}: written for SDK ${def.sdk}, this is SDK ${SDK_VERSION}`);
   if (!Number.isInteger(def.price) || def.price < 0) throw new Error(`${def.id}: price must be a whole number >= 0`);
   if (def.tier !== undefined && ![1, 2, 3].includes(def.tier)) throw new Error(`${def.id}: tier must be 1, 2 or 3`);
+  for (const p of def.permissions ?? []) {
+    if (!PERMISSIONS.includes(p)) throw new Error(`${def.id}: unknown permission "${p}"`);
+  }
+  if (def.onHook && !def.permissions?.includes("hooks")) throw new Error(`${def.id}: onHook needs the "hooks" permission`);
   if (def.understand) {
     const ids = Object.keys(def.understand.intents ?? {});
     if (ids.length < 2 || ids.length > 20) throw new Error(`${def.id}: understand.intents needs 2 to 20 intents`);
