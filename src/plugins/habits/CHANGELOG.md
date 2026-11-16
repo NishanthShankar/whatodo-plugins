@@ -2,6 +2,21 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-11-16
+
+### Added
+- Habits can be for some days only: `add gym on mon wed fri`, `add walk at 7am on weekdays`, `days gym tue thu`, `days gym every day`. Day words: Mon to Sun (short or full), weekdays, weekends, every day / daily.
+- The check-in only goes out on a habit's days.
+- `habits` shows 📅 with the days for habits that aren't every day.
+- Web: `setHabitDays` action (`days`: weekdays 0 Sunday to 6 Saturday, or null for every day), optional `days` on `create`, and `days` on each habit in `load`.
+
+### Changed
+- Streaks skip days a habit isn't due on, so a rest day doesn't break them; doing it on a rest day still counts. Best streak follows the same rule.
+- The 🟩⬜ grid shows ▫️ for days a habit isn't due on.
+
+### Data
+- `habits` rows gain an optional `days` (array of 0-6, or null). Rows without it are every day; nothing to migrate.
+
 ## [1.2.0] - 2026-11-16
 
 ### Added
