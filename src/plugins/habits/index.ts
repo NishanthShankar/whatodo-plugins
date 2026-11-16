@@ -135,7 +135,7 @@ function scanHour(text: string): number | undefined {
 }
 
 const FILLER = new RegExp(
-  "^(?:i(?:\\s+|')(?:want|wanna|would like|would love|d like|d love|need|have|plan|am going|m going)\\s+to|i\\s+will|i'll|help me|can you|could you|please|pls|let'?s|i\\s+want|start(?:ing)?|begin|track(?:ing)?|add|create|make|set up|new|a|an|my|the|habit(?:s)?|of|to|for me|remind me to|going to|go to)(?:\\s+|$)",
+  "^(?:i(?:\\s+|')(?:want|wanna|would like|would love|d like|d love|need|have|plan|am going|m going)\\s+to|i\\s+will|i'll|help me|can you|could you|please|pls|let'?s|also|just|really|kindly|and|i\\s+want|start(?:ing)?|begin|track(?:ing)?|add|create|make|set up|new|a|an|my|the|habit(?:s)?|of|to|for me|remind me to|going to|go to)(?:\\s+|$)",
   "i",
 );
 
@@ -229,7 +229,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "1.4.0",
+  version: "1.4.1",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
