@@ -15,7 +15,7 @@
  * The SDK's own version. Plugins are written against a major version; whatodo refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.6.0";
+export const SDK_VERSION = "1.7.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -30,10 +30,13 @@ export type Tier = 1 | 2 | 3;
  * - "groups": make extra WhatsApp groups for the install (`kit.groups`).
  * - "replies": be called back when someone replies. Reserved: named so plugins and people can
  *   plan for it, not built yet.
+ * - "lock-members": block adding members. The plugin's groups (its main one and any extra ones)
+ *   are made with whatodo as the only admin and set so only admins can add people, so nobody
+ *   else can be brought in. Reserved since SDK 1.7.0: named, not enforced yet.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };

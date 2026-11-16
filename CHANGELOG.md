@@ -2,6 +2,11 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.7.0] - 2026-11-17
+
+### Added
+- Permission `"lock-members"` (blocks adding members): the plugin's groups are made with whatodo as the only admin and set so only admins can add people. Reserved for now: the name is fixed and `definePlugin` accepts it, but whatodo doesn't enforce it yet. No plugin uses it.
+
 ## [1.6.0] - 2026-11-17
 
 ### Added
