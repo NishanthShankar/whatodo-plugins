@@ -32,6 +32,49 @@ describe("habits", () => {
     expect(((await t.load(habits)) as { habits: { streak: number }[] }).habits[0].streak).toBe(0);
   });
 
+  it("acknowledges every reaction with a 👍 and takes it back when theirs is removed", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add read");
+    await t.schedule(habits, "checkin");
+    await t.react(habits, "✅", t.sent[0].ref);
+    await t.react(habits, "❌", t.sent[0].ref);
+    await t.react(habits, "😅", t.sent[0].ref);
+    await t.react(habits, null, t.sent[0].ref);
+    expect(t.reactions).toEqual(["👍", "👍", "👍", "👍", ""]);
+  });
+
+  it("❌ means didn't do it: no streak, and the day is closed", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add read");
+    await t.schedule(habits, "checkin");
+    await t.react(habits, "✅", t.sent[0].ref);
+    await t.react(habits, "❌", t.sent[0].ref);
+    const load = async () => ((await t.load(habits)) as { habits: { streak: number; total: number }[] }).habits[0];
+    expect(await load()).toMatchObject({ streak: 0, total: 0 });
+    const ref = t.sent[0].ref as { habitId: string; day: string };
+    expect(t.dump()).toHaveProperty([`missed/${ref.habitId}:${ref.day}`]);
+    // Not asked again that day, even if its check-in time comes round again.
+    await t.schedule(habits, "checkin");
+    expect(t.sent).toHaveLength(1);
+    // Removing the ❌ reopens the day.
+    await t.react(habits, null, t.sent[0].ref);
+    await t.schedule(habits, "checkin");
+    expect(t.sent).toHaveLength(2);
+    // Logging it later still counts.
+    await t.react(habits, "❌", t.sent[1].ref);
+    await t.message(habits, "done read");
+    expect(await load()).toMatchObject({ streak: 1, total: 1 });
+  });
+
+  it("a no reply closes the day too", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add read");
+    await t.schedule(habits, "checkin");
+    await t.message(habits, "no", t.sent[0].ref);
+    await t.schedule(habits, "checkin");
+    expect(t.sent).toHaveLength(1);
+  });
+
   it("skips habits already done today", async () => {
     const t = createTestKit({ hour: 21 });
     await t.message(habits, "add read");
