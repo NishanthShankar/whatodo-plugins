@@ -38,10 +38,12 @@ Send these in the Forms group.
 | Message | What happens |
 |---|---|
 | `new form contact` | Makes a form and replies with its address. Names become keys: "Partner applications" is `partner-applications`. Up to 50 forms. |
+| `new form contact in its own group` | Makes the form and a WhatsApp group just for it, named after the form. Its submissions arrive there (in the main group until the new one is ready). |
+| `group contact` | Gives a form you already have its own group. |
 | `forms` | Your forms, how many submissions each has had, and their addresses. |
-| `address contact` | One form's address again. |
-| `last` / `last contact` | The latest submission, of any form or of one. |
-| `close contact` | The form stops taking submissions; its address no longer works. What it received stays. `new form contact` opens it again with a new address. 👍 |
+| `address contact` | One form's address again. In a form's own group, `address` is enough. |
+| `last` / `last contact` | The latest submission, of any form or of one. In a form's own group, `last` means that form. |
+| `close contact` | In a form's own group, `close` is enough. The form stops taking submissions; its address no longer works. What it received stays. `new form contact` opens it again with a new address. 👍 |
 | `help` | This list. |
 
 Each submission arrives as one message: the form's name, its fields (the first 12, long values cut short) and the names and sizes of its files. React ✅ (or 👍) to mark it dealt with; take the reaction off to undo.
@@ -56,17 +58,17 @@ Each submission arrives as one message: the form's name, its fields (the first 1
 
 On app.whatodo.today, behind your PIN if you've set one:
 
-- Your forms, their addresses and counts. Make a form, close one, or delete one with everything it received.
+- Your forms, their addresses and counts. Make a form (with its own WhatsApp group if you tick the box), give an existing form its own group, close one, or delete one with everything it received.
 - Every submission, newest first: when, from which site, its fields, and its files to open or download.
 - Mark a submission done, or delete it (its files go with it).
 
-Actions: `createForm { name }`, `closeForm { key }`, `deleteForm { key }`, `deleteSubmission { id }`, `setDone { id, done }`.
+Actions: `createForm { name, ownGroup? }`, `giveGroup { key }`, `closeForm { key }`, `deleteForm { key }`, `deleteSubmission { id }`, `setDone { id, done }`.
 
 ## Data
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `forms` | form key | `{ name, url, createdDay, created, closed?, count }` | created (ms) |
+| `forms` | form key | `{ name, url, createdDay, created, closed?, count, ownGroup? }` | created (ms) |
 | `submissions` | id | `{ form, at, fields, order, files: [{ id, field, name, type, size }], origin, done? }` (`order`: field names as sent) | received (ms) |
 | `days` | `<form>:<day>` | messages sent that day | day |
 
@@ -77,6 +79,7 @@ Files themselves are held by whatodo, not in these rows.
 | Permission | Why |
 |---|---|
 | `hooks` | To receive what your website's forms post to their addresses, files included. |
+| `groups` | To make a WhatsApp group for a form when you ask for one. |
 
 ## Privacy
 

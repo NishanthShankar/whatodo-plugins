@@ -2,6 +2,18 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-11-17
+
+### Added
+- A form can have its own WhatsApp group. `new form contact in its own group` makes the form and a group named after it; `group contact` gives one to a form you already have. On the page, tick "Give it its own WhatsApp group" when adding a form, or use "Give it its own group" on an existing one.
+- A form with its own group is announced there, not in the main Forms group. Until the group exists, its submissions still arrive in the main group.
+- In a form's own group, `last`, `address` and `close` are about that form without naming it.
+- New permission: `groups` (make extra WhatsApp groups).
+
+### Data
+- `forms` rows gain `ownGroup` (true when the form has its own group; the group's key is the form's key). Rows without it behave as before.
+- New web action `giveGroup { key }`; `createForm` takes `ownGroup`.
+
 ## [1.0.2] - 2026-11-17
 
 ### Changed
