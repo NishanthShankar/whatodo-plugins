@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.4.1] - 2026-11-16
+
+### Fixed
+- Habit names read from sentences drop "also", "just", "really", "kindly" and "and": "can you also track reading every day at 10pm" adds *Reading*, not *Also track reading*.
+
 ## [1.4.0] - 2026-11-16
 
 ### Added

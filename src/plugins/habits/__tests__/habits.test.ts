@@ -230,6 +230,8 @@ describe("habits: unclear messages", () => {
     ["I'd like to run on weekends", "Run", [0, 6], null],
     ["new habit: drink 8 glasses of water", "Drink 8 glasses of water", null, null],
     ["yoga tue, thu and sat at 6:30am", "Yoga", [2, 4, 6], 6],
+    ["can you also track reading every day at 10pm", "Reading", null, 22],
+    ["and just add stretching on weekdays", "Stretching", [1, 2, 3, 4, 5], null],
   ])("add_habit: %s", async (text, name, days, hour) => {
     const t = createTestKit();
     await t.intent(habits, text, "add_habit");
