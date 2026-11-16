@@ -86,7 +86,7 @@ interface ScheduleEvent { id: string }
 | `setSettings(patch)` | `Promise<void>` | Merge a patch into the install's settings. |
 | `store` | `Store` | Per-install storage, below. |
 | `send(text, { ref? })` | void | Post in the plugin's group after the handler finishes. ≤ 4000 chars. WhatsApp formatting (`*bold*`, `_italic_`) works. Attach `ref` to recognise reactions and replies. |
-| `react(emoji)` | void | React to the message being handled (message events only; the last call wins). |
+| `react(emoji)` | void | React to the message being handled; the last call wins. In `onMessage` that is the person's message, in `onReaction` the plugin's own message they reacted to (acknowledge their reaction). `""` removes it. Ignored in schedules and web calls. Since SDK 1.3.0. |
 | `id()` | string | A short random id for new records. |
 | `time.day(ms)` | string | `YYYY-MM-DD` of an instant in the person's zone. |
 | `time.shiftDay(day, n)` | string | Add `n` days to a `YYYY-MM-DD`. |

@@ -2,6 +2,11 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.3.0] - 2026-11-16
+
+### Added
+- `kit.react` works in `onReaction`: it reacts to the plugin's own message that the person reacted to, so a plugin can acknowledge a reaction. `kit.react("")` removes it.
+
 ## [1.2.1] - 2026-11-16
 
 ### Changed
