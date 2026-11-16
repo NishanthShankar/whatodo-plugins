@@ -1,12 +1,12 @@
 import { definePlugin, type Kit } from "../../sdk";
-import { bestStreak, cleanName, grid, streak } from "./streaks";
+import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, streak } from "./streaks";
 
 /**
  * Habits: one message per habit every day; react ✅ or 👍 if you did it, ❌ if you didn't.
  * Every reaction gets a 👍 back so you know it landed.
  *
  * Storage
- *   habits  key = habit id   data = { name, createdDay, archived, hour? }   sort = createdAt
+ *   habits  key = habit id   data = { name, createdDay, archived, hour?, days? }   sort = createdAt
  *   logs    key = "<habitId>:<day>"   data = 1   sort = day   (did it)
  *   missed  key = "<habitId>:<day>"   data = 1   sort = day   (said they didn't: the day is
  *           closed, it counts like no answer for streaks, and that day isn't asked again)
@@ -18,6 +18,8 @@ interface Habit {
   archived: boolean;
   /** Its own check-in hour (0-23). Unset: the default check-in time. */
   hour?: number | null;
+  /** Weekdays it's due on, 0 Sunday to 6 Saturday. Unset or null: every day. */
+  days?: number[] | null;
 }
 
 interface PromptRef {
@@ -90,15 +92,48 @@ function hourOf(h: Habit, kit: Kit): number | null {
   return typeof d === "number" ? d : null;
 }
 
+/** "add gym on mon wed fri at 7am": pulls the trailing time and days off a habit name, in either order. */
+function splitAdd(raw: string): { name: string; hour: number | null; days: number[] | null | undefined } {
+  let name = raw;
+  let hour: number | null = null;
+  let days: number[] | null | undefined;
+  for (let i = 0; i < 2; i++) {
+    const at = name.match(new RegExp(`\\s+(?:at|@|every day at|daily at)\\s+(${TIME})$`, "i"));
+    if (at && parseHour(at[1]) !== null && hour === null) {
+      hour = parseHour(at[1]);
+      name = name.slice(0, at.index);
+      continue;
+    }
+    const on = name.match(/\s+((?:on|every|only on)\s+.+|daily|every ?day|on weekdays|on weekends)$/i);
+    if (on && days === undefined) {
+      // Shortest tail first would grab too little; try from the earliest "on"/"every" that parses.
+      const words = name.split(" ");
+      for (let k = 1; k < words.length; k++) {
+        if (!/^(?:on|every|only|daily|everyday)$/i.test(words[k])) continue;
+        const parsed = parseDays(words.slice(k).join(" "));
+        if (parsed !== undefined) {
+          days = parsed;
+          name = words.slice(0, k).join(" ");
+          break;
+        }
+      }
+      if (days !== undefined) continue;
+    }
+    break;
+  }
+  return { name, hour, days };
+}
+
 async function summary(kit: Kit): Promise<string> {
   const list = await active(kit);
   if (!list.length) return "No habits yet. Add one: _add meditate_";
   const lines = ["*Your habits* (last 14 days)"];
   for (const [i, { id, habit }] of list.entries()) {
     const done = await doneDays(kit, id);
-    const s = streak(done, kit.today);
+    const s = streak(done, kit.today, habit.days);
     const own = typeof habit.hour === "number" ? `  ⏰ ${hourLabel(habit.hour)}` : "";
-    lines.push("", `${i + 1}. *${habit.name}*${s ? `  🔥 ${s}` : ""}${own}`, grid(done, kit.today, 14, habit.createdDay));
+    const when = habit.days?.length ? `  📅 ${daysLabel(habit.days)}` : "";
+    lines.push("", `${i + 1}. *${habit.name}*${s ? `  🔥 ${s}` : ""}${own}${when}`, grid(done, kit.today, 14, habit.createdDay, habit.days));
   }
   const hour = kit.settings.checkinHour;
   lines.push(
@@ -120,19 +155,30 @@ const HELP = [
   "_time 10pm_ sets the default check-in time, _time off_ turns it off",
   "_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back",
   "_add read at 10pm_ adds a habit with its own time",
+  "_add gym on mon wed fri_ adds a habit for some days only",
+  "_days gym tue thu_ changes its days, _days gym every day_ puts it back",
   "",
   "Every day I send one message per habit. React ✅ or 👍 if you did it, ❌ if you didn't.",
 ].join("\n");
 
+/** Web input → sorted weekdays, or null for every day. */
+function checkDays(days: unknown): number[] | null {
+  if (days === null || days === undefined) return null;
+  if (!Array.isArray(days) || !days.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error("Pick days of the week.");
+  const set = [...new Set(days as number[])].sort((a, b) => a - b);
+  if (!set.length) throw new Error("Pick at least one day.");
+  return set.length === 7 ? null : set;
+}
+
 export default definePlugin({
   id: "habits",
-  version: "1.2.0",
+  version: "1.3.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
   tagline: "Build habits with a daily check-in and streaks.",
   description:
-    "Add the habits you want to keep. Every day I message you once per habit, at the time you pick for each; react ✅ or 👍 if you did it. Your streaks show as green squares, and the web page shows the last month.",
+    "Add the habits you want to keep, every day or only on the days you pick. On each habit's days I message you at the time you pick; react ✅ or 👍 if you did it. Your streaks show as green squares, and the web page shows the last month.",
   groupName: "🌱 Habits",
   price: 0,
   tier: 1,
@@ -189,6 +235,22 @@ export default definePlugin({
       return kit.react("👍");
     }
 
+    // "days gym mon wed fri" / "days gym weekdays" / "days gym every day"
+    const dm = text.match(/^days?\s+(.+)$/i);
+    if (dm) {
+      const list0 = await active(kit);
+      const words = dm[1].trim().split(/\s+/);
+      for (let k = 1; k < words.length; k++) {
+        const parsed = parseDays(words.slice(k).join(" "));
+        if (parsed === undefined) continue;
+        const h = find(list0, words.slice(0, k).join(" "));
+        if (!h) return kit.send(`I can't find "${words.slice(0, k).join(" ")}". Send _habits_ to see them.`);
+        await kit.store.put("habits", h.id, { ...h.habit, days: parsed });
+        return kit.react("👍");
+      }
+      return kit.send("Tell me the habit and the days, like _days gym mon wed fri_ or _days gym every day_.");
+    }
+
     const list = await active(kit);
     let m = text.match(/^(?:done|did|logged?|✅)\s+(.+)$/i);
     if (m) {
@@ -213,21 +275,18 @@ export default definePlugin({
     }
     m = text.match(/^(?:add|new|start|track|habit)\s*:?\s+(.+)$/i);
     if (m) {
-      // "add read at 10pm": its own check-in time
-      let raw = m[1];
-      let hour: number | null = null;
-      const at = raw.match(new RegExp(`\\s+(?:at|@|every day at|daily at)\\s+(${TIME})$`, "i"));
-      if (at && parseHour(at[1]) !== null) {
-        hour = parseHour(at[1]);
-        raw = raw.slice(0, at.index);
-      }
+      // "add read at 10pm": its own check-in time; "add gym on mon wed fri": only those days
+      const { name: raw, hour, days } = splitAdd(m[1]);
       const name = cleanName(raw);
       if (!name) return kit.send("Name the habit, like _add meditate_.");
       const same = list.find((h) => h.habit.name.toLowerCase() === name.toLowerCase());
       if (same) {
-        if (hour !== null) await kit.store.put("habits", same.id, { ...same.habit, hour });
+        const patch: Partial<Habit> = {};
+        if (hour !== null) patch.hour = hour;
+        if (days !== undefined) patch.days = days;
+        if (Object.keys(patch).length) await kit.store.put("habits", same.id, { ...same.habit, ...patch });
       } else {
-        await kit.store.put("habits", kit.id(), { name, createdDay: kit.today, archived: false, hour }, kit.now);
+        await kit.store.put("habits", kit.id(), { name, createdDay: kit.today, archived: false, hour, days: days ?? null }, kit.now);
       }
       return kit.react("👍");
     }
@@ -256,11 +315,12 @@ export default definePlugin({
     const now = kit.time.hour(kit.now);
     for (const { id, habit } of await active(kit)) {
       if (event.id === "checkin" && hourOf(habit, kit) !== now) continue;
+      if (!isOn(habit.days, kit.today)) continue; // not one of its days
       const done = await doneDays(kit, id);
       if (done.has(kit.today)) continue;
       if (await kit.store.get("missed", `${id}:${kit.today}`)) continue; // they already said no
-      const s = streak(done, kit.today);
-      kit.send(`🌙 Did you *${habit.name}* today?\n${grid(done, kit.today, 7, habit.createdDay)}${s ? `  🔥 ${s}` : ""}\n\n_React ✅ if you did, ❌ if you didn't._`, {
+      const s = streak(done, kit.today, habit.days);
+      kit.send(`🌙 Did you *${habit.name}* today?\n${grid(done, kit.today, 7, habit.createdDay, habit.days)}${s ? `  🔥 ${s}` : ""}\n\n_React ✅ if you did, ❌ if you didn't._`, {
         ref: { habitId: id, day: kit.today },
       });
     }
@@ -278,9 +338,10 @@ export default definePlugin({
           id,
           name: habit.name,
           hour: typeof habit.hour === "number" ? habit.hour : null,
+          days: habit.days?.length ? habit.days : null,
           createdDay: habit.createdDay,
-          streak: streak(all, kit.today),
-          best: bestStreak(all),
+          streak: streak(all, kit.today, habit.days),
+          best: bestStreak(all, habit.days, kit.today),
           total: all.size,
           doneDays: [...all].filter((d) => d >= from).sort(),
         });
@@ -289,11 +350,11 @@ export default definePlugin({
       return { today: kit.today, timezone: kit.person.timezone, habitHour: typeof hour === "number" ? hour : null, habits: out };
     },
     actions: {
-      async create(kit, { name }) {
+      async create(kit, { name, days }) {
         const clean = cleanName(String(name ?? ""));
         if (!clean) throw new Error("Name the habit.");
         const id = kit.id();
-        await kit.store.put("habits", id, { name: clean, createdDay: kit.today, archived: false }, kit.now);
+        await kit.store.put("habits", id, { name: clean, createdDay: kit.today, archived: false, days: checkDays(days) }, kit.now);
         return id;
       },
       async rename(kit, { id, name }) {
@@ -318,6 +379,12 @@ export default definePlugin({
         const v = hour === null || hour === undefined ? null : Number(hour);
         if (v !== null && (!Number.isInteger(v) || v < 0 || v > 23)) throw new Error("Pick an hour.");
         await kit.store.put("habits", String(id), { ...h, hour: v });
+      },
+      /** Which weekdays a habit is due on (0 Sunday to 6 Saturday); null or all seven: every day. */
+      async setHabitDays(kit, { id, days }) {
+        const h = await kit.store.get<Habit>("habits", String(id));
+        if (!h) throw new Error("No such habit.");
+        await kit.store.put("habits", String(id), { ...h, days: checkDays(days) });
       },
       async setHour(kit, { hour }) {
         const h = hour === null ? null : Number(hour);

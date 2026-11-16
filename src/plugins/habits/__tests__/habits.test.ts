@@ -75,6 +75,60 @@ describe("habits", () => {
     expect(t.sent).toHaveLength(1);
   });
 
+  it("adds a habit for some days only and asks only on those days", async () => {
+    // createTestKit's today is fixed; find its weekday and pick days around it.
+    const t = createTestKit({ hour: 21 });
+    const wd = new Date(`${t.kit.today}T00:00:00Z`).getUTCDay();
+    const names = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    await t.message(habits, `add gym on ${names[(wd + 1) % 7]} and ${names[(wd + 3) % 7]} at 9pm`);
+    await t.message(habits, "add read");
+    await t.schedule(habits, "checkin");
+    expect(t.sent.map((x) => x.text.match(/\*(.+?)\*/)![1])).toEqual(["Read"]);
+    await t.message(habits, `days gym ${names[wd]}`);
+    await t.schedule(habits, "checkin");
+    expect(t.sent.at(-1)!.text).toContain("*Gym*");
+    await t.message(habits, "habits");
+    expect(t.sent.at(-1)!.text).toMatch(/\*Gym\*.*⏰ 9pm  📅 (Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/m);
+  });
+
+  it("parses days in add and days commands", async () => {
+    const t = createTestKit();
+    await t.message(habits, "add gym every mon, wed & fri");
+    await t.message(habits, "add walk at 7am on weekdays");
+    await t.message(habits, "add call mom");
+    const rows = () => Object.values(t.dump()).filter((v) => typeof v === "object" && v && "name" in v) as { name: string; days: number[] | null; hour: number | null }[];
+    expect(rows().map((r) => [r.name, r.days, r.hour])).toEqual([
+      ["Gym", [1, 3, 5], null],
+      ["Walk", [1, 2, 3, 4, 5], 7],
+      ["Call mom", null, null],
+    ]);
+    await t.message(habits, "days gym every day");
+    await t.message(habits, "days walk weekends");
+    expect(rows().map((r) => r.days)).toEqual([null, [0, 6], null]);
+    await t.message(habits, "days gym someday");
+    expect(t.sent.at(-1)!.text).toContain("days gym mon wed fri");
+  });
+
+  it("days off don't break a streak", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add gym");
+    const id = Object.keys(t.dump()).find((k) => k.startsWith("habits/"))!.slice(7);
+    const today = t.kit.today;
+    const day = (n: number) => t.kit.time.shiftDay(today, n);
+    const wd = (n: number) => new Date(`${day(n)}T00:00:00Z`).getUTCDay();
+    // Due today and 2 days ago; yesterday is off.
+    await t.load(habits); // make sure web works before patching
+    await t.act(habits, "setHabitDays", { id, days: [wd(0), wd(-2), wd(-4)] });
+    await t.act(habits, "setDay", { id, day: day(-4), done: true });
+    await t.act(habits, "setDay", { id, day: day(-2), done: true });
+    await t.act(habits, "setDay", { id, day: day(0), done: true });
+    const h = ((await t.load(habits)) as { habits: { streak: number; best: number; days: number[] }[] }).habits[0];
+    expect(h.streak).toBe(3);
+    expect(h.best).toBe(3);
+    await t.act(habits, "setDay", { id, day: day(-2), done: false });
+    expect(((await t.load(habits)) as { habits: { streak: number }[] }).habits[0].streak).toBe(1);
+  });
+
   it("skips habits already done today", async () => {
     const t = createTestKit({ hour: 21 });
     await t.message(habits, "add read");
