@@ -6,7 +6,7 @@ import { definePlugin, type HookFile, type Json, type Kit } from "../../sdk";
  *
  * Storage
  *   forms        key = form key ("contact")   data = Form         sort = created (ms)
- *   submissions  key = id                     data = Submission   sort = received (ms)
+ *   submissions  key = id                     data = Submission   sort = received (ms)   (`order` keeps the fields' order)
  *   days         key = "<form>:<day>"         data = number of messages sent that day   sort = day
  */
 
@@ -27,6 +27,8 @@ interface Submission {
   form: string;
   at: number;
   fields: Record<string, string>;
+  /** The fields' names in the order the form sent them (stored objects don't keep their order). Unset in 1.0.0. */
+  order?: string[];
   files: HookFile[];
   origin: string | null;
   /** Marked as dealt with (✅ on its message, or on the page). */
@@ -118,9 +120,15 @@ function addressText(key: string, form: Form, fresh: boolean): string {
     .trim();
 }
 
+/** A submission's fields in the order the form sent them. */
+function ordered(s: Pick<Submission, "fields" | "order">): [string, string][] {
+  const names = [...(s.order ?? []).filter((k) => k in s.fields), ...Object.keys(s.fields).filter((k) => !(s.order ?? []).includes(k))];
+  return names.map((k) => [k, s.fields[k]]);
+}
+
 function submissionText(formName: string, s: Submission): string {
   const lines = [`📬 *${formName}*`];
-  const entries = Object.entries(s.fields);
+  const entries = ordered(s);
   for (const [k, v] of entries.slice(0, SHOW_FIELDS)) {
     const value = v.length > SHOW_CHARS ? `${v.slice(0, SHOW_CHARS)}…` : v;
     lines.push(`*${k}:* ${value}`);
@@ -141,7 +149,7 @@ async function removeSubmission(kit: Kit, id: string) {
 
 export default definePlugin({
   id: "forms",
-  version: "1.0.0",
+  version: "1.0.1",
   sdk: "1",
   name: "Forms",
   icon: "📬",
@@ -227,7 +235,7 @@ export default definePlugin({
       return;
     }
     const id = `${kit.now.toString(36)}${kit.id().slice(0, 4)}`;
-    const s: Submission = { form: event.key, at: kit.now, fields: event.fields, files: event.files, origin: event.origin };
+    const s: Submission = { form: event.key, at: kit.now, fields: event.fields, order: Object.keys(event.fields), files: event.files, origin: event.origin };
     await kit.store.put("submissions", id, s as unknown as Json, kit.now);
     await kit.store.put("forms", event.key, { ...form, count: form.count + 1 } as unknown as Json, form.created);
 
@@ -263,7 +271,7 @@ export default definePlugin({
       const mine = (only ? all.filter((s) => s.data.form === only) : all).reverse().slice(0, limit);
       return {
         forms: (await forms(kit)).map((f) => ({ key: f.key, name: f.data.name, url: f.data.url, closed: !!f.data.closed, count: f.data.count, createdDay: f.data.createdDay })),
-        submissions: mine.map((s) => ({ id: s.key, form: s.data.form, at: s.data.at, fields: s.data.fields, files: s.data.files, origin: s.data.origin, done: !!s.data.done })),
+        submissions: mine.map((s) => ({ id: s.key, form: s.data.form, at: s.data.at, fields: s.data.fields, order: ordered(s.data).map(([k]) => k), files: s.data.files, origin: s.data.origin, done: !!s.data.done })),
         total: all.length,
       } as unknown as Json;
     },
