@@ -2,6 +2,14 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-11-17
+
+### Added
+- Replace a form's address when the old one got out and is being misused: `new address contact` in WhatsApp (just `new address` in the form's own group), or "Change address" on the page. The old address stops working at once. Everything the form received stays where it is.
+
+### Data
+- No change in shape: the form's `url` is rewritten. New web action `newAddress { key }`.
+
 ## [1.1.1] - 2026-11-17
 
 ### Fixed
