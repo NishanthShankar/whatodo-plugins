@@ -46,7 +46,9 @@ function isRef(ref: unknown): ref is SubmissionRef {
   return !!ref && typeof ref === "object" && (ref as SubmissionRef).kind === "submission" && typeof (ref as SubmissionRef).id === "string";
 }
 
-const DONE_EMOJI = new Set(["✅", "✔️", "☑️", "👍"]);
+/** Every tick WhatsApp offers, and a thumbs up. Compared without the invisible "emoji style" mark, which phones add or drop. */
+const DONE_EMOJI = new Set(["✅", "✔", "☑", "✓", "👍", "👌", "🆗"]);
+const plainEmoji = (e: string) => e.replace(/[\uFE0E\uFE0F]/g, "").replace(/[\u{1F3FB}-\u{1F3FF}]/gu, "");
 /** Most fields shown in one message; the rest are on the page. */
 const SHOW_FIELDS = 12;
 /** Longest value shown in a message. */
@@ -165,7 +167,7 @@ async function removeSubmission(kit: Kit, id: string) {
 
 export default definePlugin({
   id: "forms",
-  version: "1.1.0",
+  version: "1.1.1",
   sdk: "1",
   name: "Forms",
   icon: "📬",
@@ -294,8 +296,11 @@ export default definePlugin({
     if (!isRef(event.ref)) return;
     const s = await kit.store.get<Submission>("submissions", event.ref.id);
     if (!s) return;
-    const done = !!event.emoji && DONE_EMOJI.has(event.emoji);
+    const done = !!event.emoji && DONE_EMOJI.has(plainEmoji(event.emoji));
     if (!event.emoji || done) await kit.store.put("submissions", event.ref.id, { ...s, done } as unknown as Json, s.at);
+    // Tick the message back, so it's plain that it was marked done (and take the tick off when undone).
+    if (done) kit.react("✅");
+    else if (!event.emoji) kit.react("");
   },
 
   web: {

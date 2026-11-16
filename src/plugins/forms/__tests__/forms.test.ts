@@ -118,6 +118,30 @@ describe("forms: submissions", () => {
   });
 });
 
+describe("forms: marking done from WhatsApp", () => {
+  it("any tick or thumbs up marks it done and is ticked back; other emoji don't", async () => {
+    for (const emoji of ["✅", "✔️", "✔", "☑️", "✓", "👍", "👍🏽", "👌", "🆗"]) {
+      const t = T();
+      await t.message(forms, "new form contact");
+      await t.hook(forms, "contact", { name: "Asha" });
+      await t.react(forms, emoji, t.sent.at(-1)!.ref);
+      expect(((await t.load(forms)) as unknown as Page).submissions[0].done, emoji).toBe(true);
+      expect(t.reactions.at(-1), emoji).toBe("✅");
+    }
+    const t = T();
+    await t.message(forms, "new form contact");
+    await t.hook(forms, "contact", { name: "Asha" });
+    const ref = t.sent.at(-1)!.ref;
+    await t.react(forms, "❤️", ref);
+    expect(((await t.load(forms)) as unknown as Page).submissions[0].done).toBe(false);
+    expect(t.reactions).toEqual([]);
+    await t.react(forms, "✅", ref);
+    await t.react(forms, null, ref);
+    expect(((await t.load(forms)) as unknown as Page).submissions[0].done).toBe(false);
+    expect(t.reactions).toEqual(["✅", ""]);
+  });
+});
+
 describe("forms: field order", () => {
   it("keeps the order the form sent, even when storage sorts the fields", async () => {
     const t = T();

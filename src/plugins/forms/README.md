@@ -46,7 +46,7 @@ Send these in the Forms group.
 | `close contact` | In a form's own group, `close` is enough. The form stops taking submissions; its address no longer works. What it received stays. `new form contact` opens it again with a new address. 👍 |
 | `help` | This list. |
 
-Each submission arrives as one message: the form's name, its fields (the first 12, long values cut short) and the names and sizes of its files. React ✅ (or 👍) to mark it dealt with; take the reaction off to undo.
+Each submission arrives as one message: the form's name, its fields (the first 12, long values cut short) and the names and sizes of its files. React with a tick (✅ ✔️ ☑️) or 👍 to mark it done. Forms ticks the message back so you can see it registered. Take your reaction off to undo.
 
 ## Settings
 
