@@ -12,6 +12,7 @@ People trust whatodo with their WhatsApp. A plugin borrows that trust, so it get
 | Person | Time zone; name as set in whatodo | Phone number, contacts, other plugins installed |
 | Storage | Its own rows for this install | Other installs, other plugins, whatodo's tables (todos, lists, users) |
 | Network | Nothing | Any network access |
+| Intent model | With `understand`: an intent id, a target id and a confidence for a message the plugin was unsure about | The model's own text; anything about other messages |
 
 How it's enforced:
 
@@ -20,6 +21,8 @@ How it's enforced:
 3. **Review.** A maintainer reads every change against [review-checklist.md](review-checklist.md).
 
 Plugins in this repo are first-party code bundled into whatodo; the boundary today is the kit plus CI plus review. Hosted third-party plugins (later) will run outside whatodo entirely and talk to it only through the same events and actions.
+
+When a plugin calls `kit.unsure()` and declares `understand`, whatodo (not the plugin) sends that one message's text, the plugin's intent descriptions and its target labels to its intent model (jev, by TypeSafe, through OpenRouter) to be classified. whatodo keeps only the model's answer, token counts and cost, never the text.
 
 Known gap: `kit.person.name` is available to every plugin. It will move behind a permission shown at install.
 

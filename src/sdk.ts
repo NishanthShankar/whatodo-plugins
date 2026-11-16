@@ -14,7 +14,7 @@
  * The SDK's own version. Plugins are written against a major version; whatodo refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.3.0";
+export const SDK_VERSION = "1.4.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -71,6 +71,14 @@ export interface Kit {
    * reaction). Pass "" to remove the reaction. Ignored in schedules and web calls.
    */
   react(emoji: string): void;
+  /**
+   * Say you couldn't read the message being handled (onMessage only). If the plugin declares
+   * `understand`, whatodo asks its intent model which of your intents the message means and
+   * calls `onIntent` with the answer; if the plugin doesn't, or the model isn't sure, whatodo
+   * sends `fallback` instead. Call it instead of sending your own "I didn't get that". Since
+   * SDK 1.4.0.
+   */
+  unsure(fallback: string): void;
   /** A short random id for new records. */
   id(): string;
   /** Wall-clock helpers in the person's zone. */
@@ -95,6 +103,36 @@ export interface ReactionEvent {
   emoji: string | null;
   /** The ref of the plugin message reacted to. */
   ref: Json;
+}
+
+/** What whatodo's intent model made of a message the plugin was unsure about. */
+export interface IntentEvent {
+  /** The message, as sent. */
+  text: string;
+  /** One of the ids in `understand.intents`. */
+  intent: string;
+  /** One of the ids `understand.targets` returned, or null when none fits or there were none. */
+  target: string | null;
+  /** 0 to 1. Below the platform's threshold onIntent isn't called at all. */
+  confidence: number;
+}
+
+/**
+ * Lets whatodo work out what an unclear message means. The model only picks: an intent from
+ * this list, and optionally the thing it's about from `targets`. It never writes text, so the
+ * plugin still reads names, days and times out of the message itself in `onIntent`.
+ */
+export interface UnderstandDef {
+  /**
+   * id -> a plain description of what the person wants: { add_habit: "Start tracking a new
+   * habit" }. Ids are lowercase snake_case. 2 to 20 intents.
+   */
+  intents: Record<string, string>;
+  /**
+   * The things a message could be about, id -> label (for example your habits by id and
+   * name). Read-only: called with a kit that can't write or send. At most 50.
+   */
+  targets?(kit: Kit): Promise<Record<string, string>>;
 }
 
 export interface ScheduleEvent {
@@ -174,6 +212,10 @@ export interface PluginDef {
   onMessage?(event: MessageEvent, kit: Kit): Promise<void>;
   onReaction?(event: ReactionEvent, kit: Kit): Promise<void>;
   onSchedule?(event: ScheduleEvent, kit: Kit): Promise<void>;
+  /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
+  understand?: UnderstandDef;
+  /** Called with the intent whatodo found for an unclear message. Required with `understand`. */
+  onIntent?(event: IntentEvent, kit: Kit): Promise<void>;
   web?: WebDef;
 }
 
@@ -193,6 +235,15 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (def.sdk !== SDK_VERSION.split(".")[0]) throw new Error(`${def.id}: written for SDK ${def.sdk}, this is SDK ${SDK_VERSION}`);
   if (!Number.isInteger(def.price) || def.price < 0) throw new Error(`${def.id}: price must be a whole number >= 0`);
   if (def.tier !== undefined && ![1, 2, 3].includes(def.tier)) throw new Error(`${def.id}: tier must be 1, 2 or 3`);
+  if (def.understand) {
+    const ids = Object.keys(def.understand.intents ?? {});
+    if (ids.length < 2 || ids.length > 20) throw new Error(`${def.id}: understand.intents needs 2 to 20 intents`);
+    for (const id of ids) {
+      if (!/^[a-z][a-z0-9_]{0,39}$/.test(id)) throw new Error(`${def.id}: intent id "${id}" must be lowercase snake_case`);
+      if (!def.understand.intents[id]?.trim()) throw new Error(`${def.id}: intent "${id}" needs a description`);
+    }
+    if (!def.onIntent) throw new Error(`${def.id}: understand needs onIntent`);
+  }
   if (def.listing) {
     const { title, description, h1 } = def.listing;
     if (!title || title.length > 60) throw new Error(`${def.id}: listing.title must be 1-60 characters`);

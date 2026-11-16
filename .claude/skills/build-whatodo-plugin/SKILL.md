@@ -15,7 +15,7 @@ Pick the branch, then run its steps in order. Each step ends on its completion c
    *Done when every command has a defined acknowledgement and every stored thing has a row in the Data table.*
 2. **Scaffold.** `pnpm new <id> "<Name>" "<emoji>"`, then `pnpm check`.
    *Done when the untouched scaffold passes.*
-3. **Handlers.** Implement against `docs/sdk-reference.md`. Handlers are **deterministic**: time from `kit.now`/`kit.today`/`kit.time`, ids from `kit.id()`, later work via schedules, imports only from the SDK and the plugin folder. Attach small refs to posts that expect reactions or replies; validate refs before use.
+3. **Handlers.** Implement against `docs/sdk-reference.md`. Handlers are **deterministic**: time from `kit.now`/`kit.today`/`kit.time`, ids from `kit.id()`, later work via schedules, imports only from the SDK and the plugin folder. Attach small refs to posts that expect reactions or replies; validate refs before use. End `onMessage` with `kit.unsure(fallback)`, never your own "didn't get that"; declare `understand` intents + `onIntent` so whatodo's intent model can route unclear messages (sdk-reference "Understanding unclear messages").
    *Done when every command, schedule, reaction and web action in the README has code.*
 4. **Tests.** Cover everything in `docs/testing.md` "What to cover", using `createTestKit`.
    *Done when `pnpm check` passes and every README command row has a test.*

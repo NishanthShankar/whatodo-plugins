@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.4.0] - 2026-11-16
+
+### Added
+- Intent understanding: `understand` (`intents`, optional `targets(kit)`) and `onIntent(event, kit)` on `PluginDef`, and `kit.unsure(fallback)`. When `onMessage` can't read a message it calls `kit.unsure`; whatodo asks its intent model which declared intent (and target) the message means and calls `onIntent`, or posts the fallback. `definePlugin` checks intent ids and that `onIntent` exists.
+- Test kit: `t.unsures`, `t.intent(plugin, text, intent, target?, confidence?)` and `t.targets(plugin)`.
+
 ## [1.3.0] - 2026-11-16
 
 ### Added

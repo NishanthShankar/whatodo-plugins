@@ -69,11 +69,13 @@ Raising a plugin's tier changes what people may pay for it, so it is a MAJOR rel
 interface MessageEvent  { text: string; quotedRef: Json | null }
 interface ReactionEvent { emoji: string | null; ref: Json }   // emoji null: reaction removed
 interface ScheduleEvent { id: string }
+interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number }
 ```
 
 - `text` is trimmed by whatodo; it is never empty.
 - `quotedRef` is the `ref` of **your** message the person replied to, or `null`. Replies to their own messages or to messages without a ref give `null`.
 - Only the installer's messages and reactions reach the plugin.
+- `IntentEvent` reaches `onIntent` only after `onMessage` called `kit.unsure()`; see [Understanding unclear messages](#understanding-unclear-messages).
 
 ## Kit
 
@@ -87,6 +89,7 @@ interface ScheduleEvent { id: string }
 | `store` | `Store` | Per-install storage, below. |
 | `send(text, { ref? })` | void | Post in the plugin's group after the handler finishes. ≤ 4000 chars. WhatsApp formatting (`*bold*`, `_italic_`) works. Attach `ref` to recognise reactions and replies. |
 | `react(emoji)` | void | React to the message being handled; the last call wins. In `onMessage` that is the person's message, in `onReaction` the plugin's own message they reacted to (acknowledge their reaction). `""` removes it. Ignored in schedules and web calls. Since SDK 1.3.0. |
+| `unsure(fallback)` | void | `onMessage` only: you couldn't read the message. With `understand`, whatodo works out the intent and calls `onIntent`; otherwise, or if it isn't sure, it posts `fallback`. Since SDK 1.4.0. |
 | `id()` | string | A short random id for new records. |
 | `time.day(ms)` | string | `YYYY-MM-DD` of an instant in the person's zone. |
 | `time.shiftDay(day, n)` | string | Add `n` days to a `YYYY-MM-DD`. |
@@ -108,11 +111,41 @@ list<T>(collection, { prefix?, from?, to?, limit? }): Promise<{ key, data: T, so
 - `list` returns items in `sort` order, then key. `prefix` filters keys; `from`/`to` (inclusive) filter `sort`. Without a sort value, items come last.
 - Values must be JSON. Keep each value small (a record, not a whole history).
 
+## Understanding unclear messages
+
+Since SDK 1.4.0. People don't always use your exact commands ("I want to start going to the gym on mondays"). Declare what they might want, and whatodo's intent model (jev) picks one when your own parser can't:
+
+```ts
+understand: {
+  intents: {
+    add_habit: "Start tracking a new habit, every day or on some days",
+    set_days: "Change which days an existing habit is on",
+    list: "See their habits and streaks",
+  },
+  // optional: what a message could be about, id -> label
+  async targets(kit) {
+    return Object.fromEntries((await kit.store.list<Habit>("habits")).map((h) => [h.key, h.data.name]));
+  },
+},
+async onIntent({ text, intent, target }, kit) { /* read names, days, times from text */ },
+```
+
+1. `onMessage` runs first, always. When it can't read the message it calls `kit.unsure("I didn't get that. Send help.")` instead of sending that text itself.
+2. whatodo asks the model one question: which intent (and, with `targets`, which target) the message means. It runs outside the transaction, so it takes a second or two.
+3. If the model is confident, `onIntent` runs with the message text, the intent id, the target id (or null) and the confidence. If not, or if the model is off, the fallback is posted. Nothing runs twice.
+
+Rules:
+- **The model only chooses.** It returns an intent id and a target id, never text. Read names, days and times out of `text` yourself, more leniently than in `onMessage` since you now know what the person wants.
+- **Intents** are 2 to 20 lowercase snake_case ids with a plain description each. Describe what the person wants, not your command syntax. `definePlugin` checks this.
+- **targets(kit)** gets a read-only kit (no `send`, no writes). Return at most 50; labels are what a person would call the thing.
+- `onIntent` gets a normal kit: store, send, react. Acknowledge as you would for the command (👍 saved). When the intent needs something the text doesn't have, ask a short question with the exact command.
+- The message text goes to the intent model to be classified and is not stored there or by whatodo. See [data-and-privacy.md](data-and-privacy.md).
+
 ## Helpers
 
 | Export | Meaning |
 |---|---|
-| `SDK_VERSION` | the SDK version (`"1.2.0"`). |
+| `SDK_VERSION` | the SDK version (`"1.4.0"`). |
 | `compareVersions(a, b)` | Negative, zero or positive, comparing semver strings. Use in `onUpgrade`. |
 | `Json`, `Kit`, `PluginDef`, `Tier`, `Listing`, … | Types. |
 
