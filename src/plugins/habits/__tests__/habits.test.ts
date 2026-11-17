@@ -13,7 +13,7 @@ describe("habits", () => {
     expect(t.sent.at(-1)!.text).toContain("🟩");
   });
 
-  it("quick log is off by default: a bare habit name is not logged", async () => {
+  it("simple messages are off by default, and a bare habit name is not logged", async () => {
     const t = createTestKit();
     await t.message(habits, "add meditate");
     await t.message(habits, "meditate");
@@ -34,23 +34,17 @@ describe("habits", () => {
     expect(t.kit.settings.quickLog).toBe(false);
   });
 
-  it("with quick log on, a message that is only a habit's name logs it", async () => {
+  it("a bare habit name is not logged, even with simple messages on", async () => {
     const t = createTestKit();
     await t.message(habits, "add go to the gym");
-    await t.message(habits, "quick log on");
+    await t.message(habits, "quick log on"); // the switch's first name still works
     expect(t.kit.settings.quickLog).toBe(true);
     await t.message(habits, "Go to  the Gym!");
-    expect(t.reactions).toEqual(["👍", "👍", "✅"]);
+    expect(t.reactions).toEqual(["👍", "👍"]);
+    expect(t.unsures).toHaveLength(1);
     const page = (await t.load(habits)) as { quickLog: boolean; habits: { streak: number }[] };
     expect(page.quickLog).toBe(true);
-    expect(page.habits[0].streak).toBe(1);
-    // Only the exact name: part of it, or a sentence, goes on as before.
-    await t.message(habits, "gym");
-    expect(t.unsures).toHaveLength(1);
-    await t.message(habits, "quick log off");
-    await t.message(habits, "go to the gym");
-    expect(t.unsures).toHaveLength(2);
-    expect(t.sent).toHaveLength(0);
+    expect(page.habits[0].streak).toBe(0);
   });
 
   it("does not add the same habit twice", async () => {

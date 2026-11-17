@@ -2,6 +2,17 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-11-17
+
+### Removed
+- Sending just a habit's name no longer logs it, with simple messages on or off. It came in with 1.5.0 from a misread request and was removed at the owner's ask. To log a habit, react to its check-in, or send _done meditate_; a bare name is read like any other unclear message.
+
+### Changed
+- The simple messages switch (the `quickLog` setting) now does one thing: the check-in is just the habit's name.
+
+### Data
+- No change. The setting keeps its stored name, `quickLog`.
+
 ## [1.6.0] - 2026-11-17
 
 ### Changed
