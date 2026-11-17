@@ -214,6 +214,7 @@ const HELP = [
   "_add read at 10pm_ adds a habit with its own time",
   "_add gym on mon wed fri_ adds a habit for some days only",
   "_days gym tue thu_ changes its days, _days gym every day_ puts it back",
+  "_quick log on_ lets you send just a habit's name to log it, _quick log off_ turns it off",
   "",
   "Every day I send one message per habit. React ✅ or 👍 if you did it, ❌ if you didn't.",
 ].join("\n");
@@ -229,7 +230,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "1.4.1",
+  version: "1.5.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -247,7 +248,8 @@ export default definePlugin({
   },
   welcome: "🌱 You've installed *Habits*.\n\nStart with _add meditate_ (or any habit). Every day I'll ask about each one; react ✅ or 👍 if you did it, ❌ if you didn't.\n\nSend _help_ any time.",
   help: HELP,
-  settings: { checkinHour: 21 },
+  // quickLog: a message that is only a habit's name logs it for today. Off unless turned on.
+  settings: { checkinHour: 21, quickLog: false },
   // Hourly, so each habit can be asked at its own time (the default time otherwise).
   schedules: [{ id: "checkin", hour: "hourly" }],
 
@@ -289,6 +291,13 @@ export default definePlugin({
       const hour = time[2] ? to24(+time[2], time[4]) : null;
       if (time[2] && hour === null) return kit.send("Give me a time like _time 10pm_.");
       await kit.setSettings({ checkinHour: hour });
+      return kit.react("👍");
+    }
+
+    // "quick log on" / "quick log off"
+    const quick = lower.replace(/[!.]+$/, "").match(/^quick ?log(?:ging)?\s+(on|off)$/);
+    if (quick) {
+      await kit.setSettings({ quickLog: quick[1] === "on" });
       return kit.react("👍");
     }
 
@@ -338,6 +347,15 @@ export default definePlugin({
       if (!name) return kit.send("Name the habit, like _add meditate_.");
       await addHabit(kit, list, name, hour, days);
       return kit.react("👍");
+    }
+    // Quick log: the message is just a habit's name ("meditate", "Gym!").
+    if (kit.settings.quickLog === true) {
+      const said = lower.replace(/[\s!.✅👍💪🔥]+$/u, "").replace(/\s+/g, " ");
+      const h = list.find((x) => x.habit.name.toLowerCase().replace(/\s+/g, " ") === said);
+      if (h) {
+        await setDone(kit, h.id, kit.today, true);
+        return kit.react("✅");
+      }
     }
     // Not a command: whatodo works out what was meant and calls onIntent below.
     kit.unsure("I didn't get that. Send _help_ to see what I can do.");
@@ -468,7 +486,13 @@ export default definePlugin({
         });
       }
       const hour = kit.settings.checkinHour;
-      return { today: kit.today, timezone: kit.person.timezone, habitHour: typeof hour === "number" ? hour : null, habits: out };
+      return {
+        today: kit.today,
+        timezone: kit.person.timezone,
+        habitHour: typeof hour === "number" ? hour : null,
+        quickLog: kit.settings.quickLog === true,
+        habits: out,
+      };
     },
     actions: {
       async create(kit, { name, days }) {
@@ -506,6 +530,10 @@ export default definePlugin({
         const h = await kit.store.get<Habit>("habits", String(id));
         if (!h) throw new Error("No such habit.");
         await kit.store.put("habits", String(id), { ...h, days: checkDays(days) });
+      },
+      /** Turn quick log on or off: a message that is only a habit's name logs it. */
+      async setQuickLog(kit, { on }) {
+        await kit.setSettings({ quickLog: on === true });
       },
       async setHour(kit, { hour }) {
         const h = hour === null ? null : Number(hour);
