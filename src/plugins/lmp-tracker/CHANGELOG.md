@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.0.3] - 2026-11-17
+
+### Changed
+- Plainer words on the store card and the public page: the tagline, description and search description no longer say "last menstrual period" or "cycle". Nothing changes in the chat; you still send _LMP_.
+
 ## [3.0.2] - 2026-11-17
 
 ### Changed

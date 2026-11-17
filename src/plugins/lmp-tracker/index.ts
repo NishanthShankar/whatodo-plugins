@@ -291,20 +291,20 @@ const STARTED = /^(yes|yeah|yep|y|ya|haan|today|it came today|started today|yes 
 
 export default definePlugin({
   id: "lmp-tracker",
-  version: "3.0.2",
+  version: "3.0.3",
   sdk: "1",
   name: "Period Tracker",
   icon: "🩸",
-  tagline: "Send your LMP when your period starts. I remind you when the next one is due.",
+  tagline: "Tell me when your period starts. I remind you when the next one is due.",
   description:
-    "Keeps your last menstrual period (LMP) date on WhatsApp. Send LMP today when your period starts. If the next one hasn't come when it usually does, I remind you, and after two weeks I suggest a pregnancy test. I learn your usual cycle from your dates.",
+    "Keeps track of your periods on WhatsApp. The day your period starts, send LMP (short for last period). If the next one is late, I remind you, and if it is two weeks late I suggest a pregnancy test. The more dates you send, the better I know when to expect it.",
   groupName: "🌙 Period Tracker",
   price: 0,
   tier: 1,
   listing: {
     title: "Period Tracker & Reminder on WhatsApp | telcurio",
     description:
-      "Send LMP today on WhatsApp when your period starts. Get reminded when the next is due, learned from your own cycle, and a nudge to test if late. Free.",
+      "Tell telcurio on WhatsApp the day your period starts. Get a reminder when the next one is due, based on your own dates, and a nudge if it's late. Free.",
     h1: "Period tracker and reminder on WhatsApp",
   },
   welcome:
