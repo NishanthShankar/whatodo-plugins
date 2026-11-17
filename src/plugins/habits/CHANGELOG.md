@@ -2,6 +2,14 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-11-17
+
+### Added
+- Quick log, off by default. Turn it on with _quick log on_ (or on the web page), then send just a habit's name, like _meditate_, to log it for today. I react ✅. Only an exact name counts; anything else is read as before. _quick log off_ turns it off.
+
+### Data
+- New setting `quickLog` (default `false`). The web page data gains `quickLog`, and there's a `setQuickLog { on }` web action.
+
 ## [1.4.1] - 2026-11-16
 
 ### Fixed
