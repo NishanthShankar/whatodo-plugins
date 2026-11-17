@@ -2,6 +2,17 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.1.0] - 2026-11-17
+
+### Added
+- A date on its own records that day: _yesterday_, _9 nov_, _3 days ago_. So does _period 9 nov_.
+
+### Changed
+- Messages, help and the store card now say to send _period_ or _today_ (both already worked) instead of _LMP_. _LMP_ still works everywhere it did.
+
+### Data
+- No change.
+
 ## [3.0.3] - 2026-11-17
 
 ### Changed

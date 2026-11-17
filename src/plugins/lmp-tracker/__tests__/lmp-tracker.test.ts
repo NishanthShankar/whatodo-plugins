@@ -37,6 +37,19 @@ describe("sending an LMP", () => {
     }
   });
 
+  it("a date on its own, or after the word period, is the day it started", async () => {
+    for (const [text, day] of [["yesterday", "2026-11-15"], ["9 nov", "2026-11-09"], ["3 days ago", "2026-11-13"], ["period 9 nov", "2026-11-09"], ["periods yesterday", "2026-11-15"]] as const) {
+      const t = T();
+      await t.message(lmp, text);
+      expect(lmps(t), text).toEqual([day]);
+    }
+    // Things that aren't dates still go to the intent model.
+    const t = T();
+    await t.message(lmp, "what is this");
+    expect(lmps(t)).toEqual([]);
+    expect(t.unsures).toHaveLength(1);
+  });
+
   it("says so when a date changes an LMP already recorded", async () => {
     const t = T();
     await t.message(lmp, "lmp 9 nov");
@@ -178,7 +191,7 @@ describe("reminders at 4, 5 and 6 weeks", () => {
     await notYet.schedule(lmp, "daily");
     await notYet.message(lmp, "not yet");
     expect(lmps(notYet)).toEqual(["2026-10-19"]);
-    expect(last(notYet)).toContain("OK. Send _LMP_ when your period starts");
+    expect(last(notYet)).toContain("OK. Send _period_ when your period starts");
   });
 
   it("a yes with no reminder waiting isn't guessed at", async () => {
@@ -408,7 +421,7 @@ describe("pregnancy mode", () => {
     expect(t.sent.at(-1)!.ref).toEqual({ kind: "lmp-upt", date: "2026-10-19" });
     await t.message(lmp, "negative");
     expect(pregnant(t)).toBeUndefined();
-    expect(last(t)).toContain("OK. Send _LMP_ when your period starts");
+    expect(last(t)).toContain("OK. Send _period_ when your period starts");
     // ✅ on the test nudge doesn't log a period.
     await t.react(lmp, "✅", t.sent.at(-2)!.ref);
     expect(lmps(t)).toEqual(["2026-10-19"]);
@@ -514,7 +527,7 @@ describe("blood or moon", () => {
     expect(last(t)).toMatch(/^🩸 Your period is due around now/);
     await t.message(lmp, "no"); // answers the reminder, not the old question
     expect(t.kit.settings.symbol).toBe("blood");
-    expect(last(t)).toContain("OK. Send _LMP_");
+    expect(last(t)).toContain("OK. Send _period_");
   });
 
   it("ok just gets a 👍; a quoted no works any time", async () => {

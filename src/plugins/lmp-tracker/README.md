@@ -1,6 +1,6 @@
 # 🩸 Period Tracker
 
-Keeps your LMP on WhatsApp: the first day of your last menstrual period. When your period starts, send `LMP`. That's all you do. If the next one hasn't come when it usually does, it reminds you, reminds you again a week later, and then suggests a home pregnancy test. It learns your usual cycle from the dates you send. Lives in its own WhatsApp group, "🌙 Period Tracker".
+Keeps track of your periods on WhatsApp. When your period starts, send `period` or `today`. That's all you do. (`LMP`, short for last menstrual period, works too.) If the next one hasn't come when it usually does, it reminds you, reminds you again a week later, and then suggests a home pregnancy test. It learns your usual cycle from the dates you send. Lives in its own WhatsApp group, "🌙 Period Tracker".
 
 Reminders are estimates from your own dates, not medical advice. Follow your doctor.
 
@@ -10,8 +10,8 @@ Send these in the Period Tracker group. Dates can be `today`, `yesterday`, `3 da
 
 | Message | What happens |
 |---|---|
-| `LMP` / `today` / `now` / `periods came` / `got my period` | Records today as your LMP. No date means the day you send it. |
-| `LMP yesterday` / `LMP nov 9` / `lmp: 9/11` / `my lmp was 9 nov` / `came on 4th` | Records that day as your LMP. Only needed when it didn't start today. |
+| `period` / `periods` / `today` / `now` / `LMP` / `periods came` / `got my period` | Records today as the day your period started. No date means the day you send it. |
+| `yesterday` / `9 nov` / `3 days ago` / `period 9 nov` / `LMP nov 9` / `my lmp was 9 nov` / `came on 4th` | Records that day. A date on its own is enough. Only needed when it didn't start today. |
 | `last lmp` / `when was my last lmp?` / `lmp?` / `my lmp` | Your last LMP, how long ago, and when the next one is (or was) due. |
 | `history` | Your last 12 LMPs, the days between them, and your usual cycle. |
 | `undo` | Removes the most recent LMP. 👍 |
