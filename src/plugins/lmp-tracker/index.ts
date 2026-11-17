@@ -291,7 +291,7 @@ const STARTED = /^(yes|yeah|yep|y|ya|haan|today|it came today|started today|yes 
 
 export default definePlugin({
   id: "lmp-tracker",
-  version: "3.0.0",
+  version: "3.0.1",
   sdk: "1",
   name: "LMP Tracker",
   icon: "🩸",
@@ -302,7 +302,7 @@ export default definePlugin({
   price: 0,
   tier: 1,
   listing: {
-    title: "LMP Tracker & Period Reminder on WhatsApp | whatodo",
+    title: "LMP Tracker & Period Reminder on WhatsApp | telcurio",
     description:
       "Send LMP today on WhatsApp when your period starts. Get reminded when the next is due, learned from your own cycle, and a nudge to test if late. Free.",
     h1: "LMP tracker and period reminder on WhatsApp",
