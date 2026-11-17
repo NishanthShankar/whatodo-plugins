@@ -16,7 +16,7 @@ describe("sending an LMP", () => {
     expect(lmps(t)).toEqual(["2026-10-12"]);
     // The confirmation, then (once) the question about the 🩸.
     expect(t.sent.map((s) => s.text)).toEqual([
-      "🩸 Your LMP has been recorded: *Mon 12 Oct*. From next time you'll just get a 👍.",
+      "🩸 Got it: your period started *Mon 12 Oct*. From next time you'll just get a 👍.",
       "Are you OK seeing 🩸 in my messages? Reply _no_ and I'll use 🌙 instead. If you don't reply, I'll keep it.",
     ]);
     expect(t.reactions).toEqual([]);
@@ -55,7 +55,7 @@ describe("sending an LMP", () => {
     await t.message(lmp, "lmp 9 nov");
     await t.message(lmp, "lmp"); // a week later: the same period, moved
     expect(lmps(t)).toEqual(["2026-11-16"]);
-    expect(last(t)).toBe("🩸 Your LMP is now *Mon 16 Nov* (it was Mon 9 Nov).");
+    expect(last(t)).toBe("🩸 Changed: your last period started *Mon 16 Nov* (it was Mon 9 Nov).");
     await t.message(lmp, "lmp today"); // the same date again: nothing to say
     expect(t.sent).toHaveLength(3);
   });
@@ -92,7 +92,7 @@ describe("sending an LMP", () => {
     await t.message(lmp, "lmp 9 nov");
     await t.message(lmp, "lmp 12 oct");
     expect(lmps(t)).toEqual(["2026-10-12", "2026-11-09"]);
-    expect(last(t)).toBe("🩸 Recorded *Mon 12 Oct*. Your latest LMP is still Mon 9 Nov.");
+    expect(last(t)).toBe("🩸 Recorded *Mon 12 Oct*. Your latest period is still the one that started Mon 9 Nov.");
   });
 
   it("doesn't want the end of a period", async () => {
@@ -108,7 +108,7 @@ describe("asking for the last LMP", () => {
       const t = T();
       await t.message(lmp, "lmp 9 nov");
       await t.message(lmp, q);
-      expect(last(t), q).toBe("🩸 Your last LMP was *Mon 9 Nov* (7 days ago).\nNext one is due around *Mon 7 Dec* (4 weeks).");
+      expect(last(t), q).toBe("🩸 Your last period started *Mon 9 Nov* (7 days ago).\nNext one is due around *Mon 7 Dec* (4 weeks).");
       expect(lmps(t), q).toEqual(["2026-11-09"]);
     }
   });
@@ -116,7 +116,7 @@ describe("asking for the last LMP", () => {
   it("says when there's none, and when the next one was due", async () => {
     const t = T();
     await t.message(lmp, "last lmp");
-    expect(last(t)).toContain("I don't have your LMP yet");
+    expect(last(t)).toContain("I don't have a period date from you yet");
     await t.message(lmp, "lmp 1 oct");
     await t.message(lmp, "last lmp");
     expect(last(t)).toContain("Next one was due around *Thu 29 Oct*");
@@ -149,7 +149,7 @@ describe("reminders at 4, 5 and 6 weeks", () => {
     t.setToday("2026-11-30"); // 6 weeks
     await t.schedule(lmp, "daily");
     expect(last(t)).toContain("It's been 6 weeks since your last period (*Mon 19 Oct*). You might be pregnant.");
-    expect(last(t)).toContain("urine pregnancy test (UPT)");
+    expect(last(t)).toContain("home pregnancy test");
 
     t.setToday("2026-12-07");
     await t.schedule(lmp, "daily");
@@ -278,7 +278,7 @@ describe("learning her cycle", () => {
     // 28, 28, 40, then a 57-day gap (a month not sent).
     for (const d of ["2026-04-01", "2026-04-29", "2026-05-27", "2026-07-06", "2026-09-01"]) await t.message(lmp, `lmp ${d}`);
     await t.message(lmp, "history");
-    expect(last(t)).toContain("Your usual cycle: about 28 days.");
+    expect(last(t)).toContain("Your periods usually come about every 28 days.");
   });
 
   it("the test nudge waits a week past her longest recent cycle", async () => {
@@ -305,7 +305,7 @@ describe("pregnancy mode", () => {
     await t.message(lmp, "yes"); // typed, not quoted
     expect(pregnant(t)).toEqual({ since: "2026-11-14" });
     expect(last(t)).toContain("Noted. I've stopped the period reminders.");
-    expect(last(t)).toContain("Your LMP is *Sat 3 Oct*. You're about *6 weeks* along, due around *Sat 10 Jul 2027*.");
+    expect(last(t)).toContain("Your last period started *Sat 3 Oct*. You're about *6 weeks* along, due around *Sat 10 Jul 2027*.");
     // The LMP is the same LMP.
     expect(lmps(t)).toEqual(["2026-10-03"]);
 
@@ -318,14 +318,14 @@ describe("pregnancy mode", () => {
     expect(t.sent).toHaveLength(n);
     t.setToday("2026-12-12");
     await t.message(lmp, "when was my last lmp?");
-    expect(last(t)).toBe("🩸 Your last LMP was *Sat 3 Oct* (70 days ago).\nYou're about *10 weeks* along, due around *Sat 10 Jul 2027*.");
+    expect(last(t)).toBe("🩸 Your last period started *Sat 3 Oct* (70 days ago).\nYou're about *10 weeks* along, due around *Sat 10 Jul 2027*.");
 
     // 11 months later her periods are back: pregnancy is forgotten, tracking carries on.
     t.setToday("2027-09-06");
     await t.message(lmp, "LMP today");
     expect(pregnant(t)).toBeUndefined();
     expect(lmps(t)).toEqual(["2026-10-03", "2027-09-06"]);
-    expect(last(t)).toContain("Your LMP is recorded: *Mon 6 Sep*. I've turned pregnancy mode off");
+    expect(last(t)).toContain("Got it: your period started *Mon 6 Sep*. I've turned pregnancy mode off");
     t.setToday("2027-10-04");
     await t.schedule(lmp, "daily");
     expect(last(t)).toContain("Your period is due around now. Your last one started *Mon 6 Sep*, 4 weeks ago.");
@@ -337,11 +337,11 @@ describe("pregnancy mode", () => {
     await t.message(lmp, "pregnant");
     t.setToday("2026-12-20");
     await t.message(lmp, "lmp");
-    expect(last(t)).toBe("🩸 Do you want to see your last LMP, or record a new one?\n\nReply _1_ to see your last LMP\nReply _2_ to record today as your new LMP");
+    expect(last(t)).toBe("🩸 Do you want to see your last period, or record a new one?\n\nReply _1_ to see your last period\nReply _2_ to record today as the start of a new one");
     expect(t.sent.at(-1)!.ref).toEqual({ kind: "lmp-ask", date: "2026-12-20" });
     expect(lmps(t)).toEqual(["2026-10-03"]);
     await t.message(lmp, "1");
-    expect(last(t)).toContain("Your last LMP was *Sat 3 Oct*");
+    expect(last(t)).toContain("Your last period started *Sat 3 Oct*");
     expect(pregnant(t)).toEqual({ since: "2026-11-16" });
     // The question is closed: a later "2" means nothing.
     await t.message(lmp, "2");
@@ -358,7 +358,7 @@ describe("pregnancy mode", () => {
     await t.message(lmp, "2");
     expect(lmps(t)).toEqual(["2026-10-03", "2026-12-20"]);
     expect(pregnant(t)).toBeUndefined();
-    expect(last(t)).toContain("Your LMP is recorded: *Sun 20 Dec*. I've turned pregnancy mode off");
+    expect(last(t)).toContain("Got it: your period started *Sun 20 Dec*. I've turned pregnancy mode off");
     t.setToday("2027-01-17"); // 4 weeks later
     await t.schedule(lmp, "daily");
     expect(last(t)).toContain("Your period is due around now. Your last one started *Sun 20 Dec 2026*, 4 weeks ago.");
@@ -398,7 +398,7 @@ describe("pregnancy mode", () => {
     const t = T();
     await t.message(lmp, "I'm pregnant");
     expect(pregnant(t)).toBeUndefined();
-    expect(last(t)).toContain("I don't have your LMP yet");
+    expect(last(t)).toContain("I don't have a period date from you yet");
     await t.message(lmp, "lmp 3 oct");
     await t.message(lmp, "I'm pregnant");
     expect(pregnant(t)).toEqual({ since: "2026-11-16" });
@@ -434,7 +434,7 @@ describe("pregnancy mode", () => {
     await t.message(lmp, "lmp 5 oct");
     expect(pregnant(t)).toEqual({ since: "2026-11-16" });
     expect(lmps(t)).toEqual(["2026-10-05"]);
-    expect(last(t)).toBe("🩸 Your LMP is now *Mon 5 Oct* (it was Sat 3 Oct).");
+    expect(last(t)).toBe("🩸 Changed: your last period started *Mon 5 Oct* (it was Sat 3 Oct).");
     await t.message(lmp, "not pregnant");
     expect(pregnant(t)).toBeUndefined();
     expect(lmps(t)).toEqual(["2026-10-05"]);
@@ -460,7 +460,7 @@ describe("pregnancy mode", () => {
     expect(lmps(t)).toEqual(["2026-08-01", "2026-10-03"]);
     expect(pregnant(t)).toEqual({ since: "2026-11-10" });
     await t.message(lmp, "last lmp");
-    expect(last(t)).toContain("Your last LMP was *Sat 3 Oct*");
+    expect(last(t)).toContain("Your last period started *Sat 3 Oct*");
     expect(last(t)).toContain("about *6 weeks* along");
   });
 });
@@ -485,7 +485,7 @@ describe("understanding sentences", () => {
     const t = T();
     await t.message(lmp, "lmp 9 oct");
     await t.intent(lmp, "kab tha last period", "ask_lmp");
-    expect(last(t)).toContain("Your last LMP was *Fri 9 Oct*");
+    expect(last(t)).toContain("Your last period started *Fri 9 Oct*");
     await t.intent(lmp, "test came positive today", "pregnant");
     expect(pregnant(t)).toEqual({ since: "2026-11-16" });
     expect(lmps(t)).toEqual(["2026-10-09"]);
@@ -548,7 +548,7 @@ describe("blood or moon", () => {
     expect(last(t)).toBe("🌙 Done. I'll use 🌙 from now on. Send _blood_ to switch back.");
     expect(t.kit.settings.symbol).toBe("moon");
     await t.message(lmp, "lmp");
-    expect(last(t)).toBe("🌙 Your LMP has been recorded: *Mon 19 Oct*. From next time you'll just get a 👍.");
+    expect(last(t)).toBe("🌙 Got it: your period started *Mon 19 Oct*. From next time you'll just get a 👍.");
     expect(t.sent).toHaveLength(2); // already on 🌙: nothing to ask
     t.setToday("2026-11-16");
     await t.schedule(lmp, "daily");
@@ -556,7 +556,7 @@ describe("blood or moon", () => {
     expect(t.sent.every((m) => !m.text.includes("🩸"))).toBe(true);
     await t.message(lmp, "blood");
     await t.message(lmp, "last lmp");
-    expect(last(t)).toMatch(/^🩸 Your last LMP was/);
+    expect(last(t)).toMatch(/^🩸 Your last period started/);
   });
 });
 
@@ -566,7 +566,7 @@ describe("basics", () => {
     await t.message(lmp, "help");
     expect(t.sent[0].text).toBe(lmp.help);
     await t.message(lmp, "history");
-    expect(last(t)).toContain("No LMPs yet");
+    expect(last(t)).toContain("No periods recorded yet");
     for (const d of ["2026-09-21", "2026-10-19"]) await t.message(lmp, `lmp ${d}`);
     await t.message(lmp, "history");
     expect(last(t)).toContain("Mon 21 Sep  ·  28 days to the next");

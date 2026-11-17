@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.1.1] - 2026-11-17
+
+### Changed
+- Replies use everyday words: "your period started 9 Nov" instead of "your LMP has been recorded", "your periods" in the history, "usually come about every 28 days" instead of "usual cycle", and "home pregnancy test" without "urine" or "UPT". What you can send is unchanged, _LMP_ included.
+
 ## [3.1.0] - 2026-11-17
 
 ### Added
