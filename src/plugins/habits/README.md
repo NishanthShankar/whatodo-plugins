@@ -20,7 +20,7 @@ Send these in the Habits group.
 | `quick log on` / `quick log off` | Quick log: when on, a message that is only a habit's name (`meditate`, `Gym!`) logs it for today. Off by default. 👍 |
 | `help` | This list. |
 
-Anything else goes to whatodo's intent model, so plain sentences work too: "I want to start going to the gym on mondays and thursdays", "finished my workout", "skipped reading today", "move gym to tuesdays", "check in with me at 8pm instead". Intents: `add_habit`, `log_done`, `missed`, `undo_done`, `remove_habit`, `set_days`, `set_time`, `default_time`, `list`, `help`; targets are the active habits (id to name). If the text doesn't say which habit, days or time, it asks.
+Anything else goes to telcurio's intent model, so plain sentences work too: "I want to start going to the gym on mondays and thursdays", "finished my workout", "skipped reading today", "move gym to tuesdays", "check in with me at 8pm instead". Intents: `add_habit`, `log_done`, `missed`, `undo_done`, `remove_habit`, `set_days`, `set_time`, `default_time`, `list`, `help`; targets are the active habits (id to name). If the text doesn't say which habit, days or time, it asks.
 
 Check-ins: at each habit's hour (its own, else the default), on its days, the plugin posts one message per habit not yet done that day. Streaks skip days a habit isn't due on. Reacting ✅ 👍 💪 🔥 logs it; reacting ❌ ✖️ ❎ 👎 🚫 says you didn't (counts like no answer, but closes the day so it isn't asked again); removing the reaction undoes either. Every reaction gets a 👍 back, removed again with yours. Replying `yes` / `no` also works.
 
@@ -51,4 +51,4 @@ Lockable. `load({ days? })` returns `{ today, timezone, habitHour, quickLog, hab
 
 ## Privacy
 
-Reads only its own group's messages, its own stored data, the person's time zone and name. Stores habit names and the days they were done. A message it can't read, with its intent descriptions and your habit names, is sent by whatodo to its intent model (jev) to be classified; whatodo keeps only the answer, never the text.
+Reads only its own group's messages, its own stored data, the person's time zone and name. Stores habit names and the days they were done. A message it can't read, with its intent descriptions and your habit names, is sent by telcurio to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.

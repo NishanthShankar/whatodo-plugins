@@ -220,7 +220,7 @@ describe("habits", () => {
     expect(after.habits).toHaveLength(0);
   });
 
-  it("help answers in words; unknown messages go to whatodo with a help fallback", async () => {
+  it("help answers in words; unknown messages go to telcurio with a help fallback", async () => {
     const t = createTestKit();
     await t.message(habits, "help");
     expect(t.sent[0].text).toBe(habits.help);
@@ -244,7 +244,7 @@ describe("habits: unclear messages", () => {
       .filter(([k]) => k.startsWith("habits/"))
       .map(([k, v]) => ({ id: k.slice(7), ...(v as { name: string; days: number[] | null; hour: number | null; archived: boolean }) }));
 
-  it("hands what it can't read to whatodo with a fallback, instead of answering", async () => {
+  it("hands what it can't read to telcurio with a fallback, instead of answering", async () => {
     const t = createTestKit();
     await t.message(habits, "I want to start going to the gym on mondays and thursdays");
     expect(t.sent).toHaveLength(0);

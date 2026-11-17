@@ -230,7 +230,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "1.5.0",
+  version: "1.5.1",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -241,7 +241,7 @@ export default definePlugin({
   price: 0,
   tier: 1,
   listing: {
-    title: "Habit Tracker on WhatsApp: Daily Check-ins | whatodo",
+    title: "Habit Tracker on WhatsApp: Daily Check-ins | telcurio",
     description:
       "Track habits on WhatsApp. Get a daily check-in, react to mark it done and watch your streak grow. Free, in its own WhatsApp group. No app.",
     h1: "Habit tracker on WhatsApp",
@@ -357,7 +357,7 @@ export default definePlugin({
         return kit.react("✅");
       }
     }
-    // Not a command: whatodo works out what was meant and calls onIntent below.
+    // Not a command: telcurio works out what was meant and calls onIntent below.
     kit.unsure("I didn't get that. Send _help_ to see what I can do.");
   },
 
