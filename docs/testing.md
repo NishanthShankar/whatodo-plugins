@@ -4,7 +4,7 @@ Every plugin ships with tests in `src/plugins/<id>/__tests__/`. CI runs them, pl
 
 ## The test kit
 
-`createTestKit` (from `whatodo-plugins/testing`, or `../../../testing` inside this repo) gives you an in-memory kit that behaves like whatodo's: data goes through a JSON round trip, `send` rejects empty or over-long messages, `list` sorts the same way, settings start from the plugin's defaults.
+`createTestKit` (from `whatodo-plugins/testing`, or `../../../testing` inside this repo) gives you an in-memory kit that behaves like telcurio's: data goes through a JSON round trip, `send` rejects empty or over-long messages, `list` sorts the same way, settings start from the plugin's defaults.
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -30,13 +30,13 @@ it("logs a glass and reacts", async () => {
 
 ### Driving events
 
-| Call | Does what whatodo does when… |
+| Call | Does what telcurio does when… |
 |---|---|
 | `await t.install(plugin)` | the plugin is installed (`onInstall`) |
-| `await t.message(plugin, text, quotedRef?)` | the person sends `text` (as a reply to a message with `quotedRef`). `help`/`?`/`menu`/`commands` post `plugin.help`, as whatodo does. |
+| `await t.message(plugin, text, quotedRef?)` | the person sends `text` (as a reply to a message with `quotedRef`). `help`/`?`/`menu`/`commands` post `plugin.help`, as telcurio does. |
 | `await t.react(plugin, emoji \| null, ref)` | the person reacts to (null: un-reacts) a message sent with `ref` |
 | `await t.schedule(plugin, id)` | schedule `id` fires |
-| `await t.intent(plugin, text, intent, target?, confidence?)` | whatodo's intent model read an unclear message as `intent` (about `target`). Checks both were declared, then calls `onIntent`. |
+| `await t.intent(plugin, text, intent, target?, confidence?)` | telcurio's intent model read an unclear message as `intent` (about `target`). Checks both were declared, then calls `onIntent`. |
 | `await t.targets(plugin)` | returns what `understand.targets` gives right now |
 | `await t.upgrade(plugin, fromVersion)` | a new version meets an install made with `fromVersion` |
 | `await t.load(plugin, args?)` | the web page loads |
@@ -48,7 +48,7 @@ it("logs a glass and reacts", async () => {
 |---|---|
 | `t.sent` | `{ text, ref }[]` in order: everything posted in the group |
 | `t.reactions` | emojis reacted, in order |
-| `t.unsures` | fallback texts from `kit.unsure()`, in order (in whatodo these trigger intent understanding) |
+| `t.unsures` | fallback texts from `kit.unsure()`, in order (in telcurio these trigger intent understanding) |
 | `t.dump()` | `{ "collection/key": data }` of everything stored |
 | `t.kit.settings` | current settings |
 | `t.setToday(day)`, `t.setHour(h)` | move the clock between events |

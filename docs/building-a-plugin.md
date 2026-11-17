@@ -4,7 +4,7 @@ The whole path from idea to a plugin people can install. Follow the steps in ord
 
 ## 0. Understand where your plugin lives
 
-Every installed plugin gets **its own WhatsApp group** with exactly two members: the person who installed it and the whatodo number. The group's name is your `groupName` ("🌱 Habits"). Everything happens there:
+Every installed plugin gets **its own WhatsApp group** with exactly two members: the person who installed it and the telcurio number. The group's name is your `groupName` ("🌱 Habits"). Everything happens there:
 
 - The person types in the group; your `onMessage` gets the text. No @mention needed, it's their chat with your plugin.
 - Your plugin posts in the group with `kit.send`, and reacts to the person's message with `kit.react`.
@@ -22,7 +22,7 @@ Your plugin never sees anything outside that group and its own stored data. Desi
 Write down, in the plugin's README draft:
 
 1. **Commands.** Every message the person can send, and what happens. Keep them short and forgiving: accept `done read`, `did read`, `read done` if that's how people talk. Number references (`done 2`) help when names are long.
-2. **Acknowledgement.** Changes are acknowledged with a reaction, not a message: 👍 for "saved", ✅ only for "done". Messages are for answers (lists, questions back, errors). This is a whatodo-wide rule: people asked for fewer replies.
+2. **Acknowledgement.** Changes are acknowledged with a reaction, not a message: 👍 for "saved", ✅ only for "done". Messages are for answers (lists, questions back, errors). This is a telcurio-wide rule: people asked for fewer replies.
 3. **What the plugin starts.** Scheduled messages (check-ins, summaries, nudges). One message per thing to answer (so a reaction maps to one item), sent only when there is something to answer.
 4. **Data.** Each collection, its key, the data shape, the sort value. Store the minimum: see [data-and-privacy.md](data-and-privacy.md).
 5. **Settings.** Things the person can change (a check-in hour), with defaults.
@@ -67,7 +67,7 @@ Handlers get an event and a kit. Read [sdk-reference.md](sdk-reference.md) for e
 
 **Parsing messages.** Trim and lower-case, match the commands you designed, and finish with `kit.unsure("I didn't get that. Send help.")` rather than sending that yourself. Keep the parser in one place at the top of `onMessage`; test every pattern.
 
-**Unclear messages.** Declare `understand` (your intents, and optionally `targets`) and `onIntent`, and whatodo's intent model handles what your parser can't: "I want to start going to the gym on mondays" arrives as `add_habit` and you read the name and days out of the text. See [sdk-reference.md](sdk-reference.md#understanding-unclear-messages).
+**Unclear messages.** Declare `understand` (your intents, and optionally `targets`) and `onIntent`, and telcurio's intent model handles what your parser can't: "I want to start going to the gym on mondays" arrives as `add_habit` and you read the name and days out of the text. See [sdk-reference.md](sdk-reference.md#understanding-unclear-messages).
 
 **Refs.** When you post something the person might react to or reply to, attach a small `ref`: `kit.send(text, { ref: { habitId, day } })`. It comes back on `onReaction` and as `quotedRef` on replies. Keep refs tiny and self-describing; check their shape before trusting them (a reply to an old message brings an old ref back).
 
@@ -85,7 +85,7 @@ schedules: [{ id: "nightly", hour: { setting: "checkinHour" } }] // hour from a 
 
 `onSchedule` runs at most once per slot (once a day, or once an hour for hourly) per install. Post only what's due; check what was already answered so you never ask twice.
 
-**Errors.** In chat handlers, answer the person in words ("I can't find "read". Send habits to see them."). In web actions, `throw new Error("Plain sentence")`; whatodo shows the message to the person.
+**Errors.** In chat handlers, answer the person in words ("I can't find "read". Send habits to see them."). In web actions, `throw new Error("Plain sentence")`; telcurio shows the message to the person.
 
 **Done when:** every command, schedule and reaction from step 1 has code, and the plugin never imports or calls anything outside the kit.
 
@@ -108,13 +108,13 @@ Add `web` to the definition:
 
 ```ts
 web: {
-  lockable: true,                       // the person can put it behind their whatodo PIN
+  lockable: true,                       // the person can put it behind their telcurio PIN
   async load(kit, args) { return {...} },   // read-only: any write throws
   actions: { async rename(kit, { id, name }) { ... } },
 }
 ```
 
-`load` runs read-only (it may not write). Actions run like other handlers. Return JSON only. The page itself is a React component in whatodo's website; today it is added by the whatodo team, so describe the page in your README (`## Web page`: what `load` returns, each action's arguments) and open an issue.
+`load` runs read-only (it may not write). Actions run like other handlers. Return JSON only. The page itself is a React component in telcurio's website; today it is added by the telcurio team, so describe the page in your README (`## Web page`: what `load` returns, each action's arguments) and open an issue.
 
 **Done when:** `load` and each action are tested and documented in the README.
 
@@ -126,7 +126,7 @@ Finish the plugin's README (it is the marketplace's detailed page and the review
 
 ## 7. Open a pull request
 
-Follow [CONTRIBUTING.md](../CONTRIBUTING.md) and fill in the PR template. CI runs typecheck, tests, conformance and the release rules. A maintainer reviews against [review-checklist.md](review-checklist.md). After merge, whatodo pins the new commit and deploys; your plugin appears in the marketplace.
+Follow [CONTRIBUTING.md](../CONTRIBUTING.md) and fill in the PR template. CI runs typecheck, tests, conformance and the release rules. A maintainer reviews against [review-checklist.md](review-checklist.md). After merge, telcurio pins the new commit and deploys; your plugin appears in the marketplace.
 
 **Done when:** CI is green and the PR checklist is ticked honestly.
 
@@ -136,4 +136,4 @@ Read [releasing.md](releasing.md) first. Every change bumps the version, adds a 
 
 ## The web page's design
 
-The page itself is built in the `whatodo` repo and follows `docs/plugin-ui-styleguide.md` there: one frame for every plugin (`PluginShell`), a left sidebar on desktop, Settings and Info in fixed places, detail in sheets. Read it before planning what `web.load` returns.
+The page itself is built in the `whatodo` repo (telcurio) and follows `docs/plugin-ui-styleguide.md` there: one frame for every plugin (`PluginShell`), a left sidebar on desktop, Settings and Info in fixed places, detail in sheets. Read it before planning what `web.load` returns.

@@ -1,7 +1,7 @@
 /**
- * A test harness for plugins: an in-memory Kit that behaves like whatodo's, plus helpers to
+ * A test harness for plugins: an in-memory Kit that behaves like telcurio's, plus helpers to
  * drive events and read what the plugin did. Every plugin's tests use this, so a plugin that
- * passes here behaves the same inside whatodo.
+ * passes here behaves the same inside telcurio.
  *
  *   const t = createTestKit({ today: "2026-11-15", hour: 21 });
  *   await t.message(plugin, "add meditate");
@@ -38,7 +38,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const rows = new Map<string, { data: Json; sort: string | number | null }>();
   const sent: Sent[] = [];
   const reactions: string[] = [];
-  /** Fallback texts from kit.unsure(), in order. In whatodo these trigger intent understanding. */
+  /** Fallback texts from kit.unsure(), in order. In telcurio these trigger intent understanding. */
   const unsures: string[] = [];
   /** Hooks that are open, by key. */
   const hooks = new Set<string>();
@@ -52,10 +52,10 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const state = { today: opts.today ?? "2026-11-15", hour: opts.hour ?? 21 };
   const settings: Record<string, Json> = { ...(opts.settings ?? {}) };
 
-  // Data must survive a JSON round trip, exactly as it does in whatodo's database.
+  // Data must survive a JSON round trip, exactly as it does in telcurio's database.
   const clone = (v: Json): Json => JSON.parse(JSON.stringify(v));
 
-  /** The plugin being driven: its permissions decide what the kit allows, as in whatodo. */
+  /** The plugin being driven: its permissions decide what the kit allows, as in telcurio. */
   let current: PluginDef | null = null;
   const need = (permission: "hooks" | "groups", what: string) => {
     if (current && !current.permissions?.includes(permission)) throw new Error(`${current.id}: ${what} needs the "${permission}" permission`);
@@ -209,7 +209,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
       return (await plugin.understand?.targets?.(kit)) ?? {};
     },
     /**
-     * Deliver an intent as whatodo would after kit.unsure(): checks the intent and target are
+     * Deliver an intent as telcurio would after kit.unsure(): checks the intent and target are
      * ones the plugin declared, then calls onIntent.
      */
     async intent(plugin: PluginDef, text: string, intent: string, target: string | null = null, confidence = 1) {
@@ -223,7 +223,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
       await plugin.onIntent({ text, intent, target, confidence }, kit);
     },
     /**
-     * Deliver a request to a hook as whatodo would. Throws when the hook isn't open (whatodo
+     * Deliver a request to a hook as telcurio would. Throws when the hook isn't open (telcurio
      * would have answered "not found" without calling the plugin).
      */
     async hook(plugin: PluginDef, key: string, fields: Record<string, string> = {}, files: HookFile[] = [], origin: string | null = null) {

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for building on whatodo. Plugins reach people's WhatsApp, so every change goes through the same strict path.
+Thanks for building on telcurio. Plugins reach people's WhatsApp, so every change goes through the same strict path.
 
 ## Before you start
 

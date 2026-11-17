@@ -1,6 +1,6 @@
 # SDK reference
 
-The contract between a plugin and whatodo, SDK version **1** (`src/sdk.ts` is the source of truth; this page explains it). Import from `whatodo-plugins/sdk` (or `../../sdk` inside this repo).
+The contract between a plugin and telcurio, SDK version **1** (`src/sdk.ts` is the source of truth; this page explains it). Import from `whatodo-plugins/sdk` (or `../../sdk` inside this repo).
 
 ## definePlugin(def)
 
@@ -19,9 +19,9 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `description` | string | yes | Marketplace description, ≥ 40 chars. |
 | `groupName` | string | yes | Name of the WhatsApp group created on install, ≤ 25 chars. |
 | `price` | number | yes | Smallest currency unit (paise). Must be `0` today. |
-| `tier` | `1 \| 2 \| 3` | yes in this repo (optional in the SDK type) | Platform cost tier: how much the plugin costs whatodo to run, not its price. See [Tiers](#tiers). |
+| `tier` | `1 \| 2 \| 3` | yes in this repo (optional in the SDK type) | Platform cost tier: how much the plugin costs telcurio to run, not its price. See [Tiers](#tiers). |
 | `welcome` | string | yes | Posted in the group right after install. |
-| `help` | string | yes | Posted when the person sends `help`, `?`, `menu` or `commands` (whatodo handles this; `onMessage` doesn't see those). |
+| `help` | string | yes | Posted when the person sends `help`, `?`, `menu` or `commands` (telcurio handles this; `onMessage` doesn't see those). |
 | `listing` | `{ title, description, h1 }` | yes in this repo (optional in the SDK type) | The plugin's public page on whatodo.today: search title (≤ 60), meta description (≤ 155), main heading (≤ 80). Write for what people search ("Habit tracker on WhatsApp"), not the plugin's name. |
 | `settings` | `Record<string, Json>` | no | Defaults for a new install. |
 | `schedules` | `ScheduleDef[]` | no | Daily or hourly triggers. |
@@ -32,7 +32,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
 | `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
 | `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`, `"lock-members"`. See [Permissions](#permissions). Since SDK 1.6.0. |
-| `unlisted` | boolean | no | Left out of the store and the public site; only people whatodo allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
+| `unlisted` | boolean | no | Left out of the store and the public site; only people telcurio allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
 | `web` | `WebDef` | no | Data and actions for the plugin's web page. |
 
 ### ScheduleDef
@@ -44,13 +44,13 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | | `{ setting: string }` | Once a day at the hour stored in that setting; `null` in the setting turns it off. The setting must have a default in `settings`. |
 | | `"hourly"` | Once at the start of every local hour. Decide what's due with `kit.time.hour(kit.now)`. |
 
-Slots run at most once per install: a daily schedule once per local day, an hourly one once per local hour. whatodo checks twice an hour, so a slot may fire up to ~30 minutes into its hour.
+Slots run at most once per install: a daily schedule once per local day, an hourly one once per local hour. telcurio checks twice an hour, so a slot may fire up to ~30 minutes into its hour.
 
 ### WebDef
 
 | Field | Type | Meaning |
 |---|---|---|
-| `lockable` | boolean | The person may lock the page behind their whatodo PIN. Use it for anything personal. |
+| `lockable` | boolean | The person may lock the page behind their telcurio PIN. Use it for anything personal. |
 | `load` | `(kit, args) => Promise<Json>` | Data for the page. Runs **read-only**: `store.put`, `store.delete`, `setSettings` and `send` throw. |
 | `actions` | `Record<string, (kit, args) => Promise<Json \| void>>` | Changes the page can ask for. Throw `Error("Plain sentence")` to show the person a message. |
 
@@ -77,7 +77,7 @@ interface HookEvent     { key: string; fields: Record<string, string>; files: Ho
 interface HookFile      { id: string; field: string; name: string; type: string; size: number }
 ```
 
-- `text` is trimmed by whatodo; it is never empty.
+- `text` is trimmed by telcurio; it is never empty.
 - `quotedRef` is the `ref` of **your** message the person replied to, or `null`. Replies to their own messages or to messages without a ref give `null`.
 - Only the installer's messages and reactions reach the plugin.
 - `group` is the key of the extra group (`kit.groups.open`) the event happened in, or `null` for the main group. Making a group takes a little while and can fail and be retried, so never wait for it: keep working in the main group until events start arriving with the key.
@@ -89,15 +89,15 @@ interface HookFile      { id: string; field: string; name: string; type: string;
 |---|---|---|
 | `now` | number | The event's moment (ms). Use instead of `Date.now()`. |
 | `today` | string | Today in the person's zone, `YYYY-MM-DD`. |
-| `person` | `{ name: string \| null; timezone: string }` | The installer. `name` is what they set in whatodo (may be null). |
+| `person` | `{ name: string \| null; timezone: string }` | The installer. `name` is what they set in telcurio (may be null). |
 | `settings` | `Record<string, Json>` | Defaults merged with the install's values. |
 | `setSettings(patch)` | `Promise<void>` | Merge a patch into the install's settings. |
 | `store` | `Store` | Per-install storage, below. |
-| `groups.open(key, { name, hello? })` | `Promise<void>` | Ask for an extra WhatsApp group for this install (the person and whatodo). `name` ≤ 25 chars; `hello` is posted once it exists. Does nothing if `key` is already open. Since SDK 1.6.0. |
-| `groups.close(key)` | `Promise<void>` | Stop using that group. whatodo stops listening and posting there. Since SDK 1.6.0. |
+| `groups.open(key, { name, hello? })` | `Promise<void>` | Ask for an extra WhatsApp group for this install (the person and telcurio). `name` ≤ 25 chars; `hello` is posted once it exists. Does nothing if `key` is already open. Since SDK 1.6.0. |
+| `groups.close(key)` | `Promise<void>` | Stop using that group. telcurio stops listening and posting there. Since SDK 1.6.0. |
 | `send(text, { ref?, group? })` | void | Post in the plugin's group after the handler finishes. With `group`, post in that extra group instead (the main group until it exists). While handling an event from an extra group, that group is the default. ≤ 4000 chars. WhatsApp formatting (`*bold*`, `_italic_`) works. Attach `ref` to recognise reactions and replies. |
 | `react(emoji)` | void | React to the message being handled; the last call wins. In `onMessage` that is the person's message, in `onReaction` the plugin's own message they reacted to (acknowledge their reaction). `""` removes it. Ignored in schedules and web calls. Since SDK 1.3.0. |
-| `unsure(fallback)` | void | `onMessage` only: you couldn't read the message. With `understand`, whatodo works out the intent and calls `onIntent`; otherwise, or if it isn't sure, it posts `fallback`. Since SDK 1.4.0. |
+| `unsure(fallback)` | void | `onMessage` only: you couldn't read the message. With `understand`, telcurio works out the intent and calls `onIntent`; otherwise, or if it isn't sure, it posts `fallback`. Since SDK 1.4.0. |
 | `id()` | string | A short random id for new records. |
 | `hooks.url(key)` | `Promise<string>` | The web address of this install's hook `key` (lowercase letters, digits, dashes), made on first use. Anyone who has it can POST to it; each request arrives as `onHook`. Not on page loads. Since SDK 1.5.0. |
 | `hooks.remove(key)` | `Promise<void>` | Close a hook. Its address stops working. Since SDK 1.5.0. |
@@ -106,7 +106,7 @@ interface HookFile      { id: string; field: string; name: string; type: string;
 | `time.shiftDay(day, n)` | string | Add `n` days to a `YYYY-MM-DD`. |
 | `time.hour(ms)` | number | Local hour (0-23) of an instant. |
 
-`send` and `react` are queued and carried out after the handler returns, only if it didn't throw. Delivery goes through whatodo's WhatsApp gateway: inside 24 hours of the person's last message in the group it is immediate; otherwise it is queued and rate-limited, so scheduled posts can arrive a little late. Keep scheduled posts few.
+`send` and `react` are queued and carried out after the handler returns, only if it didn't throw. Delivery goes through telcurio's WhatsApp gateway: inside 24 hours of the person's last message in the group it is immediate; otherwise it is queued and rate-limited, so scheduled posts can arrive a little late. Keep scheduled posts few.
 
 ### Store
 
@@ -124,14 +124,14 @@ list<T>(collection, { prefix?, from?, to?, limit? }): Promise<{ key, data: T, so
 
 ## Permissions
 
-By default a plugin can only hear its own group, post there, and keep its own data. Anything more is a permission it lists in `permissions`. whatodo shows the list to the person before they add the plugin, and refuses a call the plugin didn't ask for. Since SDK 1.6.0.
+By default a plugin can only hear its own group, post there, and keep its own data. Anything more is a permission it lists in `permissions`. telcurio shows the list to the person before they add the plugin, and refuses a call the plugin didn't ask for. Since SDK 1.6.0.
 
 | Permission | Lets the plugin | Status |
 |---|---|---|
-| `"hooks"` | Receive requests from outside whatodo: `kit.hooks`, `onHook`, and the files that come with them. | Built (SDK 1.5.0) |
+| `"hooks"` | Receive requests from outside telcurio: `kit.hooks`, `onHook`, and the files that come with them. | Built (SDK 1.5.0) |
 | `"groups"` | Make extra WhatsApp groups for the install: `kit.groups`, `kit.send(text, { group })`. | Built (SDK 1.6.0) |
 | `"replies"` | Be called back when someone replies. | Reserved: the name is fixed so plugins and people can plan for it; nothing is built yet. |
-| `"lock-members"` | Block adding members: its groups (the main one and any extra ones) are made with whatodo as the only admin and set so only admins can add people. For plugins whose group must stay between the person and whatodo. | Reserved (SDK 1.7.0): whatodo doesn't enforce it yet. |
+| `"lock-members"` | Block adding members: its groups (the main one and any extra ones) are made with telcurio as the only admin and set so only admins can add people. For plugins whose group must stay between the person and telcurio. | Reserved (SDK 1.7.0): telcurio doesn't enforce it yet. |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
 
@@ -148,15 +148,15 @@ async onHook({ key, fields, files, origin }, kit) {
 }
 ```
 
-- The address takes a POST with JSON, a URL-encoded form or a multipart form (with files), from any site. whatodo answers the sender (`{ ok: true }`, or a redirect to the `_next` field for a plain form) before the plugin runs, so `onHook` can't answer them.
-- whatodo drops a request whose `_gotcha` field is filled (a trap for bots), caps how many requests a hook takes per minute and per day, and caps field count, field length, file count (5) and file size (10 MB each). What reaches `onHook` is already inside those limits. Fields starting with `_` are whatodo's and are not passed on.
-- Files stay with whatodo. The plugin gets `{ id, field, name, type, size }` for each and stores the ids. Its web page shows a file by id through whatodo, which checks that the file belongs to the person looking. `kit.files.remove(id)` deletes one; removing the plugin's data should remove its files too.
+- The address takes a POST with JSON, a URL-encoded form or a multipart form (with files), from any site. telcurio answers the sender (`{ ok: true }`, or a redirect to the `_next` field for a plain form) before the plugin runs, so `onHook` can't answer them.
+- telcurio drops a request whose `_gotcha` field is filled (a trap for bots), caps how many requests a hook takes per minute and per day, and caps field count, field length, file count (5) and file size (10 MB each). What reaches `onHook` is already inside those limits. Fields starting with `_` are telcurio's and are not passed on.
+- Files stay with telcurio. The plugin gets `{ id, field, name, type, size }` for each and stores the ids. Its web page shows a file by id through telcurio, which checks that the file belongs to the person looking. `kit.files.remove(id)` deletes one; removing the plugin's data should remove its files too.
 - A hook brings in other people's details (whoever filled in the form). Store only what the feature needs and give the person a way to delete it. See [data-and-privacy.md](data-and-privacy.md).
 - Every request can turn into a WhatsApp message. Keep `kit.send` to one short message per request, and bundle when many arrive.
 
 ## Understanding unclear messages
 
-Since SDK 1.4.0. People don't always use your exact commands ("I want to start going to the gym on mondays"). Declare what they might want, and whatodo's intent model (jev) picks one when your own parser can't:
+Since SDK 1.4.0. People don't always use your exact commands ("I want to start going to the gym on mondays"). Declare what they might want, and telcurio's intent model (jev) picks one when your own parser can't:
 
 ```ts
 understand: {
@@ -174,7 +174,7 @@ async onIntent({ text, intent, target }, kit) { /* read names, days, times from 
 ```
 
 1. `onMessage` runs first, always. When it can't read the message it calls `kit.unsure("I didn't get that. Send help.")` instead of sending that text itself.
-2. whatodo asks the model one question: which intent (and, with `targets`, which target) the message means. It runs outside the transaction, so it takes a second or two.
+2. telcurio asks the model one question: which intent (and, with `targets`, which target) the message means. It runs outside the transaction, so it takes a second or two.
 3. If the model is confident, `onIntent` runs with the message text, the intent id, the target id (or null) and the confidence. If not, or if the model is off, the fallback is posted. Nothing runs twice.
 
 Rules:
@@ -182,7 +182,7 @@ Rules:
 - **Intents** are 2 to 20 lowercase snake_case ids with a plain description each. Describe what the person wants, not your command syntax. `definePlugin` checks this.
 - **targets(kit)** gets a read-only kit (no `send`, no writes). Return at most 50; labels are what a person would call the thing.
 - `onIntent` gets a normal kit: store, send, react. Acknowledge as you would for the command (👍 saved). When the intent needs something the text doesn't have, ask a short question with the exact command.
-- The message text goes to the intent model to be classified and is not stored there or by whatodo. See [data-and-privacy.md](data-and-privacy.md).
+- The message text goes to the intent model to be classified and is not stored there or by telcurio. See [data-and-privacy.md](data-and-privacy.md).
 
 ## Helpers
 
@@ -198,4 +198,4 @@ Rules:
 
 ## Versioning of the SDK
 
-The SDK follows semver. A minor version adds things (new kit methods, new schedule kinds) without breaking plugins. A major version may break them; whatodo runs plugins only against the SDK major they declare in `sdk`. Changes are listed in [../CHANGELOG.md](../CHANGELOG.md).
+The SDK follows semver. A minor version adds things (new kit methods, new schedule kinds) without breaking plugins. A major version may break them; telcurio runs plugins only against the SDK major they declare in `sdk`. Changes are listed in [../CHANGELOG.md](../CHANGELOG.md).

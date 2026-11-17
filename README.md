@@ -1,27 +1,27 @@
-# whatodo plugins
+# telcurio plugins
 
 > **Draft.** The positioning below is waiting to be vetted. The technical parts (how plugins work, the rules, the release process) are current.
 
 ## The platform
 
-**whatodo is a secure way for WhatsApp bots to connect to you.**
+**telcurio is a secure way for WhatsApp bots to connect to you.**
 
-People already live in WhatsApp. Bots there today are a trust problem: you give a number your messages and hope it behaves, and every bot is its own app, its own account, its own idea of privacy. whatodo turns that around.
+People already live in WhatsApp. Bots there today are a trust problem: you give a number your messages and hope it behaves, and every bot is its own app, its own account, its own idea of privacy. telcurio turns that around.
 
-- **One account, many bots.** You add plugins to your whatodo account the way you add apps to a phone. Each plugin gets its own WhatsApp group with you and the whatodo number, named after the plugin ("🌱 Habits"). You talk to it there, like any chat.
+- **One account, many bots.** You add plugins to your telcurio account the way you add apps to a phone. Each plugin gets its own WhatsApp group with you and the telcurio number, named after the plugin ("🌱 Habits"). You talk to it there, like any chat.
 - **A plugin only sees its own group.** It gets the messages you send in that group, reactions to its own messages, its own stored data, your time zone, and the settings you chose for it. It cannot read your other chats, your todos, other groups, other plugins' data, or anything on the internet. It cannot message anyone else. That is enforced by how plugins run, not by a promise: see [Security model](#security-model).
 - **Nothing to install, nothing new to learn.** No app, no sign-up per bot. Remove a plugin and it stops posting; add it back and your data is still there.
-- **Built on what whatodo already is.** whatodo started as a todo list you run from WhatsApp: write "pay rent friday 5pm" and it's on your list, with reminders, a morning summary, shared group lists and a website. Plugins extend the same account.
+- **Built on what telcurio already is.** telcurio started as a todo list you run from WhatsApp: write "pay rent friday 5pm" and it's on your list, with reminders, a morning summary, shared group lists and a website. Plugins extend the same account.
 
 ### For developers
 
-Write a plugin once, in TypeScript, against a small SDK. whatodo handles WhatsApp (sending, reactions, replies, groups, rate limits and the 24 hour messaging window), scheduling in each person's time zone, storage, the website, login and the PIN lock. You write how the bot behaves.
+Write a plugin once, in TypeScript, against a small SDK. telcurio handles WhatsApp (sending, reactions, replies, groups, rate limits and the 24 hour messaging window), scheduling in each person's time zone, storage, the website, login and the PIN lock. You write how the bot behaves.
 
 The goal is a marketplace where developers publish plugins and **earn from them**. Today every plugin is free and plugins live in this repo; paid plugins, revenue share and outside developers publishing their own come next. See [docs/earning.md](docs/earning.md) for what is planned and what is not decided yet. Because people will pay for plugins and trust them with their data, the bar for every plugin is high: strict rules checked by CI, tests for everything, versioned releases with changelogs, and review before anything ships.
 
 ### Where this is going
 
-1. **Now:** first-party plugins in this repo, bundled into whatodo. All free.
+1. **Now:** first-party plugins in this repo, bundled into telcurio. All free.
 2. **Next:** paid plugins with checkout and payouts; outside developers contributing plugins here under review.
 3. **Later:** plugins hosted by their developers and connected over webhooks, with the same event-in, actions-out contract and permissions shown at install. An open marketplace.
 
@@ -35,11 +35,11 @@ The goal is a marketplace where developers publish plugins and **earn from them*
 ## How a plugin works
 
 ```
-person's WhatsApp ──► "🌱 Habits" group ──► whatodo ──► plugin.onMessage(event, kit)
+person's WhatsApp ──► "🌱 Habits" group ──► telcurio ──► plugin.onMessage(event, kit)
                                                   ◄── kit.send / kit.react / kit.store
 ```
 
-- whatodo calls the plugin with **events**: a message in its group, a reaction to one of its messages, a schedule firing, a call from its web page, an install or an upgrade.
+- telcurio calls the plugin with **events**: a message in its group, a reaction to one of its messages, a schedule firing, a call from its web page, an install or an upgrade.
 - The plugin answers through the **kit**: post in its group, react to the message, read and write its own data, change its settings.
 - Handlers run inside a database transaction, so they are **deterministic**: no network, no timers, no clock other than `kit.now`.
 
@@ -72,13 +72,13 @@ export default definePlugin({
 
 ## Security model
 
-What a plugin can and cannot do is decided by whatodo's runtime and checked by CI here.
+What a plugin can and cannot do is decided by telcurio's runtime and checked by CI here.
 
 | A plugin can | A plugin cannot |
 |---|---|
 | Read messages the installer sends in its own group | Read any other chat, group or plugin |
 | See reactions and replies to its own messages | See who else is in WhatsApp, or message anyone |
-| Store and read its own data, per install | Read whatodo's data (todos, lists, other users) |
+| Store and read its own data, per install | Read telcurio's data (todos, lists, other users) |
 | Post and react in its own group | Make network calls, use timers, read the clock directly |
 | Read the installer's time zone and name, and its own settings | Import anything but the SDK and its own files |
 

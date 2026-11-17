@@ -1,11 +1,11 @@
 ---
 name: build-whatodo-plugin
-description: Build, change, release or review a whatodo plugin in this repo. Use when creating a new plugin, changing or releasing an existing one (version bump, changelog, data migration), or reviewing a plugin pull request.
+description: Build, change, release or review a telcurio plugin in this repo. Use when creating a new plugin, changing or releasing an existing one (version bump, changelog, data migration), or reviewing a plugin pull request.
 ---
 
-# Build a whatodo plugin
+# Build a telcurio plugin
 
-A plugin lives in its own WhatsApp group with one person and the whatodo number. It reacts to events (message, reaction, schedule, web call, install, upgrade) and acts only through the kit. People keep data in plugins and will pay for them, so every change is a **release**: versioned, changelogged, tested, data-compatible, reviewed.
+A plugin lives in its own WhatsApp group with one person and the telcurio number. It reacts to events (message, reaction, schedule, web call, install, upgrade) and acts only through the kit. People keep data in plugins and will pay for them, so every change is a **release**: versioned, changelogged, tested, data-compatible, reviewed.
 
 Pick the branch, then run its steps in order. Each step ends on its completion criterion; don't start the next step until it holds.
 
@@ -15,7 +15,7 @@ Pick the branch, then run its steps in order. Each step ends on its completion c
    *Done when every command has a defined acknowledgement and every stored thing has a row in the Data table.*
 2. **Scaffold.** `pnpm new <id> "<Name>" "<emoji>"`, then `pnpm check`.
    *Done when the untouched scaffold passes.*
-3. **Handlers.** Implement against `docs/sdk-reference.md`. Handlers are **deterministic**: time from `kit.now`/`kit.today`/`kit.time`, ids from `kit.id()`, later work via schedules, imports only from the SDK and the plugin folder. Attach small refs to posts that expect reactions or replies; validate refs before use. End `onMessage` with `kit.unsure(fallback)`, never your own "didn't get that"; declare `understand` intents + `onIntent` so whatodo's intent model can route unclear messages (sdk-reference "Understanding unclear messages").
+3. **Handlers.** Implement against `docs/sdk-reference.md`. Handlers are **deterministic**: time from `kit.now`/`kit.today`/`kit.time`, ids from `kit.id()`, later work via schedules, imports only from the SDK and the plugin folder. Attach small refs to posts that expect reactions or replies; validate refs before use. End `onMessage` with `kit.unsure(fallback)`, never your own "didn't get that"; declare `understand` intents + `onIntent` so telcurio's intent model can route unclear messages (sdk-reference "Understanding unclear messages").
    *Done when every command, schedule, reaction and web action in the README has code.*
 4. **Tests.** Cover everything in `docs/testing.md` "What to cover", using `createTestKit`.
    *Done when `pnpm check` passes and every README command row has a test.*
