@@ -12,22 +12,22 @@ Send these in the Period Tracker group. Dates can be `today`, `yesterday`, `3 da
 |---|---|
 | `period` / `periods` / `today` / `now` / `LMP` / `periods came` / `got my period` | Records today as the day your period started. No date means the day you send it. |
 | `yesterday` / `9 nov` / `3 days ago` / `period 9 nov` / `LMP nov 9` / `my lmp was 9 nov` / `came on 4th` | Records that day. A date on its own is enough. Only needed when it didn't start today. |
-| `last lmp` / `when was my last lmp?` / `lmp?` / `my lmp` | Your last LMP, how long ago, and when the next one is (or was) due. |
-| `history` | Your last 12 LMPs, the days between them, and your usual cycle. |
-| `undo` | Removes the most recent LMP. 👍 |
-| `delete 9 nov` | Removes the LMP on that day. 👍 |
-| `pregnant` / `I'm pregnant` | Pregnancy mode: the period reminders stop. It replies with your LMP, about how far along you are and the due date. Your LMP stays what it was. Sending an LMP later (your periods are back) ends pregnancy mode and tracking carries on. In pregnancy mode a bare `lmp` (or `today`, `now`, `period`) could mean either, so it asks: reply `1` to see your last LMP or `2` to record that day as your new LMP. `2` ends pregnancy mode and tracking carries on, which is how a miscarriage, an abortion or the birth is handled without having to say so. |
+| `last period` / `when was my last period?` / `last lmp` / `lmp?` | When your last period started, how long ago, and when the next one is (or was) due. |
+| `history` | Your last 12 periods, the days between them, and how often they usually come. |
+| `undo` | Removes the most recent date. 👍 |
+| `delete 9 nov` | Removes the date recorded on that day. 👍 |
+| `pregnant` / `I'm pregnant` | Pregnancy mode: the period reminders stop. It replies with when your last period started, about how far along you are and the due date. That date stays what it was. Sending a new period date later (your periods are back) ends pregnancy mode and tracking carries on. In pregnancy mode a bare `period` (or `today`, `now`, `lmp`, or a date on its own) could mean either, so it asks: reply `1` to see your last period or `2` to record that day as the start of a new one. `2` ends pregnancy mode and tracking carries on, which is how a miscarriage, an abortion or the birth is handled without having to say so. |
 | `not pregnant` | Ends pregnancy mode; reminders come back. 👍 |
-| `moon` / `blood` | Messages are marked with 🩸. Right after your first LMP it asks once if that's OK: `no` switches to 🌙, and no reply means yes. `moon` and `blood` switch any time. 👍 |
+| `moon` / `blood` | Messages are marked with 🩸. Right after your first date it asks once if that's OK: `no` switches to 🌙, and no reply means yes. `moon` and `blood` switch any time. 👍 |
 | `reminders off` / `reminders on` | Period reminders off or on. 👍 |
 | `reminder time 8am` | The hour reminders arrive. |
 | `help` | This list. |
 
-What you get back: the first LMP you ever send is confirmed in words ("Your LMP has been recorded: Mon 9 Nov. From next time you'll just get a 👍."). After that a clear LMP only gets a 👍. Words come back only when something needs saying: the date changed an LMP already recorded ("Your LMP is now Thu 12 Nov (it was Mon 9 Nov)", for a date within 10 days of it), the date is older than your current LMP, it's in the future or unreadable, or it ended pregnancy mode.
+What you get back: the first date you ever send is confirmed in words ("Got it: your period started Mon 9 Nov. From next time you'll just get a 👍."). After that a clear date only gets a 👍. Words come back only when something needs saying: the date changed one already recorded ("Changed: your last period started Thu 12 Nov (it was Mon 9 Nov)", for a date within 10 days of it), the date is older than your latest one, it's in the future or unreadable, or it ended pregnancy mode.
 
-Answering a reminder: `yes` (or reacting ✅ to it) means your period started today; `started 2 days ago` or `LMP 14 nov` gives the day; `not yet` is fine too. To the pregnancy test nudge, `yes` or `positive` turns pregnancy mode on and `no` just says OK. You don't have to reply to the message itself: a plain `yes` is read as the answer to the last reminder.
+Answering a reminder: `yes` (or reacting ✅ to it) means your period started today; `started 2 days ago` or `14 nov` gives the day; `not yet` is fine too. To the pregnancy test nudge, `yes` or `positive` turns pregnancy mode on and `no` just says OK. You don't have to reply to the message itself: a plain `yes` is read as the answer to the last reminder.
 
-Messages the commands don't cover ("my periods came on 9th nov", "kab tha last period") go to telcurio's intent understanding: an LMP (the date is read from the sentence, today if there isn't one), asking for the last LMP, history, pregnant, not pregnant, undo and help.
+Messages the commands don't cover ("my periods came on 9th nov", "kab tha last period") go to telcurio's intent understanding: a period starting (the date is read from the sentence, today if there isn't one), asking for the last period, history, pregnant, not pregnant, undo and help.
 
 ## Schedules
 
