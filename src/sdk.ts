@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.8.0";
+export const SDK_VERSION = "1.9.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -106,9 +106,38 @@ export interface Kit {
    */
   send(text: string, opts?: { ref?: Json; group?: string }): void;
   /**
+   * Ask for a choice between options. Use it whenever the plugin needs a structured answer,
+   * a plain yes or no included. telcurio sends a WhatsApp poll (the question with a numbered
+   * list when a poll can't be sent) and each answer arrives as `onAnswer` with the `ref` given
+   * here. A typed answer (the option's number or its text) counts too.
+   *
+   * - In a group of one person and telcurio, the first answer settles it: the poll is deleted
+   *   so it can't be changed, and `confirm` is posted as the record.
+   * - In a group with more people (the "members" permission) the poll stays, everyone's first
+   *   answer counts, and the question stays open until the plugin calls `kit.close(ref)`.
+   *
+   * 2 to 100 different options of up to 100 characters; the question up to 255. More than 12
+   * options go out as several polls, at most three at a time with "See more" as the last
+   * option. Asking again with the same `ref` replaces the earlier question.
+   *
+   * `confirm`: the line posted once a one-person question is answered. `{{question}}` and
+   * `{{option}}` are filled in. Default "{{question}}: {{option}}"; false for none (then say
+   * something in `onAnswer`, since the poll is gone). `group` works as in `send`.
+   * Since SDK 1.9.0.
+   */
+  ask(question: string, options: string[], opts?: { ref?: Json; group?: string; confirm?: string | false }): void;
+  /**
+   * The question asked with `ref` is settled: its polls are deleted and no more answers are
+   * taken. Call it when a message that wasn't one of the options answered the question ("3
+   * days" to "When shall I remind you?"), or when a group's vote is decided. Does nothing if
+   * no such question is open. Since SDK 1.9.0.
+   */
+  close(ref: Json): void;
+  /**
    * React to the message being handled. In onMessage that is the person's message; in
    * onReaction it is the plugin's own message they reacted to (so you can acknowledge their
-   * reaction). Pass "" to remove the reaction. Ignored in schedules and web calls.
+   * reaction); in onAnswer it is the question, or the number they sent. Pass "" to remove the
+   * reaction. Ignored in schedules and web calls.
    */
   react(emoji: string): void;
   /**
@@ -176,6 +205,27 @@ export interface ReactionEvent {
   /** The key of the extra group the message is in; null or unset for the main group. Since SDK 1.6.0. */
   group?: string | null;
   /** Who reacted. telcurio always sets it since SDK 1.8.0. */
+  sender?: Sender;
+}
+
+/**
+ * Someone answered a question asked with `kit.ask`. A person's first answer is the one that
+ * counts. In a group with several people a person may change it once, ever (telcurio tells
+ * them so); that arrives as a second event with `changed: true` and replaces their first.
+ * Since SDK 1.9.0.
+ */
+export interface AnswerEvent {
+  /** The ref given to `kit.ask`; null when there was none. */
+  ref: Json | null;
+  /** Which option they chose, counting from 0 in the order given to `kit.ask`. */
+  choice: number;
+  /** The text of that option. */
+  option: string;
+  /** True when this replaces an earlier answer from the same person. */
+  changed?: boolean;
+  /** The key of the extra group the question is in; null or unset for the main group. */
+  group?: string | null;
+  /** Who answered. Without the "members" permission only the person who added the plugin is heard. */
   sender?: Sender;
 }
 
@@ -319,6 +369,8 @@ export interface PluginDef {
   onMessage?(event: MessageEvent, kit: Kit): Promise<void>;
   onReaction?(event: ReactionEvent, kit: Kit): Promise<void>;
   onSchedule?(event: ScheduleEvent, kit: Kit): Promise<void>;
+  /** Someone answered a question asked with `kit.ask`. Since SDK 1.9.0. */
+  onAnswer?(event: AnswerEvent, kit: Kit): Promise<void>;
   /**
    * A request arrived at one of this install's hooks. It runs like any other handler (it can
    * store and `kit.send`); telcurio has already answered the sender. Since SDK 1.5.0.
@@ -339,6 +391,18 @@ export function compareVersions(a: string, b: string): number {
   const pb = b.split(".").map(Number);
   for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
   return 0;
+}
+
+/** The limits of a question (`kit.ask`), shared by telcurio and the test kit. Throws a plain sentence when one is broken. */
+export function checkAsk(question: string, options: string[]): void {
+  if (typeof question !== "string" || !question.trim()) throw new Error("kit.ask: give a question");
+  if (question.length > 255) throw new Error("kit.ask: the question is longer than 255 characters");
+  if (!Array.isArray(options) || options.length < 2 || options.length > 100) throw new Error("kit.ask: give 2 to 100 options");
+  for (const o of options) {
+    if (typeof o !== "string" || !o.trim()) throw new Error("kit.ask: an option is empty");
+    if (o.length > 100) throw new Error("kit.ask: an option is longer than 100 characters");
+  }
+  if (new Set(options.map((o) => o.trim().toLowerCase())).size !== options.length) throw new Error("kit.ask: two options are the same");
 }
 
 export function definePlugin(def: PluginDef): PluginDef {

@@ -24,6 +24,7 @@ What a maintainer checks before merging a plugin change, and what an author chec
 - [ ] The README describes exactly what the code does: every command, schedule, setting, data collection and web action, and nothing that isn't there.
 - [ ] Changes are acknowledged with reactions (👍 saved, ✅ done); messages are only for answers, lists, questions back and errors.
 - [ ] Unknown input gets a short answer that mentions `help`.
+- [ ] Every structured answer (a yes or no included) is asked with `kit.ask`, and the owner has decided its confirm line, its behaviour with several people, and when it closes.
 - [ ] Scheduled posts go out only when there is something to answer, one per item, never twice for the same item and slot.
 - [ ] Every message is short, plain and human. No marketing tone, no walls of text. WhatsApp formatting used sparingly.
 - [ ] Errors in web actions are plain sentences the person can act on.
@@ -33,6 +34,7 @@ What a maintainer checks before merging a plugin change, and what an author chec
 - [ ] Every README command has a test, including accepted variants and the unknown-input answer.
 - [ ] Schedules: due, not due, and not repeated.
 - [ ] Reactions and replies: happy path, removed reaction, stale or unexpected ref.
+- [ ] Questions: each option answered, an answer outside the options, and a question that is asked again or closed.
 - [ ] Web `load` and every action, including errors.
 - [ ] `onUpgrade` from every earlier released version whose data differs (from the second release on).
 

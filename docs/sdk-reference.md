@@ -30,6 +30,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onMessage` | `(event: MessageEvent, kit) => Promise<void>` | no | A message in the plugin's group: from the installer, or from anyone in the group with the `"members"` permission. |
 | `onReaction` | `(event: ReactionEvent, kit) => Promise<void>` | no | The installer (anyone in the group, with `"members"`) reacted to or un-reacted a message the plugin sent with a `ref`. |
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
+| `onAnswer` | `(event: AnswerEvent, kit) => Promise<void>` | no | Someone answered a question asked with `kit.ask`. See [Asking a question](#asking-a-question). Since SDK 1.9.0. |
 | `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
 | `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`, `"lock-members"`, `"members"`. See [Permissions](#permissions). Since SDK 1.6.0. |
 | `unlisted` | boolean | no | Left out of the store and the public site; only people telcurio allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
@@ -73,6 +74,7 @@ interface MessageEvent  { text: string; quotedRef: Json | null; group?: string |
 interface ReactionEvent { emoji: string | null; ref: Json; group?: string | null; sender?: Sender }   // emoji null: reaction removed
 interface ScheduleEvent { id: string }
 interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number; sender?: Sender }
+interface AnswerEvent   { ref: Json | null; choice: number; option: string; changed?: boolean; group?: string | null; sender?: Sender }   // since SDK 1.9.0
 interface Sender        { id: string; name: string | null; owner: boolean }   // who sent it; since SDK 1.8.0
 interface HookEvent     { key: string; fields: Record<string, string>; files: HookFile[]; origin: string | null }
 interface HookFile      { id: string; field: string; name: string; type: string; size: number }
@@ -136,6 +138,34 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"members"` | Hear everyone in its groups, not only the person who added it. Each message, reaction and intent says who sent it in `event.sender`. Can't be combined with `"lock-members"`. | Built (SDK 1.8.0) |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
+
+## Asking a question
+
+Whenever the plugin needs a structured answer, ask with `kit.ask`. That covers a plain yes or no. Never write your own "reply A, B or C". Since SDK 1.9.0.
+
+```ts
+kit.ask("Did you meditate today?", ["Yes", "No"], { ref: { habit: id, day: kit.today } });
+
+async onAnswer(event, kit) {
+  // event.choice: 0 or 1. event.option: "Yes". event.ref: { habit, day }. event.sender: who.
+}
+```
+
+**How it is sent.** A WhatsApp poll. When a poll can't be sent (the chat hasn't written in the last 24 hours), the question goes out as text with a numbered list and "Reply with the number". The plugin doesn't need to know which.
+
+**Typed answers count.** Someone who ignores the poll and types the option's number or its text has answered: `onAnswer` runs, exactly as for a tap. It goes to the poll they quoted, or to the only open question in the group; with several open and nothing quoted it is an ordinary message and reaches `onMessage`.
+
+**Answers outside the options.** If "3 days" answers "When shall I remind you?", it reaches `onMessage` like any message. When the plugin takes it as the answer, it calls `kit.close(ref)` so the poll is deleted. An unrelated message leaves the question open.
+
+**One person in the group** (the usual case): the first answer settles the question. The poll is deleted so the answer can't be changed, and the `confirm` line is posted as the record: by default `"{{question}}: {{option}}"`, so "Did you meditate today?: Yes". Give your own (`confirm: "🌱 Meditate, done"`) or `false` and say something in `onAnswer`. A poll older than two days can't be deleted by WhatsApp: it stays, and the first answer still counts.
+
+**Several people in the group** (the `"members"` permission): the poll stays where everyone can see it. Each person's first answer counts and arrives as its own `onAnswer`. A person may change their answer once, ever: it arrives again with `changed: true`, and telcurio tells them later changes won't count. After that a change is refused and they are told so. Keep the answer per `sender.id`. Nothing settles the question until the plugin calls `kit.close(ref)`, which deletes the polls.
+
+**Limits.** 2 to 100 different options, up to 100 characters each; the question up to 255. A poll holds 12 options, so a longer list goes out as several polls, at most three at a time. When there are more, the last option is "See more" and the next ones follow when someone picks it. An answer in any of them answers the question, and all of them are deleted together.
+
+**Asking again** with the same `ref` replaces the earlier question.
+
+**Before you build a question into a plugin, decide with the owner:** what the `confirm` line says, what happens when several people are in the group, when the question is closed, and whether the options could ever run past three polls (36). These are product choices, not defaults to guess.
 
 ## More than one person in the group
 

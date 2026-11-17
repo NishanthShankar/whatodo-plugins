@@ -73,3 +73,65 @@ describe("members and sender", () => {
     expect(() => definePlugin({ ...base, permissions: ["members", "lock-members"] })).toThrow(/can't be used together/);
   });
 });
+
+describe("questions", () => {
+  const make = (permissions: PluginDef["permissions"]) => {
+    const seen: unknown[] = [];
+    const plugin = definePlugin({
+      ...base,
+      permissions,
+      onMessage: async (e, kit) => (e.text === "done" ? kit.close({ pick: 1 }) : kit.ask("Tonight?", ["Dune", "Dark"], { ref: { pick: 1 } })),
+      onAnswer: async (e) => void seen.push(e),
+    });
+    return { plugin, seen };
+  };
+
+  it("settles a one-person question on the first answer and posts the confirm line", async () => {
+    const { plugin, seen } = make([]);
+    const t = createTestKit({ person: { name: "Nisha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "pick");
+    expect(t.asked).toEqual([{ question: "Tonight?", options: ["Dune", "Dark"], ref: { pick: 1 }, group: null, confirm: "{{question}}: {{option}}", open: true }]);
+    await t.answer(plugin, { pick: 1 }, 1);
+    expect(seen).toEqual([{ ref: { pick: 1 }, choice: 1, option: "Dark", group: null, sender: { id: "owner", name: "Nisha", owner: true } }]);
+    expect(t.sent.map((m) => m.text)).toEqual(["Tonight?: Dark"]);
+    expect(t.asked[0].open).toBe(false);
+    await expect(t.answer(plugin, { pick: 1 }, 0)).rejects.toThrow(/no open question/);
+  });
+
+  it("keeps a shared question open, marks a changed answer, and closes on kit.close", async () => {
+    const { plugin, seen } = make(["members"]);
+    const t = createTestKit();
+    await t.message(plugin, "pick");
+    await t.answer(plugin, { pick: 1 }, 0, "Asha");
+    await t.answer(plugin, { pick: 1 }, 0, "Asha");
+    await t.answer(plugin, { pick: 1 }, 1, "Asha");
+    await t.answer(plugin, { pick: 1 }, 1);
+    expect(seen.map((e) => [(e as { sender: Sender }).sender.id, (e as { choice: number }).choice, (e as { changed?: boolean }).changed ?? false])).toEqual([
+      ["asha", 0, false],
+      ["asha", 1, true],
+      ["owner", 1, false],
+    ]);
+    expect(t.sent).toEqual([]);
+    await t.message(plugin, "done");
+    expect(t.asked[0].open).toBe(false);
+  });
+
+  it("replaces an open question asked again with the same ref", async () => {
+    const { plugin } = make([]);
+    const t = createTestKit();
+    await t.message(plugin, "pick");
+    await t.message(plugin, "pick");
+    expect(t.asked.map((a) => a.open)).toEqual([false, true]);
+  });
+
+  it("refuses a choice outside the options, and holds questions to their limits", async () => {
+    const { plugin } = make([]);
+    const t = createTestKit();
+    await t.message(plugin, "pick");
+    await expect(t.answer(plugin, { pick: 1 }, 2)).rejects.toThrow(/isn't one of/);
+    expect(() => t.kit.ask("", ["a", "b"])).toThrow(/question/);
+    expect(() => t.kit.ask("Q", ["a"])).toThrow(/2 to 100/);
+    expect(() => t.kit.ask("Q", ["a", "A "])).toThrow(/the same/);
+    expect(() => t.kit.ask("Q", ["a", "b".repeat(101)])).toThrow(/100/);
+  });
+});
