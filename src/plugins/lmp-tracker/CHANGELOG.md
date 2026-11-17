@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.0.1] - 2026-11-17
+
+### Changed
+- The product is now called telcurio. This plugin's page title, description and wording use the new name. Nothing changes in how it works, and addresses like app.whatodo.today stay as they are.
+
 ## [3.0.0] - 2026-11-16
 
 A simpler tracker. It keeps one thing, your LMP, and reminds you when the next one is due.
