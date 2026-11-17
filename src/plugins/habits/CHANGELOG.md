@@ -2,6 +2,17 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] - 2026-11-17
+
+### Changed
+- With simple messages on (the `quickLog` setting), the check-in is just the habit's name and nothing else: no question, no squares, no hint. You react ✅, 👍 or ❌ as before. Sending just a habit's name still logs it.
+
+### Added
+- _simple on_ and _simple off_ turn it on and off. _quick log on_ and _quick log off_ still work.
+
+### Data
+- No change.
+
 ## [1.5.1] - 2026-11-17
 
 ### Changed

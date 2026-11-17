@@ -17,7 +17,7 @@ Send these in the Habits group.
 | `stop meditate` | Stops tracking it (its history is kept). 👍 |
 | `time 10pm` / `time off` | Default check-in time, or turn the default off. 👍 |
 | `time meditate 7am` / `time meditate default` | One habit's own time, or back to the default. 👍 |
-| `quick log on` / `quick log off` | Quick log: when on, a message that is only a habit's name (`meditate`, `Gym!`) logs it for today. Off by default. 👍 |
+| `simple on` / `simple off` | Simple messages: when on, the check-in is just the habit's name and nothing else, and a message that is only a habit's name (`meditate`, `Gym!`) logs it for today. Off by default. `quick log on` / `quick log off` still work. 👍 |
 | `help` | This list. |
 
 Anything else goes to telcurio's intent model, so plain sentences work too: "I want to start going to the gym on mondays and thursdays", "finished my workout", "skipped reading today", "move gym to tuesdays", "check in with me at 8pm instead". Intents: `add_habit`, `log_done`, `missed`, `undo_done`, `remove_habit`, `set_days`, `set_time`, `default_time`, `list`, `help`; targets are the active habits (id to name). If the text doesn't say which habit, days or time, it asks.
@@ -35,7 +35,7 @@ Check-ins: at each habit's hour (its own, else the default), on its days, the pl
 | Key | Default | Meaning |
 |---|---|---|
 | `checkinHour` | `21` | Default check-in hour (0-23), or `null` for off. |
-| `quickLog` | `false` | A message that is only a habit's name logs it for today. |
+| `quickLog` | `false` | Simple messages: the check-in is just the habit's name, and a message that is only a habit's name logs it for today. |
 
 ## Data
 

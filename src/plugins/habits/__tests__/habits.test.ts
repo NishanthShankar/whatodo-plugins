@@ -22,6 +22,18 @@ describe("habits", () => {
     expect(((await t.load(habits)) as { quickLog: boolean }).quickLog).toBe(false);
   });
 
+  it("with simple messages on, the check-in is just the habit's name", async () => {
+    const t = createTestKit();
+    await t.message(habits, "add Read");
+    await t.message(habits, "simple on");
+    expect(t.kit.settings.quickLog).toBe(true);
+    t.sent.length = 0;
+    await t.schedule(habits, "checkin");
+    expect(t.sent[0].text).toBe("Read");
+    await t.message(habits, "simple off");
+    expect(t.kit.settings.quickLog).toBe(false);
+  });
+
   it("with quick log on, a message that is only a habit's name logs it", async () => {
     const t = createTestKit();
     await t.message(habits, "add go to the gym");
