@@ -133,3 +133,7 @@ Follow [CONTRIBUTING.md](../CONTRIBUTING.md) and fill in the PR template. CI run
 ## Changing a released plugin
 
 Read [releasing.md](releasing.md) first. Every change bumps the version, adds a CHANGELOG entry, and keeps existing installs working: people's data from every earlier version must still load, migrated by `onUpgrade` if its shape changed.
+
+## The web page's design
+
+The page itself is built in the `whatodo` repo and follows `docs/plugin-ui-styleguide.md` there: one frame for every plugin (`PluginShell`), a left sidebar on desktop, Settings and Info in fixed places, detail in sheets. Read it before planning what `web.load` returns.
