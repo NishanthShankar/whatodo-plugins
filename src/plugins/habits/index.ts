@@ -230,7 +230,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "1.6.0",
+  version: "1.6.1",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -463,7 +463,7 @@ export default definePlugin({
       // Simple messages: the check-in is the habit's name and nothing else. Reactions work the same.
       const text = kit.settings.quickLog === true
         ? habit.name
-        : `🌙 Did you *${habit.name}* today?\n${grid(done, kit.today, 7, habit.createdDay, habit.days)}${s ? `  🔥 ${s}` : ""}\n\n_React ✅ if you did, ❌ if you didn't._`;
+        : `🌱 Did you *${habit.name}* today?\n${grid(done, kit.today, 7, habit.createdDay, habit.days)}${s ? `  🔥 ${s}` : ""}\n\n_React ✅ if you did, ❌ if you didn't._`;
       kit.send(text, { ref: { habitId: id, day: kit.today } });
     }
   },
