@@ -17,7 +17,7 @@ import {
 import { findDay, parseDay } from "./dates";
 
 /**
- * LMP Tracker keeps one fact per person: their LMP, the first day of their last menstrual
+ * Period Tracker keeps one fact per person: their LMP, the first day of their last menstrual
  * period. They send it when a period starts ("LMP", "LMP nov 9"; no date means today) and can ask for it
  * back. If the next one isn't sent when it's due we remind them, again a week later, and
  * then suggest a pregnancy test. When the reminders come is learned from their own dates.
@@ -79,7 +79,7 @@ function say(kit: Kit, text: string, opts?: { ref?: never }) {
 const NOTE = "_Estimates from your dates, not medical advice._";
 
 const HELP = [
-  "*LMP Tracker*",
+  "*Period Tracker*",
   "",
   "When your period starts, send _LMP_. That's all. If it started another day, add it: _LMP yesterday_, _LMP 9 nov_.",
   "If the next one hasn't come when it usually does, I'll remind you.",
@@ -291,24 +291,24 @@ const STARTED = /^(yes|yeah|yep|y|ya|haan|today|it came today|started today|yes 
 
 export default definePlugin({
   id: "lmp-tracker",
-  version: "3.0.1",
+  version: "3.0.2",
   sdk: "1",
-  name: "LMP Tracker",
+  name: "Period Tracker",
   icon: "🩸",
   tagline: "Send your LMP when your period starts. I remind you when the next one is due.",
   description:
     "Keeps your last menstrual period (LMP) date on WhatsApp. Send LMP today when your period starts. If the next one hasn't come when it usually does, I remind you, and after two weeks I suggest a pregnancy test. I learn your usual cycle from your dates.",
-  groupName: "🌙 LMP Tracker",
+  groupName: "🌙 Period Tracker",
   price: 0,
   tier: 1,
   listing: {
-    title: "LMP Tracker & Period Reminder on WhatsApp | telcurio",
+    title: "Period Tracker & Reminder on WhatsApp | telcurio",
     description:
       "Send LMP today on WhatsApp when your period starts. Get reminded when the next is due, learned from your own cycle, and a nudge to test if late. Free.",
-    h1: "LMP tracker and period reminder on WhatsApp",
+    h1: "Period tracker and reminder on WhatsApp",
   },
   welcome:
-    "🩸 You've installed *LMP Tracker*.\n\nWhen your period starts, just send _LMP_. For your last one, add the date, like _LMP 9 nov_.\n\nI'll remind you when the next one is due, and you can ask _last LMP_ any time. Send _help_ for more. " +
+    "🩸 You've installed *Period Tracker*.\n\nWhen your period starts, just send _LMP_. For your last one, add the date, like _LMP 9 nov_.\n\nI'll remind you when the next one is due, and you can ask _last LMP_ any time. Send _help_ for more. " +
     NOTE,
   help: HELP,
   settings: { reminderHour: 9, cycleLength: 28, periodReminders: true, symbol: "blood" },

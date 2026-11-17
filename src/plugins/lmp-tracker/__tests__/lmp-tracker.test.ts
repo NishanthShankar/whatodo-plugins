@@ -485,7 +485,7 @@ describe("understanding sentences", () => {
 
 describe("blood or moon", () => {
   it("names the group with 🌙 and asks nothing in the welcome", () => {
-    expect(lmp.groupName).toBe("🌙 LMP Tracker");
+    expect(lmp.groupName).toBe("🌙 Period Tracker");
     expect(lmp.welcome).not.toContain("OK");
     expect(lmp.welcome).not.toContain("🌙");
   });

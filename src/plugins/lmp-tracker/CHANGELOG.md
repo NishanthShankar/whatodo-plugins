@@ -1,6 +1,11 @@
-# Changelog: LMP Tracker
+# Changelog: Period Tracker (was LMP Tracker)
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
+
+## [3.0.2] - 2026-11-17
+
+### Changed
+- The plugin is now called Period Tracker instead of LMP Tracker: its name, help heading, welcome message, page title and the name of the WhatsApp group made for new installs ("🌙 Period Tracker"). Groups that already exist keep the name they have. The plugin id is still `lmp-tracker`, and you still send _LMP_ when your period starts.
 
 ## [3.0.1] - 2026-11-17
 
