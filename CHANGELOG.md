@@ -2,6 +2,14 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.8.0] - 2026-11-18
+
+### Added
+- Permission `"members"`: the plugin hears everyone in its groups, not only the person who added it. Without it nothing changes: messages and reactions from other people in the group never reach the plugin. `definePlugin` refuses `"members"` together with `"lock-members"`.
+- `sender` on `MessageEvent`, `ReactionEvent` and `IntentEvent`: `Sender = { id, name, owner }`. `id` is the same for a person on every event and is not a phone number; `name` is their WhatsApp name when known; `owner` is true for the person who added the plugin. telcurio always sets it, for every plugin.
+- `kit.person` is still the person who added the plugin (their name, zone and settings), whoever sent the event.
+- Test kit: a `from` argument on `t.message`, `t.react` and `t.intent`. Leave it out for the person who added the plugin, or pass a name (`"Asha"`) for another member. The kit refuses another member's event for a plugin without `"members"`.
+
 ## [1.7.1] - 2026-11-17
 
 ### Changed

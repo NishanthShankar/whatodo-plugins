@@ -25,7 +25,7 @@ Plugins in this repo are first-party code bundled into telcurio; the boundary to
 
 When a plugin calls `kit.unsure()` and declares `understand`, telcurio (not the plugin) sends that one message's text, the plugin's intent descriptions and its target labels to its intent model (jev, by TypeSafe, through OpenRouter) to be classified. telcurio keeps only the model's answer, token counts and cost, never the text.
 
-Anything beyond a plugin's own group and data is a permission it must list (`permissions`: `hooks`, `groups`, `replies`, `lock-members`), shown to the person before they add it. See [sdk-reference.md](sdk-reference.md#permissions).
+Anything beyond a plugin's own group and data is a permission it must list (`permissions`: `hooks`, `groups`, `replies`, `lock-members`, `members`), shown to the person before they add it. See [sdk-reference.md](sdk-reference.md#permissions).
 
 Known gap: `kit.person.name` is available to every plugin. It will move behind a permission shown at install.
 

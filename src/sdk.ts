@@ -1,7 +1,8 @@
 /**
  * The telcurio plugin SDK.
  *
- * A plugin lives in its own WhatsApp group with one person and the telcurio bot. telcurio sends
+ * A plugin lives in its own WhatsApp group with one person and the telcurio bot (and, with the
+ * "members" permission, the other people that person adds to the group). telcurio sends
  * it events (a message, a reaction, a scheduled moment, a call from its web page, a request from
  * outside to one of its hooks) and hands it
  * a Kit to act with. Plugins never talk to WhatsApp or the database directly, which keeps them
@@ -15,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.7.1";
+export const SDK_VERSION = "1.8.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -33,10 +34,13 @@ export type Tier = 1 | 2 | 3;
  * - "lock-members": block adding members. The plugin's groups (its main one and any extra ones)
  *   are made with telcurio as the only admin and set so only admins can add people, so nobody
  *   else can be brought in. Reserved since SDK 1.7.0: named, not enforced yet.
+ * - "members": hear everyone in its groups, not only the person who added it. Without it,
+ *   messages and reactions from other people in the group never reach the plugin. Each event
+ *   says who sent it (`event.sender`). Can't be combined with "lock-members". Since SDK 1.8.0.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies" | "lock-members";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -66,11 +70,28 @@ export interface Person {
   timezone: string;
 }
 
+/**
+ * Who sent a message or reaction. Without the "members" permission it is always the person who
+ * added the plugin. Since SDK 1.8.0.
+ */
+export interface Sender {
+  /**
+   * The same for this person on every event, and different for everyone else. Use it as a key
+   * when you store who did what. It is not a phone number and says nothing about the person.
+   */
+  id: string;
+  /** Their WhatsApp name, when telcurio knows it. Names change and repeat: show it, don't key on it. */
+  name: string | null;
+  /** True for the person who added the plugin. */
+  owner: boolean;
+}
+
 export interface Kit {
   /** The moment of the event (ms). */
   now: number;
   /** Today in the person's zone, "YYYY-MM-DD". */
   today: string;
+  /** The person who added the plugin, whoever sent the event being handled (that is `event.sender`). */
   person: Person;
   /** This install's settings (defaults from the plugin, changed by the person). */
   settings: Record<string, Json>;
@@ -143,6 +164,8 @@ export interface MessageEvent {
   quotedRef: Json | null;
   /** The key of the extra group it was sent in; null or unset for the main group. Since SDK 1.6.0. */
   group?: string | null;
+  /** Who sent it. telcurio always sets it since SDK 1.8.0. */
+  sender?: Sender;
 }
 
 export interface ReactionEvent {
@@ -152,6 +175,8 @@ export interface ReactionEvent {
   ref: Json;
   /** The key of the extra group the message is in; null or unset for the main group. Since SDK 1.6.0. */
   group?: string | null;
+  /** Who reacted. telcurio always sets it since SDK 1.8.0. */
+  sender?: Sender;
 }
 
 /** A file that came with a hook request. Only telcurio can read its bytes; the plugin keeps the id. */
@@ -188,6 +213,8 @@ export interface IntentEvent {
   target: string | null;
   /** 0 to 1. Below the platform's threshold onIntent isn't called at all. */
   confidence: number;
+  /** Who sent the message. telcurio always sets it since SDK 1.8.0. */
+  sender?: Sender;
 }
 
 /**
@@ -322,6 +349,9 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (def.tier !== undefined && ![1, 2, 3].includes(def.tier)) throw new Error(`${def.id}: tier must be 1, 2 or 3`);
   for (const p of def.permissions ?? []) {
     if (!PERMISSIONS.includes(p)) throw new Error(`${def.id}: unknown permission "${p}"`);
+  }
+  if (def.permissions?.includes("members") && def.permissions.includes("lock-members")) {
+    throw new Error(`${def.id}: "members" and "lock-members" can't be used together`);
   }
   if (def.onHook && !def.permissions?.includes("hooks")) throw new Error(`${def.id}: onHook needs the "hooks" permission`);
   if (def.understand) {

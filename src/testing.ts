@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import type { HookFile, Json, Kit, PluginDef, StoredItem } from "./sdk";
+import type { HookFile, Json, Kit, PluginDef, Sender, StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -68,7 +68,9 @@ export function createTestKit(opts: TestKitOptions = {}) {
     get today() {
       return state.today;
     },
-    person: opts.person ?? { name: "Test Person", timezone: "Asia/Kolkata" },
+    get person() {
+      return person;
+    },
     settings,
     async setSettings(patch) {
       Object.assign(settings, clone(patch as Json) as Record<string, Json>);
@@ -153,6 +155,24 @@ export function createTestKit(opts: TestKitOptions = {}) {
     },
   };
 
+  const person = opts.person ?? { name: "Test Person", timezone: "Asia/Kolkata" };
+  /**
+   * Who an event is from. Nothing: the person who added the plugin. A string: another member
+   * with that name (their id is the name in lowercase, so the same name is the same person).
+   */
+  const senderOf = (plugin: PluginDef, from?: string | Partial<Sender>): Sender => {
+    const owner: Sender = { id: "owner", name: person.name, owner: true };
+    if (from === undefined) return owner;
+    const s: Sender =
+      typeof from === "string"
+        ? { id: from.toLowerCase().replace(/\s+/g, "-"), name: from, owner: false }
+        : { id: from.id ?? "owner", name: from.name ?? null, owner: from.owner ?? (from.id ?? "owner") === "owner" };
+    if (!s.owner && !plugin.permissions?.includes("members")) {
+      throw new Error(`${plugin.id}: a message from someone else needs the "members" permission (telcurio wouldn't deliver it)`);
+    }
+    return s;
+  };
+
   const withDefaults = (plugin: PluginDef) => {
     current = plugin;
     for (const [k, v] of Object.entries(plugin.settings ?? {})) if (!(k in settings)) settings[k] = v;
@@ -183,22 +203,28 @@ export function createTestKit(opts: TestKitOptions = {}) {
       withDefaults(plugin);
       await plugin.onInstall?.(kit);
     },
-    /** `group`: the key of the extra group the message was sent in (null: the main group). */
-    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null) {
+    /**
+     * `group`: the key of the extra group the message was sent in (null: the main group).
+     * `from`: who sent it. Leave out for the person who added the plugin; a name ("Asha") for
+     * another member of the group, which needs the "members" permission.
+     */
+    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null, from?: string | Partial<Sender>) {
       withDefaults(plugin);
+      const sender = senderOf(plugin, from);
       here = group;
       try {
         if (/^(help|\?|menu|commands)$/i.test(text.trim())) return kit.send(plugin.help);
-        await plugin.onMessage?.({ text, quotedRef, group }, kit);
+        await plugin.onMessage?.({ text, quotedRef, group, sender }, kit);
       } finally {
         here = null;
       }
     },
-    async react(plugin: PluginDef, emoji: string | null, ref: Json, group: string | null = null) {
+    async react(plugin: PluginDef, emoji: string | null, ref: Json, group: string | null = null, from?: string | Partial<Sender>) {
       withDefaults(plugin);
+      const sender = senderOf(plugin, from);
       here = group;
       try {
-        await plugin.onReaction?.({ emoji, ref, group }, kit);
+        await plugin.onReaction?.({ emoji, ref, group, sender }, kit);
       } finally {
         here = null;
       }
@@ -212,7 +238,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
      * Deliver an intent as telcurio would after kit.unsure(): checks the intent and target are
      * ones the plugin declared, then calls onIntent.
      */
-    async intent(plugin: PluginDef, text: string, intent: string, target: string | null = null, confidence = 1) {
+    async intent(plugin: PluginDef, text: string, intent: string, target: string | null = null, confidence = 1, from?: string | Partial<Sender>) {
       withDefaults(plugin);
       if (!plugin.understand || !plugin.onIntent) throw new Error(`${plugin.id} doesn't declare understand/onIntent`);
       if (!(intent in plugin.understand.intents)) throw new Error(`${plugin.id} has no intent "${intent}"`);
@@ -220,7 +246,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
         const targets = (await plugin.understand.targets?.(kit)) ?? {};
         if (!(target in targets)) throw new Error(`${plugin.id}: "${target}" isn't one of its targets`);
       }
-      await plugin.onIntent({ text, intent, target, confidence }, kit);
+      await plugin.onIntent({ text, intent, target, confidence, sender: senderOf(plugin, from) }, kit);
     },
     /**
      * Deliver a request to a hook as telcurio would. Throws when the hook isn't open (telcurio

@@ -33,10 +33,11 @@ it("logs a glass and reacts", async () => {
 | Call | Does what telcurio does when… |
 |---|---|
 | `await t.install(plugin)` | the plugin is installed (`onInstall`) |
-| `await t.message(plugin, text, quotedRef?)` | the person sends `text` (as a reply to a message with `quotedRef`). `help`/`?`/`menu`/`commands` post `plugin.help`, as telcurio does. |
-| `await t.react(plugin, emoji \| null, ref)` | the person reacts to (null: un-reacts) a message sent with `ref` |
+| `await t.message(plugin, text, quotedRef?, group?, from?)` | the person sends `text` (as a reply to a message with `quotedRef`). `help`/`?`/`menu`/`commands` post `plugin.help`, as telcurio does. |
+| `await t.react(plugin, emoji \| null, ref, group?, from?)` | the person reacts to (null: un-reacts) a message sent with `ref` |
+| `from` on the three calls above and below | who sent it. Left out: the person who added the plugin. A name like `"Asha"`: another member of the group (her `sender.id` is `"asha"`). The plugin needs the `"members"` permission, or the kit throws as telcurio would not have delivered it. |
 | `await t.schedule(plugin, id)` | schedule `id` fires |
-| `await t.intent(plugin, text, intent, target?, confidence?)` | telcurio's intent model read an unclear message as `intent` (about `target`). Checks both were declared, then calls `onIntent`. |
+| `await t.intent(plugin, text, intent, target?, confidence?, from?)` | telcurio's intent model read an unclear message as `intent` (about `target`). Checks both were declared, then calls `onIntent`. |
 | `await t.targets(plugin)` | returns what `understand.targets` gives right now |
 | `await t.upgrade(plugin, fromVersion)` | a new version meets an install made with `fromVersion` |
 | `await t.load(plugin, args?)` | the web page loads |

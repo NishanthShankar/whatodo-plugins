@@ -27,11 +27,11 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `schedules` | `ScheduleDef[]` | no | Daily or hourly triggers. |
 | `onInstall` | `(kit) => Promise<void>` | no | Once, when an install is created (before the group exists: don't `send` here). |
 | `onUpgrade` | `(fromVersion, kit) => Promise<void>` | no | Once per install, before any other handler, the first time a newer version handles an event for it. Migrate stored data. Must be idempotent. |
-| `onMessage` | `(event: MessageEvent, kit) => Promise<void>` | no | A message from the installer in the plugin's group. |
-| `onReaction` | `(event: ReactionEvent, kit) => Promise<void>` | no | The installer reacted to (or un-reacted) a message the plugin sent with a `ref`. |
+| `onMessage` | `(event: MessageEvent, kit) => Promise<void>` | no | A message in the plugin's group: from the installer, or from anyone in the group with the `"members"` permission. |
+| `onReaction` | `(event: ReactionEvent, kit) => Promise<void>` | no | The installer (anyone in the group, with `"members"`) reacted to or un-reacted a message the plugin sent with a `ref`. |
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
 | `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
-| `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`, `"lock-members"`. See [Permissions](#permissions). Since SDK 1.6.0. |
+| `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`, `"lock-members"`, `"members"`. See [Permissions](#permissions). Since SDK 1.6.0. |
 | `unlisted` | boolean | no | Left out of the store and the public site; only people telcurio allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
 | `web` | `WebDef` | no | Data and actions for the plugin's web page. |
 
@@ -69,10 +69,11 @@ Raising a plugin's tier changes what people may pay for it, so it is a MAJOR rel
 ## Events
 
 ```ts
-interface MessageEvent  { text: string; quotedRef: Json | null; group?: string | null }
-interface ReactionEvent { emoji: string | null; ref: Json; group?: string | null }   // emoji null: reaction removed
+interface MessageEvent  { text: string; quotedRef: Json | null; group?: string | null; sender?: Sender }
+interface ReactionEvent { emoji: string | null; ref: Json; group?: string | null; sender?: Sender }   // emoji null: reaction removed
 interface ScheduleEvent { id: string }
-interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number }
+interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number; sender?: Sender }
+interface Sender        { id: string; name: string | null; owner: boolean }   // who sent it; since SDK 1.8.0
 interface HookEvent     { key: string; fields: Record<string, string>; files: HookFile[]; origin: string | null }
 interface HookFile      { id: string; field: string; name: string; type: string; size: number }
 ```
@@ -132,8 +133,20 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"groups"` | Make extra WhatsApp groups for the install: `kit.groups`, `kit.send(text, { group })`. | Built (SDK 1.6.0) |
 | `"replies"` | Be called back when someone replies. | Reserved: the name is fixed so plugins and people can plan for it; nothing is built yet. |
 | `"lock-members"` | Block adding members: its groups (the main one and any extra ones) are made with telcurio as the only admin and set so only admins can add people. For plugins whose group must stay between the person and telcurio. | Reserved (SDK 1.7.0): telcurio doesn't enforce it yet. |
+| `"members"` | Hear everyone in its groups, not only the person who added it. Each message, reaction and intent says who sent it in `event.sender`. Can't be combined with `"lock-members"`. | Built (SDK 1.8.0) |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
+
+## More than one person in the group
+
+By default a plugin hears one person: the one who added it. Other people in the group are ignored. A plugin for something shared (a list a household keeps, a vote) asks for the `"members"` permission and then hears everyone the person adds to the group. Since SDK 1.8.0.
+
+- `event.sender` says who sent a message, reaction or intent: `{ id, name, owner }`. telcurio sets it for every plugin; without `"members"` it is always the owner.
+- Store `sender.id` when you need to remember who did something. It stays the same for that person and is not a phone number. `sender.name` is their WhatsApp name: show it, but don't use it as a key, because names change and two people can share one.
+- `kit.person`, `kit.settings`, `kit.today` and the store all belong to the install, so they are the owner's whoever is writing. Times are in the owner's zone.
+- There is no list of the group's members. You learn of a person when they first write or react, so keep your own record if you need one.
+- Platform commands (`mentions on`, `reset pin`) only work for the owner.
+- Anyone in the group can read everything the plugin posts there. Don't ask for `"members"` in a plugin that holds private data.
 
 ## Hooks: requests from outside
 
