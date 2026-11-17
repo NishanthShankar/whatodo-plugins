@@ -1,21 +1,21 @@
 /**
- * The whatodo plugin SDK.
+ * The telcurio plugin SDK.
  *
- * A plugin lives in its own WhatsApp group with one person and the whatodo bot. whatodo sends
+ * A plugin lives in its own WhatsApp group with one person and the telcurio bot. telcurio sends
  * it events (a message, a reaction, a scheduled moment, a call from its web page, a request from
  * outside to one of its hooks) and hands it
  * a Kit to act with. Plugins never talk to WhatsApp or the database directly, which keeps them
- * portable: the same plugin can run bundled inside whatodo or, later, as a hosted service.
+ * portable: the same plugin can run bundled inside telcurio or, later, as a hosted service.
  *
- * Handlers run inside a database transaction on the whatodo side, so they must be
+ * Handlers run inside a database transaction on the telcurio side, so they must be
  * deterministic: no network calls, no timers. Use kit.now instead of Date.now().
  */
 
 /**
- * The SDK's own version. Plugins are written against a major version; whatodo refuses a
+ * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.7.0";
+export const SDK_VERSION = "1.7.1";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -25,13 +25,13 @@ export type Tier = 1 | 2 | 3;
 
 /**
  * What a plugin may do beyond its own group and storage. A plugin lists the ones it needs in
- * `permissions`; whatodo shows them to the person before they add it and refuses the rest.
- * - "hooks": receive requests from outside whatodo (`kit.hooks`, `onHook`, files).
+ * `permissions`; telcurio shows them to the person before they add it and refuses the rest.
+ * - "hooks": receive requests from outside telcurio (`kit.hooks`, `onHook`, files).
  * - "groups": make extra WhatsApp groups for the install (`kit.groups`).
  * - "replies": be called back when someone replies. Reserved: named so plugins and people can
  *   plan for it, not built yet.
  * - "lock-members": block adding members. The plugin's groups (its main one and any extra ones)
- *   are made with whatodo as the only admin and set so only admins can add people, so nobody
+ *   are made with telcurio as the only admin and set so only admins can add people, so nobody
  *   else can be brought in. Reserved since SDK 1.7.0: named, not enforced yet.
  * Since SDK 1.6.0.
  */
@@ -92,8 +92,8 @@ export interface Kit {
   react(emoji: string): void;
   /**
    * Say you couldn't read the message being handled (onMessage only). If the plugin declares
-   * `understand`, whatodo asks its intent model which of your intents the message means and
-   * calls `onIntent` with the answer; if the plugin doesn't, or the model isn't sure, whatodo
+   * `understand`, telcurio asks its intent model which of your intents the message means and
+   * calls `onIntent` with the answer; if the plugin doesn't, or the model isn't sure, telcurio
    * sends `fallback` instead. Call it instead of sending your own "I didn't get that". Since
    * SDK 1.4.0.
    */
@@ -112,16 +112,16 @@ export interface Kit {
   };
   /**
    * Extra WhatsApp groups for this install, besides its main one: each has the person and
-   * whatodo in it, like the main group. For plugins where one thing deserves its own chat
+   * telcurio in it, like the main group. For plugins where one thing deserves its own chat
    * (a form, a project). Making a group takes a little while. Since SDK 1.6.0.
    */
   groups: {
     /** Ask for a group for `key` (lowercase letters, digits and dashes). Does nothing if it exists. `hello` is posted in it once it's made. */
     open(key: string, opts: { name: string; hello?: string }): Promise<void>;
-    /** Stop using the group for `key`. whatodo stops listening and posting there; the chat itself stays on the person's phone. */
+    /** Stop using the group for `key`. telcurio stops listening and posting there; the chat itself stays on the person's phone. */
     close(key: string): Promise<void>;
   };
-  /** Files that arrived through hooks. The plugin holds their ids; whatodo holds the bytes. Since SDK 1.5.0. */
+  /** Files that arrived through hooks. The plugin holds their ids; telcurio holds the bytes. Since SDK 1.5.0. */
   files: {
     /** Delete a file for good. */
     remove(id: string): Promise<void>;
@@ -154,7 +154,7 @@ export interface ReactionEvent {
   group?: string | null;
 }
 
-/** A file that came with a hook request. Only whatodo can read its bytes; the plugin keeps the id. */
+/** A file that came with a hook request. Only telcurio can read its bytes; the plugin keeps the id. */
 export interface HookFile {
   id: string;
   /** The form field it was sent in. */
@@ -167,18 +167,18 @@ export interface HookFile {
   size: number;
 }
 
-/** A request from outside whatodo to one of the install's hooks. Since SDK 1.5.0. */
+/** A request from outside telcurio to one of the install's hooks. Since SDK 1.5.0. */
 export interface HookEvent {
   /** The key the hook was made with (`kit.hooks.url(key)`). */
   key: string;
-  /** The text fields, as sent. Names and values are capped by whatodo. */
+  /** The text fields, as sent. Names and values are capped by telcurio. */
   fields: Record<string, string>;
   files: HookFile[];
   /** The site the request came from (its Origin header), when it said. */
   origin: string | null;
 }
 
-/** What whatodo's intent model made of a message the plugin was unsure about. */
+/** What telcurio's intent model made of a message the plugin was unsure about. */
 export interface IntentEvent {
   /** The message, as sent. */
   text: string;
@@ -191,7 +191,7 @@ export interface IntentEvent {
 }
 
 /**
- * Lets whatodo work out what an unclear message means. The model only picks: an intent from
+ * Lets telcurio work out what an unclear message means. The model only picks: an intent from
  * this list, and optionally the thing it's about from `targets`. It never writes text, so the
  * plugin still reads names, days and times out of the message itself in `onIntent`.
  */
@@ -224,7 +224,7 @@ export interface ScheduleDef {
 }
 
 export interface WebDef {
-  /** Whether the person can put this plugin's page behind their whatodo PIN. */
+  /** Whether the person can put this plugin's page behind their telcurio PIN. */
   lockable?: boolean;
   /** Data for the plugin's web page. */
   load(kit: Kit, args: Record<string, Json>): Promise<Json>;
@@ -237,7 +237,7 @@ export interface WebDef {
  * page heading). Write for what people search, not the plugin's name.
  */
 export interface Listing {
-  /** The full page title, brand included, 60 characters at most: "Habit Tracker on WhatsApp: Daily Check-ins | whatodo". */
+  /** The full page title, brand included, 60 characters at most: "Habit Tracker on WhatsApp: Daily Check-ins | telcurio". */
   title: string;
   /** Meta description, 155 characters at most. */
   description: string;
@@ -272,7 +272,7 @@ export interface PluginDef {
   /** What it may do beyond its own group and storage. See `Permission`. Since SDK 1.6.0. */
   permissions?: Permission[];
   /**
-   * Not offered to everyone: left out of the store and the public site, and only people whatodo
+   * Not offered to everyone: left out of the store and the public site, and only people telcurio
    * allows can add it. For plugins still being tried out. Since SDK 1.5.0.
    */
   unlisted?: boolean;
@@ -294,12 +294,12 @@ export interface PluginDef {
   onSchedule?(event: ScheduleEvent, kit: Kit): Promise<void>;
   /**
    * A request arrived at one of this install's hooks. It runs like any other handler (it can
-   * store and `kit.send`); whatodo has already answered the sender. Since SDK 1.5.0.
+   * store and `kit.send`); telcurio has already answered the sender. Since SDK 1.5.0.
    */
   onHook?(event: HookEvent, kit: Kit): Promise<void>;
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
-  /** Called with the intent whatodo found for an unclear message. Required with `understand`. */
+  /** Called with the intent telcurio found for an unclear message. Required with `understand`. */
   onIntent?(event: IntentEvent, kit: Kit): Promise<void>;
   web?: WebDef;
 }
