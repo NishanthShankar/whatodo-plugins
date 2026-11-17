@@ -30,6 +30,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onMessage` | `(event: MessageEvent, kit) => Promise<void>` | no | A message in the plugin's group: from the installer, or from anyone in the group with the `"members"` permission. |
 | `onReaction` | `(event: ReactionEvent, kit) => Promise<void>` | no | The installer (anyone in the group, with `"members"`) reacted to or un-reacted a message the plugin sent with a `ref`. |
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
+| `onAnswer` | `(event: AnswerEvent, kit) => Promise<void>` | no | Someone answered a question asked with `kit.ask`. See [Asking a question](#asking-a-question). Since SDK 1.9.0. |
 | `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
 | `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`, `"lock-members"`, `"members"`. See [Permissions](#permissions). Since SDK 1.6.0. |
 | `unlisted` | boolean | no | Left out of the store and the public site; only people telcurio allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
@@ -73,6 +74,7 @@ interface MessageEvent  { text: string; quotedRef: Json | null; group?: string |
 interface ReactionEvent { emoji: string | null; ref: Json; group?: string | null; sender?: Sender }   // emoji null: reaction removed
 interface ScheduleEvent { id: string }
 interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number; sender?: Sender }
+interface AnswerEvent   { ref: Json | null; choice: number | null; option: string | null; group?: string | null; sender?: Sender }   // since SDK 1.9.0
 interface Sender        { id: string; name: string | null; owner: boolean }   // who sent it; since SDK 1.8.0
 interface HookEvent     { key: string; fields: Record<string, string>; files: HookFile[]; origin: string | null }
 interface HookFile      { id: string; field: string; name: string; type: string; size: number }
@@ -136,6 +138,27 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"members"` | Hear everyone in its groups, not only the person who added it. Each message, reaction and intent says who sent it in `event.sender`. Can't be combined with `"lock-members"`. | Built (SDK 1.8.0) |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
+
+## Asking a question
+
+When the person has to choose between a few things, ask with `kit.ask` instead of writing your own "reply A, B or C". Since SDK 1.9.0.
+
+```ts
+kit.ask("What shall we watch tonight?", ["Dune", "Dark", "Past Lives"], { ref: { pick: id } });
+
+async onAnswer(event, kit) {
+  // event.choice: 0, 1 or 2 (null: they took their answer back). event.option: "Dune".
+  // event.ref: { pick: id }. event.sender: who answered.
+}
+```
+
+- telcurio sends a WhatsApp poll when it can. A poll can only go to a chat that wrote in the last 24 hours, so a question asked from a schedule may go out as text instead: the question, a numbered list, and "Reply with the number". Both arrive as the same `onAnswer`.
+- 2 to 12 different options, up to 100 characters each; the question up to 255. One choice per person.
+- People can change their answer, and each change is a new `onAnswer`. Keep the latest per `sender.id`. `choice: null` means they removed it.
+- Nothing closes a question. Decide in the plugin when it is settled, and ignore answers after that.
+- With the `"members"` permission everyone in the group can answer; without it only the person who added the plugin is heard.
+- `kit.react` in `onAnswer` reacts to the question (a poll) or to the number they sent. One reaction per message, so in a group prefer a short message when the answer settles something.
+- A question needs an answer typed or tapped, so it can't take free text ("or your own time"). Say so in a normal message and read that in `onMessage`.
 
 ## More than one person in the group
 

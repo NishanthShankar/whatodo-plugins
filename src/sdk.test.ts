@@ -73,3 +73,40 @@ describe("members and sender", () => {
     expect(() => definePlugin({ ...base, permissions: ["members", "lock-members"] })).toThrow(/can't be used together/);
   });
 });
+
+describe("questions", () => {
+  const seen: unknown[] = [];
+  const plugin = definePlugin({
+    ...base,
+    permissions: ["members"],
+    onMessage: async (_e, kit) => kit.ask("Tonight?", ["Dune", "Dark"], { ref: { pick: 1 } }),
+    onAnswer: async (e) => void seen.push(e),
+  });
+
+  it("records the question and delivers answers with the option and who chose", async () => {
+    const t = createTestKit({ person: { name: "Nisha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "pick");
+    expect(t.asked).toEqual([{ question: "Tonight?", options: ["Dune", "Dark"], ref: { pick: 1 }, group: null }]);
+    await t.answer(plugin, { pick: 1 }, 1, "Asha");
+    await t.answer(plugin, { pick: 1 }, null);
+    expect(seen).toEqual([
+      { ref: { pick: 1 }, choice: 1, option: "Dark", group: null, sender: { id: "asha", name: "Asha", owner: false } },
+      { ref: { pick: 1 }, choice: null, option: null, group: null, sender: { id: "owner", name: "Nisha", owner: true } },
+    ]);
+  });
+
+  it("refuses an answer to a question that wasn't asked, or outside its options", async () => {
+    const t = createTestKit();
+    await expect(t.answer(plugin, { pick: 1 }, 0)).rejects.toThrow(/no question/);
+    await t.message(plugin, "pick");
+    await expect(t.answer(plugin, { pick: 1 }, 2)).rejects.toThrow(/isn't one of/);
+  });
+
+  it("holds questions to WhatsApp's limits", () => {
+    const t = createTestKit();
+    expect(() => t.kit.ask("", ["a", "b"])).toThrow(/question/);
+    expect(() => t.kit.ask("Q", ["a"])).toThrow(/2 to 12/);
+    expect(() => t.kit.ask("Q", ["a", "A "])).toThrow(/the same/);
+    expect(() => t.kit.ask("Q", ["a", "b".repeat(101)])).toThrow(/100/);
+  });
+});

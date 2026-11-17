@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import type { HookFile, Json, Kit, PluginDef, Sender, StoredItem } from "./sdk";
+import { checkAsk, type HookFile, type Json, type Kit, type PluginDef, type Sender, type StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -26,6 +26,14 @@ export interface Sent {
   group: string | null;
 }
 
+export interface Asked {
+  question: string;
+  options: string[];
+  ref: Json | null;
+  /** The extra group it was asked in; null for the main group. */
+  group: string | null;
+}
+
 function shiftDay(day: string, n: number): string {
   const [y, m, d] = day.split("-").map(Number);
   const t = new Date(Date.UTC(y, m - 1, d + n));
@@ -37,6 +45,8 @@ const MAX_TEXT = 4000;
 export function createTestKit(opts: TestKitOptions = {}) {
   const rows = new Map<string, { data: Json; sort: string | number | null }>();
   const sent: Sent[] = [];
+  /** Questions asked with kit.ask(), in order. */
+  const asked: Asked[] = [];
   const reactions: string[] = [];
   /** Fallback texts from kit.unsure(), in order. In telcurio these trigger intent understanding. */
   const unsures: string[] = [];
@@ -113,6 +123,10 @@ export function createTestKit(opts: TestKitOptions = {}) {
       if (text.length > MAX_TEXT) throw new Error(`kit.send: message longer than ${MAX_TEXT} characters`);
       sent.push({ text, ref: o?.ref === undefined ? null : clone(o.ref), group: o?.group ?? here });
     },
+    ask(question, options, o) {
+      checkAsk(question, options);
+      asked.push({ question, options: [...options], ref: o?.ref === undefined ? null : clone(o.ref), group: o?.group ?? here });
+    },
     react(emoji) {
       reactions.push(emoji);
     },
@@ -181,6 +195,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
   return {
     kit,
     sent,
+    asked,
     reactions,
     unsures,
     /** Keys of the hooks that are open. */
@@ -225,6 +240,27 @@ export function createTestKit(opts: TestKitOptions = {}) {
       here = group;
       try {
         await plugin.onReaction?.({ emoji, ref, group, sender }, kit);
+      } finally {
+        here = null;
+      }
+    },
+    /**
+     * Someone answers the latest question asked with `ref`: `choice` counts from 0, null takes
+     * the answer back. Throws when no such question was asked or the choice isn't one of its
+     * options. `from` as in `message`.
+     */
+    async answer(plugin: PluginDef, ref: Json | null, choice: number | null, from?: string | Partial<Sender>) {
+      withDefaults(plugin);
+      const sender = senderOf(plugin, from);
+      const want = JSON.stringify(ref);
+      const q = [...asked].reverse().find((a) => JSON.stringify(a.ref) === want);
+      if (!q) throw new Error(`${plugin.id}: no question was asked with ref ${want}`);
+      if (choice !== null && !(Number.isInteger(choice) && choice >= 0 && choice < q.options.length)) {
+        throw new Error(`${plugin.id}: choice ${choice} isn't one of the ${q.options.length} options`);
+      }
+      here = q.group;
+      try {
+        await plugin.onAnswer?.({ ref: q.ref, choice, option: choice === null ? null : q.options[choice], group: q.group, sender }, kit);
       } finally {
         here = null;
       }

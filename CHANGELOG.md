@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.9.0] - 2026-11-18
+
+### Added
+- Questions: `kit.ask(question, options, { ref?, group? })` asks the people in the group to choose one of 2 to 12 options. telcurio sends a WhatsApp poll when it can, and otherwise the question with a numbered list that is answered by sending the number. Each answer arrives as `onAnswer(event, kit)` with `AnswerEvent = { ref, choice, option, group, sender }`: `choice` counts from 0, and is null when the person took their answer back. People can change their answer; the latest event is their answer.
+- `checkAsk(question, options)`: the limits of a question, exported so telcurio and the test kit apply the same ones.
+- Test kit: `t.asked` (questions asked, in order) and `t.answer(plugin, ref, choice, from?)`.
+
 ## [1.8.0] - 2026-11-18
 
 ### Added
