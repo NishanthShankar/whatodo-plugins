@@ -5,7 +5,7 @@ All notable changes to this plugin. The format follows [Keep a Changelog](https:
 ## [1.2.1] - 2026-11-17
 
 ### Changed
-- The product is now called telcurio. This plugin's page title, description and wording use the new name. Nothing changes in how it works, and addresses like app.whatodo.today stay as they are.
+- The product is now called telcurio. This plugin's page title, description and wording use the new name. The page title is a word shorter to fit ("Form Backend on WhatsApp: Submissions as Chats"). Nothing changes in how it works, and addresses like app.whatodo.today stay as they are.
 
 ## [1.2.0] - 2026-11-17
 

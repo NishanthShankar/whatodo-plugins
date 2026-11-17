@@ -192,7 +192,7 @@ export default definePlugin({
   unlisted: true,
   permissions: ["hooks", "groups"],
   listing: {
-    title: "Form Backend on WhatsApp: Get Submissions as Chats | telcurio",
+    title: "Form Backend on WhatsApp: Submissions as Chats | telcurio",
     description: "Point your website's form at telcurio and get every submission as a WhatsApp message. File uploads included. Records kept on the web.",
     h1: "Form backend that delivers to WhatsApp",
   },
