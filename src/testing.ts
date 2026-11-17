@@ -32,6 +32,10 @@ export interface Asked {
   ref: Json | null;
   /** The extra group it was asked in; null for the main group. */
   group: string | null;
+  /** The line posted once a one-person question is answered; false for none. */
+  confirm: string | false;
+  /** False once it was answered by the only person, replaced, or closed with kit.close(). */
+  open: boolean;
 }
 
 function shiftDay(day: string, n: number): string {
@@ -47,6 +51,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const sent: Sent[] = [];
   /** Questions asked with kit.ask(), in order. */
   const asked: Asked[] = [];
+  /** Who answered what, per question. */
+  const answers = new Map<Asked, Map<string, number>>();
   const reactions: string[] = [];
   /** Fallback texts from kit.unsure(), in order. In telcurio these trigger intent understanding. */
   const unsures: string[] = [];
@@ -125,7 +131,13 @@ export function createTestKit(opts: TestKitOptions = {}) {
     },
     ask(question, options, o) {
       checkAsk(question, options);
-      asked.push({ question, options: [...options], ref: o?.ref === undefined ? null : clone(o.ref), group: o?.group ?? here });
+      const ref = o?.ref === undefined ? null : clone(o.ref);
+      // Asking again with the same ref replaces the earlier question.
+      if (ref !== null) for (const a of asked) if (a.open && JSON.stringify(a.ref) === JSON.stringify(ref)) a.open = false;
+      asked.push({ question, options: [...options], ref, group: o?.group ?? here, confirm: o?.confirm ?? "{{question}}: {{option}}", open: true });
+    },
+    close(ref) {
+      for (const a of asked) if (a.open && JSON.stringify(a.ref) === JSON.stringify(ref)) a.open = false;
     },
     react(emoji) {
       reactions.push(emoji);
@@ -245,22 +257,33 @@ export function createTestKit(opts: TestKitOptions = {}) {
       }
     },
     /**
-     * Someone answers the latest question asked with `ref`: `choice` counts from 0, null takes
-     * the answer back. Throws when no such question was asked or the choice isn't one of its
-     * options. `from` as in `message`.
+     * Someone answers the open question asked with `ref`; `choice` counts from 0. As in
+     * telcurio: a plugin without "members" has one person, so the answer settles the question
+     * and its `confirm` line is posted; with "members" it stays open until `kit.close(ref)`,
+     * and a second, different answer from the same person arrives with `changed: true`.
+     * Throws when no such question is open or the choice isn't one of its options.
      */
-    async answer(plugin: PluginDef, ref: Json | null, choice: number | null, from?: string | Partial<Sender>) {
+    async answer(plugin: PluginDef, ref: Json | null, choice: number, from?: string | Partial<Sender>) {
       withDefaults(plugin);
       const sender = senderOf(plugin, from);
       const want = JSON.stringify(ref);
-      const q = [...asked].reverse().find((a) => JSON.stringify(a.ref) === want);
-      if (!q) throw new Error(`${plugin.id}: no question was asked with ref ${want}`);
-      if (choice !== null && !(Number.isInteger(choice) && choice >= 0 && choice < q.options.length)) {
+      const q = [...asked].reverse().find((a) => a.open && JSON.stringify(a.ref) === want);
+      if (!q) throw new Error(`${plugin.id}: no open question with ref ${want}`);
+      if (!(Number.isInteger(choice) && choice >= 0 && choice < q.options.length)) {
         throw new Error(`${plugin.id}: choice ${choice} isn't one of the ${q.options.length} options`);
       }
+      const shared = !!plugin.permissions?.includes("members");
+      const votes = (answers.get(q) ?? answers.set(q, new Map()).get(q))!;
+      const before = votes.get(sender.id);
+      if (before === choice) return;
+      votes.set(sender.id, choice);
+      if (!shared) q.open = false;
       here = q.group;
       try {
-        await plugin.onAnswer?.({ ref: q.ref, choice, option: choice === null ? null : q.options[choice], group: q.group, sender }, kit);
+        await plugin.onAnswer?.({ ref: q.ref, choice, option: q.options[choice], group: q.group, sender, ...(before === undefined ? {} : { changed: true }) }, kit);
+        if (!shared && q.confirm !== false) {
+          sent.push({ text: q.confirm.replace(/\{\{question\}\}/g, q.question).replace(/\{\{option\}\}/g, q.options[choice]), ref: null, group: q.group });
+        }
       } finally {
         here = null;
       }

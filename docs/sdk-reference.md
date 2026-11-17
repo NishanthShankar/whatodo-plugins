@@ -74,7 +74,7 @@ interface MessageEvent  { text: string; quotedRef: Json | null; group?: string |
 interface ReactionEvent { emoji: string | null; ref: Json; group?: string | null; sender?: Sender }   // emoji null: reaction removed
 interface ScheduleEvent { id: string }
 interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number; sender?: Sender }
-interface AnswerEvent   { ref: Json | null; choice: number | null; option: string | null; group?: string | null; sender?: Sender }   // since SDK 1.9.0
+interface AnswerEvent   { ref: Json | null; choice: number; option: string; changed?: boolean; group?: string | null; sender?: Sender }   // since SDK 1.9.0
 interface Sender        { id: string; name: string | null; owner: boolean }   // who sent it; since SDK 1.8.0
 interface HookEvent     { key: string; fields: Record<string, string>; files: HookFile[]; origin: string | null }
 interface HookFile      { id: string; field: string; name: string; type: string; size: number }
@@ -141,24 +141,31 @@ Ask for the fewest that the feature needs. For a listed plugin, adding a permiss
 
 ## Asking a question
 
-When the person has to choose between a few things, ask with `kit.ask` instead of writing your own "reply A, B or C". Since SDK 1.9.0.
+Whenever the plugin needs a structured answer, ask with `kit.ask`. That covers a plain yes or no. Never write your own "reply A, B or C". Since SDK 1.9.0.
 
 ```ts
-kit.ask("What shall we watch tonight?", ["Dune", "Dark", "Past Lives"], { ref: { pick: id } });
+kit.ask("Did you meditate today?", ["Yes", "No"], { ref: { habit: id, day: kit.today } });
 
 async onAnswer(event, kit) {
-  // event.choice: 0, 1 or 2 (null: they took their answer back). event.option: "Dune".
-  // event.ref: { pick: id }. event.sender: who answered.
+  // event.choice: 0 or 1. event.option: "Yes". event.ref: { habit, day }. event.sender: who.
 }
 ```
 
-- telcurio sends a WhatsApp poll when it can. A poll can only go to a chat that wrote in the last 24 hours, so a question asked from a schedule may go out as text instead: the question, a numbered list, and "Reply with the number". Both arrive as the same `onAnswer`.
-- 2 to 12 different options, up to 100 characters each; the question up to 255. One choice per person.
-- People can change their answer, and each change is a new `onAnswer`. Keep the latest per `sender.id`. `choice: null` means they removed it.
-- Nothing closes a question. Decide in the plugin when it is settled, and ignore answers after that.
-- With the `"members"` permission everyone in the group can answer; without it only the person who added the plugin is heard.
-- `kit.react` in `onAnswer` reacts to the question (a poll) or to the number they sent. One reaction per message, so in a group prefer a short message when the answer settles something.
-- A question needs an answer typed or tapped, so it can't take free text ("or your own time"). Say so in a normal message and read that in `onMessage`.
+**How it is sent.** A WhatsApp poll. When a poll can't be sent (the chat hasn't written in the last 24 hours), the question goes out as text with a numbered list and "Reply with the number". The plugin doesn't need to know which.
+
+**Typed answers count.** Someone who ignores the poll and types the option's number or its text has answered: `onAnswer` runs, exactly as for a tap. It goes to the poll they quoted, or to the only open question in the group; with several open and nothing quoted it is an ordinary message and reaches `onMessage`.
+
+**Answers outside the options.** If "3 days" answers "When shall I remind you?", it reaches `onMessage` like any message. When the plugin takes it as the answer, it calls `kit.close(ref)` so the poll is deleted. An unrelated message leaves the question open.
+
+**One person in the group** (the usual case): the first answer settles the question. The poll is deleted so the answer can't be changed, and the `confirm` line is posted as the record: by default `"{{question}}: {{option}}"`, so "Did you meditate today?: Yes". Give your own (`confirm: "🌱 Meditate, done"`) or `false` and say something in `onAnswer`. A poll older than two days can't be deleted by WhatsApp: it stays, and the first answer still counts.
+
+**Several people in the group** (the `"members"` permission): the poll stays where everyone can see it. Each person's first answer counts and arrives as its own `onAnswer`. A person may change their answer once, ever: it arrives again with `changed: true`, and telcurio tells them later changes won't count. After that a change is refused and they are told so. Keep the answer per `sender.id`. Nothing settles the question until the plugin calls `kit.close(ref)`, which deletes the polls.
+
+**Limits.** 2 to 100 different options, up to 100 characters each; the question up to 255. A poll holds 12 options, so a longer list goes out as several polls, at most three at a time. When there are more, the last option is "See more" and the next ones follow when someone picks it. An answer in any of them answers the question, and all of them are deleted together.
+
+**Asking again** with the same `ref` replaces the earlier question.
+
+**Before you build a question into a plugin, decide with the owner:** what the `confirm` line says, what happens when several people are in the group, when the question is closed, and whether the options could ever run past three polls (36). These are product choices, not defaults to guess.
 
 ## More than one person in the group
 

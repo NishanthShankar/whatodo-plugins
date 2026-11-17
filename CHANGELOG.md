@@ -5,9 +5,13 @@ Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Ea
 ## [1.9.0] - 2026-11-18
 
 ### Added
-- Questions: `kit.ask(question, options, { ref?, group? })` asks the people in the group to choose one of 2 to 12 options. telcurio sends a WhatsApp poll when it can, and otherwise the question with a numbered list that is answered by sending the number. Each answer arrives as `onAnswer(event, kit)` with `AnswerEvent = { ref, choice, option, group, sender }`: `choice` counts from 0, and is null when the person took their answer back. People can change their answer; the latest event is their answer.
+- Questions: `kit.ask(question, options, { ref?, group?, confirm? })` asks for a choice between 2 to 100 options. Use it for every structured answer, a yes or no included. telcurio sends a WhatsApp poll (the question with a numbered list when a poll can't be sent), and a typed answer (the option's number or text) counts too. Each answer arrives as `onAnswer(event, kit)` with `AnswerEvent = { ref, choice, option, changed?, group, sender }`.
+- One person and telcurio in the group: the first answer settles the question. The poll is deleted so it can't be changed, and `confirm` (default `"{{question}}: {{option}}"`, `false` for none) is posted as the record.
+- Several people in the group (`"members"`): the poll stays and everyone's first answer counts. A person may change theirs once, ever; telcurio tells them, and after that refuses. The question stays open until `kit.close(ref)`.
+- `kit.close(ref)`: settles a question. Its polls are deleted and no more answers are taken. Also for when a message that wasn't one of the options answered it.
+- More than 12 options go out as several polls, at most three at a time, with "See more" as the last option when there are more.
 - `checkAsk(question, options)`: the limits of a question, exported so telcurio and the test kit apply the same ones.
-- Test kit: `t.asked` (questions asked, in order) and `t.answer(plugin, ref, choice, from?)`.
+- Test kit: `t.asked` (questions asked, with `open`) and `t.answer(plugin, ref, choice, from?)`, which settles, confirms and marks changes as telcurio does.
 
 ## [1.8.0] - 2026-11-18
 

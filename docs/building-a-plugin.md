@@ -69,6 +69,8 @@ Handlers get an event and a kit. Read [sdk-reference.md](sdk-reference.md) for e
 
 **Unclear messages.** Declare `understand` (your intents, and optionally `targets`) and `onIntent`, and telcurio's intent model handles what your parser can't: "I want to start going to the gym on mondays" arrives as `add_habit` and you read the name and days out of the text. See [sdk-reference.md](sdk-reference.md#understanding-unclear-messages).
 
+**Questions.** When you need a structured answer from the person, a plain yes or no included, ask with `kit.ask(question, options, { ref })` and handle `onAnswer`. telcurio sends a poll, takes a typed answer too, and deletes the poll once a one-person question is answered. Do not write your own "reply A, B or C". Decide with the owner what the confirm line says, what happens with several people in the group, when the question closes, and whether the options could pass 36. See [Asking a question](sdk-reference.md#asking-a-question).
+
 **Refs.** When you post something the person might react to or reply to, attach a small `ref`: `kit.send(text, { ref: { habitId, day } })`. It comes back on `onReaction` and as `quotedRef` on replies. Keep refs tiny and self-describing; check their shape before trusting them (a reply to an old message brings an old ref back).
 
 **Storage.** One collection per kind of thing. Keys are strings you choose; put what you look up by in the key (`<habitId>:<day>`) and use `list({ prefix })`. Use `sort` for ordered reads and ranges (`list({ from, to })`). Data must survive JSON (no `undefined`, `Date`, `Map`). Everything you store is per install: two people never share data.
