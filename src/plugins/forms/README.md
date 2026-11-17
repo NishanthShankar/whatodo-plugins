@@ -2,7 +2,7 @@
 
 A backend for the forms on your own websites. Make a form, paste its address into your site, and every submission arrives as a WhatsApp message in the "📬 Forms" group, with its fields and files kept on app.whatodo.today. No server of your own, no email.
 
-Unlisted for now: it isn't in the store or on the public site, and only people whatodo allows can add it.
+Unlisted for now: it isn't in the store or on the public site, and only people telcurio allows can add it.
 
 ## Using a form on your site
 
@@ -29,7 +29,7 @@ await fetch("THE_ADDRESS", { method: "POST", body: new FormData(formElement) });
 - The answer is `{ "ok": true }`. A plain form with a `_next` field is sent on to that page.
 - `_gotcha` is a trap for bots: leave it empty and hidden. A request that fills it is dropped.
 - Up to 5 files per submission, 10 MB each. Fields whose names start with `_` are not kept.
-- whatodo caps how many requests a form takes per minute and per day.
+- telcurio caps how many requests a form takes per minute and per day.
 
 ## Commands
 
@@ -73,7 +73,7 @@ Actions: `createForm { name, ownGroup? }`, `giveGroup { key }`, `newAddress { ke
 | `submissions` | id | `{ form, at, fields, order, files: [{ id, field, name, type, size }], origin, done? }` (`order`: field names as sent) | received (ms) |
 | `days` | `<form>:<day>` | messages sent that day | day |
 
-Files themselves are held by whatodo, not in these rows.
+Files themselves are held by telcurio, not in these rows.
 
 ## Permissions
 
@@ -84,4 +84,4 @@ Files themselves are held by whatodo, not in these rows.
 
 ## Privacy
 
-This plugin receives what other people send through your forms: their names, contact details, messages and files. It keeps them only for you, shows them only to you (in your Forms group and on your page), and deletes them when you delete the submission or the form. It reads only the messages you send in its own group and the requests sent to your forms' addresses. Nothing is passed to anyone else. You are responsible for telling the people who fill in your forms what you collect and why. Keep your whatodo account behind your PIN: these can be sensitive documents.
+This plugin receives what other people send through your forms: their names, contact details, messages and files. It keeps them only for you, shows them only to you (in your Forms group and on your page), and deletes them when you delete the submission or the form. It reads only the messages you send in its own group and the requests sent to your forms' addresses. Nothing is passed to anyone else. You are responsible for telling the people who fill in your forms what you collect and why. Keep your telcurio account behind your PIN: these can be sensitive documents.
