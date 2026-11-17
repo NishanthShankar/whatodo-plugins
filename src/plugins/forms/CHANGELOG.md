@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-11-17
+
+### Changed
+- The product is now called telcurio. This plugin's page title, description and wording use the new name. Nothing changes in how it works, and addresses like app.whatodo.today stay as they are.
+
 ## [1.2.0] - 2026-11-17
 
 ### Added
@@ -46,7 +51,7 @@ All notable changes to this plugin. The format follows [Keep a Changelog](https:
 ## [1.0.0] - 2026-11-17
 
 ### Added
-- First release, unlisted: only people whatodo allows can add it. Lives in its own WhatsApp group ("📬 Forms").
+- First release, unlisted: only people telcurio allows can add it. Lives in its own WhatsApp group ("📬 Forms").
 - `new form <name>` makes a form and gives its address. Post a normal HTML form, JSON or a form with files to it.
 - Every submission arrives as a message with its fields and file names. ✅ on the message marks it dealt with.
 - `forms`, `address <form>`, `last [form]`, `close <form>`.
@@ -58,4 +63,4 @@ All notable changes to this plugin. The format follows [Keep a Changelog](https:
 - `submissions`: key id, `{ form, at, fields, files, origin, done? }`, sort received (ms).
 - `days`: key `<form>:<day>`, number of messages sent that day, sort day.
 - Ref on each submission message: `{ kind: "submission", id }`.
-- Files are held by whatodo; `submissions.files` keeps `{ id, field, name, type, size }` for each.
+- Files are held by telcurio; `submissions.files` keeps `{ id, field, name, type, size }` for each.
