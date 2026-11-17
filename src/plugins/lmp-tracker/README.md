@@ -1,12 +1,12 @@
-# 🩸 LMP Tracker
+# 🩸 Period Tracker
 
-Keeps your LMP on WhatsApp: the first day of your last menstrual period. When your period starts, send `LMP`. That's all you do. If the next one hasn't come when it usually does, it reminds you, reminds you again a week later, and then suggests a home pregnancy test. It learns your usual cycle from the dates you send. Lives in its own WhatsApp group, "🌙 LMP Tracker".
+Keeps your LMP on WhatsApp: the first day of your last menstrual period. When your period starts, send `LMP`. That's all you do. If the next one hasn't come when it usually does, it reminds you, reminds you again a week later, and then suggests a home pregnancy test. It learns your usual cycle from the dates you send. Lives in its own WhatsApp group, "🌙 Period Tracker".
 
 Reminders are estimates from your own dates, not medical advice. Follow your doctor.
 
 ## Commands
 
-Send these in the LMP Tracker group. Dates can be `today`, `yesterday`, `3 days ago`, `9 nov`, `nov 9`, `9th Nov`, `9/11`, `9/11/2026` or `2026-11-09` (day first).
+Send these in the Period Tracker group. Dates can be `today`, `yesterday`, `3 days ago`, `9 nov`, `nov 9`, `9th Nov`, `9/11`, `9/11/2026` or `2026-11-09` (day first).
 
 | Message | What happens |
 |---|---|
