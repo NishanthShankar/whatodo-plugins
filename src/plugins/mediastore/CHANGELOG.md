@@ -1,5 +1,10 @@
 # Changelog: MediaStore
 
+## [1.1.0] - 2026-11-18
+
+### Added
+- Web action `setImage { id, image }`: the page keeps a link's new picture address when the old one has stopped working, so pictures of older Instagram links keep showing.
+
 ## [1.0.0] - 2026-11-18
 
 ### Added

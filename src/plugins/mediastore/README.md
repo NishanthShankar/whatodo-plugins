@@ -56,7 +56,7 @@ Limits: 3000 links, 20 groups, 1500 characters of caption and 500 of note per li
 
 Lockable. `load({ limit? })` returns `{ total, max, links: [{ id, url, site, kind, found, title, description, author, image, seconds, note, group, at, liked, important }], groups: [{ key, name, closed, count }] }`, newest first, 600 links unless `limit` says otherwise (1000 at most), captions cut to 400 characters.
 
-Actions: `setLiked { id, on }`, `setImportant { id, on }`, `setNote { id, note }`, `move { id, group }` (`null` for the main group), `remove { id }`, `createGroup { name }`, `closeGroup { key }`.
+Actions: `setLiked { id, on }`, `setImportant { id, on }`, `setNote { id, note }`, `move { id, group }` (`null` for the main group), `setImage { id, image }` (a fresh https picture address, when the kept one stopped working), `remove { id }`, `createGroup { name }`, `closeGroup { key }`.
 
 ## Privacy
 
