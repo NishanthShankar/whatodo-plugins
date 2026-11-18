@@ -1,0 +1,1059 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`mediastore copy: finding and listing > count with one link 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "You have 1 link saved: 1 YouTube.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: finding and listing > liked and important, marked by reaction and in words 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "mwibj1c0id1",
+        ],
+        "kind": "link",
+      },
+      "text": "❤️ *Liked*
+
+⭐ ❤️ *Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+_A note of my own_
+https://youtu.be/aaa?si=x",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "⭐ *Important*
+
+1. ⭐ *for my back*
+yogawithmira · Instagram reel
+https://www.instagram.com/reel/bbb/?igsh=1
+
+2. ⭐ ❤️ *Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+_A note of my own_
+https://youtu.be/aaa?si=x",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 *Latest*
+
+1. ⭐ *for my back*
+yogawithmira · Instagram reel
+https://www.instagram.com/reel/bbb/?igsh=1
+
+2. ⭐ ❤️ *Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+_A note of my own_
+https://youtu.be/aaa?si=x",
+    },
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "mwibj1c0id1",
+        ],
+        "kind": "link",
+      },
+      "text": "❤️ *Liked*
+
+❤️ *Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+https://youtu.be/aaa?si=x",
+    },
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "mwibj1c0id2",
+        ],
+        "kind": "link",
+      },
+      "text": "⭐ *Important*
+
+⭐ *for my back*
+yogawithmira · Instagram reel
+https://www.instagram.com/reel/bbb/?igsh=1",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: finding and listing > more results than fit in one message 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🔎 *pasta*: 7 found
+
+1. *Pasta idea 1*
+Asha · example.com
+_pasta_
+https://example.com/pasta/1
+
+2. *Pasta idea 2*
+example.com
+_pasta_
+https://example.com/pasta/2
+
+3. *Pasta idea 3*
+Asha · example.com
+_pasta_
+https://example.com/pasta/3
+
+4. *Pasta idea 4*
+example.com
+_pasta_
+https://example.com/pasta/4
+
+5. *Pasta idea 5*
+Asha · example.com
+_pasta_
+https://example.com/pasta/5
+
+_2 more on app.whatodo.today._",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 *Latest*
+
+1. *Pasta idea 7*
+Asha · example.com
+_pasta_
+https://example.com/pasta/7
+
+2. *Pasta idea 6*
+example.com
+_pasta_
+https://example.com/pasta/6
+
+3. *Pasta idea 5*
+Asha · example.com
+_pasta_
+https://example.com/pasta/5
+
+4. *Pasta idea 4*
+example.com
+_pasta_
+https://example.com/pasta/4
+
+5. *Pasta idea 3*
+Asha · example.com
+_pasta_
+https://example.com/pasta/3
+
+_2 more on app.whatodo.today._",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "You have 7 links saved: 7 example.com.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: finding and listing > one result, several results, and none 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "mwibj1c0id1",
+        ],
+        "kind": "link",
+      },
+      "text": "🔎 *garlic pasta*: 1 found
+
+*Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+https://youtu.be/aaa?si=x",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🔎 *instagram reels*: 2 found
+
+1. *for my back*
+yogawithmira · Instagram reel
+https://www.instagram.com/reel/bbb/?igsh=1
+
+2. *https://www.instagram.com/reel/ccc/*
+Instagram reel
+https://www.instagram.com/reel/ccc/",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing saved matches "lasagna". Send _recent_ to see your latest links.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing saved matches "lasagna lasagna lasagna lasagna lasagna lasagna lasagna las…". Send _recent_ to see your latest links.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "mwibj1c0id3",
+        ],
+        "kind": "link",
+      },
+      "text": "🔎 *sunday*: 1 found
+
+*A very long title that goes on that goes on that goes on that goes on that goes…*
+example.com
+_cook this on sunday_
+https://example.com/long",
+    },
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "mwibj1c0id1",
+        ],
+        "kind": "link",
+      },
+      "text": "🔎 *garlic pasta garlic pasta garlic pasta garlic pasta garlic …*: 1 found
+
+*Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+https://youtu.be/aaa?si=x",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 *Latest*
+
+1. *https://www.instagram.com/reel/ccc/*
+Instagram reel
+https://www.instagram.com/reel/ccc/
+
+2. *https://example.com/bare*
+example.com
+https://example.com/bare
+
+3. *A very long title that goes on that goes on that goes on that goes on that goes…*
+example.com
+_cook this on sunday_
+https://example.com/long
+
+4. *for my back*
+yogawithmira · Instagram reel
+https://www.instagram.com/reel/bbb/?igsh=1
+
+5. *Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+https://youtu.be/aaa?si=x",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "You have 5 links saved: 2 Instagram, 2 example.com, 1 YouTube.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "mwibj1c0id1",
+        ],
+        "kind": "link",
+      },
+      "text": "🔎 *where is that pasta thing*: 1 found
+
+*Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+https://youtu.be/aaa?si=x",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 *Latest*
+
+1. *https://www.instagram.com/reel/ccc/*
+Instagram reel
+https://www.instagram.com/reel/ccc/
+
+2. *https://example.com/bare*
+example.com
+https://example.com/bare
+
+3. *A very long title that goes on that goes on that goes on that goes on that goes…*
+example.com
+_cook this on sunday_
+https://example.com/long
+
+4. *for my back*
+yogawithmira · Instagram reel
+https://www.instagram.com/reel/bbb/?igsh=1
+
+5. *Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+https://youtu.be/aaa?si=x",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: finding and listing > with nothing saved 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is saved yet. Send or forward a link and I'll keep it.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is saved yet. Send or forward a link and I'll keep it.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "You haven't liked any yet. React ❤️ to a link you sent.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is marked important yet. React ⭐ to a link you sent.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is saved yet.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is saved yet.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "No groups yet. Send _new group recipes_ to make one for one kind of link.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is saved yet. Send or forward a link and I'll keep it.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is saved yet. Send or forward a link and I'll keep it.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "You haven't liked any yet. React ❤️ to a link you sent.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is marked important yet. React ⭐ to a link you sent.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "No groups yet. Send _new group recipes_ to make one for one kind of link.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is saved yet.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: groups > a group the person already had 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": "x-fam",
+      "ref": null,
+      "text": "🎬 I'm saving the links sent in this group now. Send or forward a YouTube video, a short or an Instagram reel here and I'll keep it under *Family Recipes*.
+
+_find_ and a few words looks through this group's links.",
+    },
+    {
+      "group": "x-none",
+      "ref": null,
+      "text": "🎬 I'm saving the links sent in this group now. Send or forward a YouTube video, a short or an Instagram reel here and I'll keep it under *Links*.
+
+_find_ and a few words looks through this group's links.",
+    },
+    {
+      "group": "x-fam",
+      "ref": null,
+      "text": "🎬 Saved. I've kept its title and caption too, so next time it's easier to find: send _find_ and a few words about it.
+
+On your link: react ❤️ to like it or ⭐ to mark it important, or reply to it with a note of your own.
+From now on you'll just get a 👍.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your groups*
+
+*Family Recipes*: 1 link
+*Links*: 0 links",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Family Recipes* is closed. Its links are still saved.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "No groups yet. Send _new group recipes_ to make one for one kind of link.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: groups > from a plain sentence 1`] = `
+{
+  "asked": [],
+  "groups": [
+    [
+      "workouts",
+      {
+        "hello": "🎬 This group is for your *workouts* links. Send or forward a link here and I'll keep it under workouts.
+
+_find_ and _recent_ here look only through this group's links.",
+        "name": "🎬 workouts",
+      },
+    ],
+  ],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 I'm making a WhatsApp group for *workouts*. Send its links there once it appears.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "What should it be called? Send _new group recipes_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "You already have a group called *workouts*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Reply to the link you want to move and send _move_. I'll show you the groups it can go to.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: groups > making, listing and closing 1`] = `
+{
+  "asked": [],
+  "groups": [
+    [
+      "recipes",
+      {
+        "hello": "🎬 This group is for your *Recipes* links. Send or forward a link here and I'll keep it under Recipes.
+
+_find_ and _recent_ here look only through this group's links.",
+        "name": "🎬 Recipes",
+      },
+    ],
+  ],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 I'm making a WhatsApp group for *Recipes*. Send its links there once it appears.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "You already have a group called *Recipes*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Give the group a name, like _new group recipes_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 I'm making a WhatsApp group for *Workouts for the gym*. Send its links there once it appears.",
+    },
+    {
+      "group": "recipes",
+      "ref": null,
+      "text": "🎬 Saved. I've kept its title and caption too, so next time it's easier to find: send _find_ and a few words about it.
+
+On your link: react ❤️ to like it or ⭐ to mark it important, or reply to it with a note of your own.
+From now on you'll just get a 👍.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your groups*
+
+*Recipes*: 2 links
+*Workouts for the gym*: 1 link",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your groups*
+
+*Recipes*: 2 links
+*Workouts for the gym*: 1 link",
+    },
+    {
+      "group": "recipes",
+      "ref": null,
+      "text": "🎬 *Latest*
+
+1. *Morning stretches for a stiff back*
+yogawithmira · Instagram reel
+https://www.instagram.com/reel/bbb/?igsh=1
+
+2. *Creamy garlic pasta in 10 minutes*
+Kitchen Stories · YouTube short
+https://youtu.be/aaa?si=x",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Recipes* is closed. Its links are still saved.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a group called "recipes". Send _groups_ to see yours.",
+    },
+    {
+      "group": "workouts-for-the-gym",
+      "ref": null,
+      "text": "*Workouts for the gym* is closed. Its links are still saved.",
+    },
+    {
+      "group": "ghost",
+      "ref": null,
+      "text": "I don't have a group called "ghost". Send _groups_ to see yours.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 I'm making a WhatsApp group for *Recipes*. Send its links there once it appears.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: groups > no more than twenty 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "That's the most groups I can keep (20). Close one first.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "That's the most groups I can keep (20). Close one first.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: moving a link > asking which group, and every answer 1`] = `
+{
+  "asked": [
+    {
+      "confirm": false,
+      "group": null,
+      "intro": null,
+      "keep": false,
+      "mention": null,
+      "open": false,
+      "options": [
+        "recipes",
+        "workouts",
+        "Leave it here",
+      ],
+      "question": "Move Starred A very long title that goes on that goes on that … to which group?",
+      "ref": {
+        "by": "owner",
+        "move": [
+          "mwibj1c0id1",
+        ],
+      },
+    },
+    {
+      "confirm": false,
+      "group": "recipes",
+      "intro": null,
+      "keep": false,
+      "mention": null,
+      "open": false,
+      "options": [
+        "MediaStore",
+        "workouts",
+        "Leave it here",
+      ],
+      "question": "Move Starred A very long title that goes on that goes on that … to which group?",
+      "ref": {
+        "by": "owner",
+        "move": [
+          "mwibj1c0id1",
+        ],
+      },
+    },
+    {
+      "confirm": false,
+      "group": "recipes",
+      "intro": null,
+      "keep": false,
+      "mention": null,
+      "open": false,
+      "options": [
+        "MediaStore",
+        "workouts",
+        "Leave it here",
+      ],
+      "question": "Move Starred A very long title that goes on that goes on that … to which group?",
+      "ref": {
+        "by": "owner",
+        "move": [
+          "mwibj1c0id1",
+        ],
+      },
+    },
+    {
+      "confirm": false,
+      "group": null,
+      "intro": null,
+      "keep": false,
+      "mention": null,
+      "open": false,
+      "options": [
+        "recipes",
+        "workouts",
+        "Leave it here",
+      ],
+      "question": "Move Starred A very long title that goes on that goes on that … to which group?",
+      "ref": {
+        "by": "owner",
+        "move": [
+          "mwibj1c0id1",
+        ],
+      },
+    },
+    {
+      "confirm": false,
+      "group": null,
+      "intro": null,
+      "keep": false,
+      "mention": null,
+      "open": false,
+      "options": [
+        "recipes",
+        "Leave it here",
+      ],
+      "question": "Move Starred A very long title that goes on that goes on that … to which group?",
+      "ref": {
+        "by": "owner",
+        "move": [
+          "mwibj1c0id1",
+        ],
+      },
+    },
+  ],
+  "groups": [
+    [
+      "recipes",
+      {
+        "hello": "🎬 This group is for your *recipes* links. Send or forward a link here and I'll keep it under recipes.
+
+_find_ and _recent_ here look only through this group's links.",
+        "name": "🎬 recipes",
+      },
+    ],
+  ],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Moved to *recipes*.",
+    },
+    {
+      "group": "recipes",
+      "ref": null,
+      "text": "Moved to *MediaStore*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*workouts* is closed. Its links are still saved.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "That group isn't there any more.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "That link isn't saved any more.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: moving a link > to a named group, and to one that is not there 1`] = `
+{
+  "asked": [],
+  "groups": [
+    [
+      "recipes",
+      {
+        "hello": "🎬 This group is for your *recipes* links. Send or forward a link here and I'll keep it under recipes.
+
+_find_ and _recent_ here look only through this group's links.",
+        "name": "🎬 recipes",
+      },
+    ],
+  ],
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a group called "gym". Send _new group gym_ to make it.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: moving a link > with no group in common 1`] = `
+{
+  "asked": [],
+  "groups": [
+    [
+      "recipes",
+      {
+        "hello": "🎬 This group is for your *recipes* links. Send or forward a link here and I'll keep it under recipes.
+
+_find_ and _recent_ here look only through this group's links.",
+        "name": "🎬 recipes",
+      },
+    ],
+  ],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "No groups in common. You can move it on app.whatodo.today, or forward it to your own group.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "No groups in common. You can move it on app.whatodo.today, or forward it to your own group.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: replying to a link > delete, undo and a link that is gone 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Removed *Morning stretches for a stiff back*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "That link isn't saved any more.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "That link isn't saved any more.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is saved yet.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: replying to a link > undo names a link by its note, its caption or its address when it has no title 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 Saved. I've kept its title and caption too, so next time it's easier to find: send _find_ and a few words about it.
+
+On your link: react ❤️ to like it or ⭐ to mark it important, or reply to it with a note of your own.
+From now on you'll just get a 👍.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Removed *https://example.com/bare*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Removed *Morning stretches for a stiff back*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Removed *my own words*.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: saving > a message that is not understood 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [],
+  "unsures": [
+    "I didn't get that. Send a link to save it, or _find_ and a few words to look for one. Send _help_ for more.",
+  ],
+}
+`;
+
+exports[`mediastore copy: saving > no room left 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "That's the most links I can keep (3000). Delete some on app.whatodo.today first.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: saving > the first link, not read 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 Saved. I couldn't read this one's title or caption, so add a few words of your own by replying to your link. For most links I keep the title and caption, and you can find them with _find_ and a few words.
+
+On your link: react ❤️ to like it or ⭐ to mark it important, or reply to it with a note of your own.
+From now on you'll just get a 👍.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: saving > the first link, read 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎬 Saved. I've kept its title and caption too, so next time it's easier to find: send _find_ and a few words about it.
+
+On your link: react ❤️ to like it or ⭐ to mark it important, or reply to it with a note of your own.
+From now on you'll just get a 👍.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: what the plugin says about itself > help, asked for in words and through the intent model 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "*MediaStore*
+
+Send or forward a link and I keep it with its title and caption. Add a few words of your own in the same message if you like.
+
+_find pasta_ looks through everything you've saved
+_recent_ shows your latest links
+_liked_ and _important_ show the ones you marked
+_undo_ removes the last link you saved
+
+On a link you sent: react ❤️ to like it or ⭐ to mark it important. Reply to it with words to add a note, with _move_ to put it in another group, or with _delete_ to remove it.
+
+_new group recipes_ makes a WhatsApp group just for one kind of link
+_groups_ lists them, _close group recipes_ stops one
+
+Everything is on app.whatodo.today too, with pictures and filters.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*MediaStore*
+
+Send or forward a link and I keep it with its title and caption. Add a few words of your own in the same message if you like.
+
+_find pasta_ looks through everything you've saved
+_recent_ shows your latest links
+_liked_ and _important_ show the ones you marked
+_undo_ removes the last link you saved
+
+On a link you sent: react ❤️ to like it or ⭐ to mark it important. Reply to it with words to add a note, with _move_ to put it in another group, or with _delete_ to remove it.
+
+_new group recipes_ makes a WhatsApp group just for one kind of link
+_groups_ lists them, _close group recipes_ stops one
+
+Everything is on app.whatodo.today too, with pictures and filters.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`mediastore copy: what the plugin says about itself > welcome, help and group name 1`] = `
+{
+  "groupName": "🎬 MediaStore",
+  "help": "*MediaStore*
+
+Send or forward a link and I keep it with its title and caption. Add a few words of your own in the same message if you like.
+
+_find pasta_ looks through everything you've saved
+_recent_ shows your latest links
+_liked_ and _important_ show the ones you marked
+_undo_ removes the last link you saved
+
+On a link you sent: react ❤️ to like it or ⭐ to mark it important. Reply to it with words to add a note, with _move_ to put it in another group, or with _delete_ to remove it.
+
+_new group recipes_ makes a WhatsApp group just for one kind of link
+_groups_ lists them, _close group recipes_ stops one
+
+Everything is on app.whatodo.today too, with pictures and filters.",
+  "welcome": "🎬 You've added *MediaStore*.
+
+Send or forward a link here: a YouTube video, a short, an Instagram reel. I'll keep it so you can find it later.
+
+Send _help_ for more.",
+}
+`;
