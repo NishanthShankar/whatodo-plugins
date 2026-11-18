@@ -1,5 +1,12 @@
 # Changelog: MediaStore
 
+## [1.6.0] - 2026-11-19
+
+### Added
+- A key can be limited to some of your groups: it then reads only the links in them. A callback address can be limited the same way, and is only called for what happens in those groups.
+- `links` takes several groups at once: `group=recipes,main`.
+- Every callback says which group it happened in (`groups`). A move names both groups, and its data has `from`, the group the link left.
+
 ## [1.5.0] - 2026-11-19
 
 ### Added

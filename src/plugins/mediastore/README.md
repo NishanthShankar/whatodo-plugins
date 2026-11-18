@@ -82,3 +82,4 @@ On the MediaStore page, under Settings, you can make a key and add a callback ad
 - **Read:** `GET /api/v1/mediastore/links` with `Authorization: Bearer <key>`. Parameters: `q`, `group` (a key, a name or `main`), `liked`, `important`, `since`, `limit` (up to 100) and `after` (the last id you got). Also `link?id=` and `groups`.
 - **Be told:** `link.added`, `link.updated`, `link.moved`, `link.deleted`, `group.added`, `group.closed`. Each call is a signed POST with `{ id, event, plugin, at, data }`.
 - A key can only read. Whoever sent a link is given by name, never by id.
+- A key or an address can be limited to some of your groups when you make it. `group` on `links` takes several, separated by commas.
