@@ -63,9 +63,20 @@ describe("starting a pact", () => {
     // The owner can take it up, and can stop it; the friend can't touch the owner's own.
     await t.message(habits, "done yoga");
     expect((await web(t)).find((g) => g.key === null)!.habits[0].people.map((p) => p.id).sort()).toEqual(["owner", "ravi"]);
+    // "stop" stops it for whoever says it. The friend stopping the owner's habit only steps out of it.
+    await t.message(habits, "done read", null, null, ravi);
     await t.message(habits, "stop read", null, null, ravi);
-    expect(t.sent.at(-1)!.text).toBe("*Read* is Test's habit, so only they can change it. To step out yourself, send _leave read_.");
+    expect(t.reactions.at(-1)).toBe("👍");
+    expect(Object.keys(t.dump()).filter((k) => k.startsWith("habits/"))).toHaveLength(1);
+    // Ravi is left doing only the habit he added.
+    expect(Object.keys(t.dump()).filter((k) => k.startsWith("pjoins/") && k.endsWith(":ravi"))).toHaveLength(1);
+    await t.message(habits, "time read 6am", null, null, ravi);
+    expect(t.sent.at(-1)!.text).toBe("*Read* is Test's habit, so only they can change when it's asked.");
+    // The owner stops Yoga for themselves; Ravi still does it, so it goes on.
     await t.message(habits, "stop yoga");
+    expect((await web(t)).find((g) => g.key === null)!.habits[0].people.map((p) => p.id)).toEqual(["ravi"]);
+    // When the last person doing it stops, the habit itself is stopped.
+    await t.message(habits, "stop yoga", null, null, ravi);
     expect((await web(t)).find((g) => g.key === null)).toBeUndefined();
     // Adding one that is already there means doing it too.
     await t.message(habits, "add read", null, null, ravi);
@@ -156,16 +167,16 @@ describe("checking in together", () => {
 });
 
 describe("a friend without a profile", () => {
-  it("is offered one on their first answer, once, and their streak counts from that answer on a yes", async () => {
+  it("is counted from their first answer, and offered a profile once", async () => {
     const t = createTestKit({ hour: 21 });
     await pact(t);
     await t.schedule(habits, "checkin");
     await t.answer(habits, checkin(t).ref, 0, asha);
     const o = offer(t, "asha")!;
-    expect(o.question).toBe("Asha, you've started forming a habit. Want your own telcurio profile, so I can track your streak too? Tap Yes and I'll set you up. Nothing else to do.");
+    expect(o.question).toBe("Asha, you've started forming a habit. Want your own telcurio profile, so you can see your streak on the web too? Tap Yes and I'll set you up. Nothing else to do.");
     expect(o).toMatchObject({ options: ["Yes", "Not now"], group: P, keep: false });
-    // Not counted yet.
-    expect((await web(t))[0].habits[0].people.map((p) => p.id)).toEqual(["owner"]);
+    // Counted already: the streak doesn't wait for the answer.
+    expect((await web(t))[0].habits[0].people.find((p) => p.id === "asha")).toMatchObject({ name: "Asha Rao", streak: 1 });
     // Someone else tapping her offer changes nothing.
     await t.answer(habits, o.ref, 0, ravi);
     expect(t.signedUp).toEqual([]);
@@ -173,26 +184,25 @@ describe("a friend without a profile", () => {
     expect(t.signedUp).toEqual(["asha"]);
     expect(t.sent.at(-1)!.text).toBe("Asha, you're set up. I'm keeping your streak from here on.");
     expect(o.open).toBe(false);
-    expect((await web(t))[0].habits[0].people.find((p) => p.id === "asha")).toMatchObject({ name: "Asha Rao", streak: 1 });
     // Not asked again.
     await t.answer(habits, checkin(t).ref, 1, asha);
     expect(t.asked.filter((a) => (a.ref as { offer?: string })?.offer === "asha")).toHaveLength(1);
   });
 
-  it("on not now, forgets what they answered and never asks again", async () => {
+  it("on not now, keeps their streak, makes no profile and never asks again", async () => {
     const t = createTestKit({ today: "2026-11-10", hour: 21 });
     await pact(t);
     await t.schedule(habits, "checkin");
     await t.answer(habits, checkin(t).ref, 0, asha);
     await t.answer(habits, offer(t, "asha")!.ref, 1, asha);
     expect(t.sent.at(-1)!.text).toBe("No problem, Asha. Just ask me to set it up for you later if you change your mind.");
-    expect(Object.keys(t.dump()).filter((k) => k.includes("asha") && !k.startsWith("people/"))).toEqual([]);
+    expect(t.signedUp).toEqual([]);
     t.setToday("2026-11-11");
     await t.schedule(habits, "checkin");
     await t.answer(habits, checkin(t).ref, 0, asha);
     expect(t.asked.filter((a) => (a.ref as { offer?: string })?.offer === "asha")).toHaveLength(1);
-    expect(Object.keys(t.dump()).filter((k) => k.startsWith("plogs/") && k.includes("asha"))).toEqual([]);
-    expect(t.signedUp).toEqual([]);
+    // Still counted, with everyone else.
+    expect((await web(t))[0].habits[0].people.find((p) => p.id === "asha")!.streak).toBe(2);
     // "track me" is no longer a way in.
     await t.message(habits, "track me", null, P, asha);
     expect(t.signedUp).toEqual([]);
@@ -223,14 +233,20 @@ describe("a friend without a profile", () => {
 });
 
 describe("in the pact's group", () => {
-  it("anyone can add a habit; only its adder or the pact's owner can stop it", async () => {
+  it("anyone can add a habit, and stopping one stops it only for whoever says so", async () => {
     const t = createTestKit();
     await pact(t);
     await t.message(habits, "add study at 7am", null, P, ravi);
     expect((await web(t))[0].habits.map((h) => h.name)).toEqual(["Gym", "Study"]);
+    // Ravi joins Gym, then stops: he is out, the owner still does it.
+    await t.message(habits, "join gym", null, P, ravi);
     await t.message(habits, "stop gym", null, P, ravi);
-    expect(t.sent.at(-1)!.text).toBe("*Gym* was added by someone else, so only they or Test can stop it. To step out yourself, send _leave gym_.");
-    await t.message(habits, "stop study", null, P);
+    expect((await web(t))[0].habits[0].people.map((p) => p.id)).toEqual(["owner"]);
+    // Changing when it is asked stays with whoever added it, or the group's owner.
+    await t.message(habits, "time gym 6am", null, P, ravi);
+    expect(t.sent.at(-1)!.text).toBe("*Gym* was added by someone else, so only they or Test can change its time.");
+    // The only person doing Study stops it: nobody is left, so the habit is stopped.
+    await t.message(habits, "stop study", null, P, ravi);
     expect((await web(t))[0].habits.map((h) => h.name)).toEqual(["Gym"]);
   });
 
@@ -412,8 +428,12 @@ describe("the owner's own side of a group habit, on the web", () => {
     await t.act(habits, "groupDays", { id: study.id, days: [1, 3] });
     expect((await page(t)).groups[0].habits.find((h) => h.id === study.id)).toMatchObject({ name: "Study maths", hour: 6 });
     await expect(t.act(habits, "groupHour", { id: study.id, hour: 30 })).rejects.toThrow(/Pick an hour/);
+    // Stop tracking, from the page, stops it for the owner only: Ravi still does it.
+    await t.act(habits, "groupJoin", { id: study.id, on: true });
     await t.act(habits, "groupStop", { id: study.id });
-    expect((await page(t)).groups[0].habits.map((h) => h.name)).toEqual(["Gym"]);
+    const after = (await page(t)).groups[0].habits.find((h) => h.id === study.id)!;
+    expect(after.mine.joined).toBe(false);
+    expect(after.people.map((p) => p.id)).toEqual(["ravi"]);
   });
 
   it("shows everyone on one of the owner's own habits once a friend takes part", async () => {

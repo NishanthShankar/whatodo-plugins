@@ -2,6 +2,16 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.5.0] - 2026-11-18
+
+### Changed
+- Stopping a habit other people do stops it for you only. _stop gym_ and _leave gym_ now mean the same, in WhatsApp and with "Stop tracking" on the web: you step out and it goes on for everyone else. A habit is stopped altogether only when the last person doing it steps out. Your own habits in your main group still stop when you stop them.
+- Everyone who takes part gets a streak, with or without a telcurio profile. Saying Not now to the profile offer no longer deletes what you answered: your streak stays and shows with everyone's, in the group and on the web.
+- The profile offer now reads: "Asha, you've started forming a habit. Want your own telcurio profile, so you can see your streak on the web too? Tap Yes and I'll set you up. Nothing else to do."
+
+### Data
+- `pwait` is no longer written. Entries from earlier versions become ordinary `pjoins` rows the next time that person answers the offer or asks to be set up.
+
 ## [3.4.0] - 2026-11-18
 
 ### Added

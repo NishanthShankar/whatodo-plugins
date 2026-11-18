@@ -252,7 +252,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "3.4.0",
+  version: "3.5.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -657,8 +657,9 @@ export default definePlugin({
       async groupDays(kit, { id, days }) {
         await ownerChange(kit, String(id), { days: checkDays(days) });
       },
+      /** Stop tracking a group habit: it stops for the owner only, and goes on for the others. */
       async groupStop(kit, { id }) {
-        await ownerChange(kit, String(id), { archived: true });
+        await ownerJoin(kit, String(id), false);
       },
       /** Make another Habits group: for a different set of habits, or to keep some with other people. */
       async createPact(kit, { name }) {
