@@ -218,7 +218,7 @@ const HELP = [
   "_add read at 10pm_ adds a habit with its own time",
   "_add gym on mon wed fri_ adds a habit for some days only",
   "_days gym tue thu_ changes its days, _days gym every day_ puts it back",
-  "_simple on_ makes my check-in just the habit's name, and lets you send just the name to log it. _simple off_ turns it off",
+  "_simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off",
   "_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it",
   "",
   "Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
@@ -235,7 +235,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "2.0.0",
+  version: "2.1.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -488,8 +488,9 @@ export default definePlugin({
       const last = await kit.store.get<string>("asked", id);
       if (last && last !== kit.today) kit.close({ habitId: id, day: last });
       await kit.store.put("asked", id, kit.today, kit.today);
-      // Simple messages: the question is the habit's name and nothing else.
-      const question = kit.settings.quickLog === true ? habit.name : `🌱 Did you ${habit.name} today?${s ? `  🔥 ${s}` : ""}`;
+      // The streak is on every check-in, a zero included. Simple messages: just the habit's
+      // name and the streak.
+      const question = kit.settings.quickLog === true ? `${habit.name}  🔥 ${s}` : `🌱 Did you ${habit.name} today?  🔥 ${s}`;
       kit.ask(question.slice(0, 255), CHECKIN_OPTIONS, {
         ref: { habitId: id, day: kit.today },
         // The poll stays so the answer can be corrected, unless they asked for it to be deleted.

@@ -28,7 +28,7 @@ describe("habits", () => {
     await t.message(habits, "simple on");
     expect(t.kit.settings.quickLog).toBe(true);
     await t.schedule(habits, "checkin");
-    expect(t.asked[0].question).toBe("Read");
+    expect(t.asked[0].question).toBe("Read  🔥 0");
     await t.message(habits, "simple off");
     expect(t.kit.settings.quickLog).toBe(false);
   });
@@ -64,7 +64,7 @@ describe("habits", () => {
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
     expect(t.asked).toHaveLength(1);
-    expect(t.asked[0]).toMatchObject({ question: "🌱 Did you Read today?", options: ["Yes", "No"], keep: true });
+    expect(t.asked[0]).toMatchObject({ question: "🌱 Did you Read today?  🔥 0", options: ["Yes", "No"], keep: true });
     await t.react(habits, "👍", t.asked[0].ref);
     expect(((await t.load(habits)) as { habits: { streak: number }[] }).habits[0].streak).toBe(1);
     await t.react(habits, null, t.asked[0].ref);
@@ -367,6 +367,12 @@ describe("check-in polls", () => {
     t.setToday("2026-11-15");
     await t.schedule(habits, "checkin");
     expect(t.asked[0].question).toBe("🌱 Did you Read today?  🔥 1");
+    await t.message(habits, "simple on");
+    t.setToday("2026-11-16");
+    await t.message(habits, "done read");
+    t.setToday("2026-11-17");
+    await t.schedule(habits, "checkin");
+    expect(t.asked.at(-1)!.question).toBe("Read  🔥 1");
   });
 
   it("closes a habit's earlier check-in when its next one goes out", async () => {

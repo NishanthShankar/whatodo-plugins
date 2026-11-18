@@ -17,13 +17,13 @@ Send these in the Habits group.
 | `stop meditate` | Stops tracking it (its history is kept). 👍 |
 | `time 10pm` / `time off` | Default check-in time, or turn the default off. 👍 |
 | `time meditate 7am` / `time meditate default` | One habit's own time, or back to the default. 👍 |
-| `simple on` / `simple off` | Simple messages: when on, the check-in is just the habit's name and nothing else, and a message that is only a habit's name (`meditate`, `Gym!`) logs it for today. Off by default. `quick log on` / `quick log off` still work. 👍 |
+| `simple on` / `simple off` | Simple messages: when on, the check-in is just the habit's name and its streak, and a message that is only a habit's name (`meditate`, `Gym!`) logs it for today. Off by default. `quick log on` / `quick log off` still work. 👍 |
 | `delete polls on` / `delete polls off` | Whether a check-in poll is deleted once you answer it (with a line saying what you chose) or stays so you can change it. Off by default. 👍 |
 | `help` | This list. |
 
 Anything else goes to telcurio's intent model, so plain sentences work too: "I want to start going to the gym on mondays and thursdays", "finished my workout", "skipped reading today", "move gym to tuesdays", "check in with me at 8pm instead". Intents: `add_habit`, `log_done`, `missed`, `undo_done`, `remove_habit`, `set_days`, `set_time`, `default_time`, `list`, `help`; targets are the active habits (id to name). If the text doesn't say which habit, days or time, it asks.
 
-Check-ins: at each habit's hour (its own, else the default), on its days, the plugin asks with one poll per habit not yet done that day: "🌱 Did you Read today?  🔥 5" with Yes and No (`kit.ask` with `keep`). Streaks skip days a habit isn't due on. Yes logs it; No says you didn't (counts like no answer, but closes the day so it isn't asked again). The first answer gets a 👍 on the poll.
+Check-ins: at each habit's hour (its own, else the default), on its days, the plugin asks with one poll per habit not yet done that day: "🌱 Did you Read today?  🔥 5" with Yes and No (with simple messages on: "Read  🔥 5"; the streak is always there, 🔥 0 included) (`kit.ask` with `keep`). Streaks skip days a habit isn't due on. Yes logs it; No says you didn't (counts like no answer, but closes the day so it isn't asked again). The first answer gets a 👍 on the poll.
 
 How the poll behaves (the owner's decisions, 2026-11-18):
 - The poll is not deleted when answered, and no line is posted. The answer can be changed as often as you like.
@@ -45,7 +45,7 @@ Check-in messages from before 2.0.0 still work: reacting ✅ 👍 💪 🔥 or �
 | Key | Default | Meaning |
 |---|---|---|
 | `checkinHour` | `21` | Default check-in hour (0-23), or `null` for off. |
-| `quickLog` | `false` | Simple messages: the check-in is just the habit's name, and a message that is only a habit's name logs it for today. |
+| `quickLog` | `false` | Simple messages: the check-in is just the habit's name and streak, and a message that is only a habit's name logs it for today. |
 | `deletePolls` | `false` | Delete each check-in poll once it is answered and post what was chosen. Off: the poll stays and the answer can be changed until the habit's next check-in. |
 
 ## Data
