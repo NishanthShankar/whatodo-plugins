@@ -8,7 +8,7 @@ Send these in the MediaStore group.
 
 | Message | What happens |
 |---|---|
-| a link, sent or forwarded | Saved with its details. 🕐 while they are read, then 👍. The very first time, one message explains that the caption is kept and how to find things. |
+| a link, sent or forwarded | Saved with its details, then 👍 (a second or two later, while they are read). The very first time, one message explains that the caption is kept and how to find things. |
 | a link with words of your own | Saved, and your words are kept as its note. 👍 |
 | a link you already saved | One copy stays. Its details are read again and a new note replaces the old. 👍 |
 | `find pasta` (also `search`, `look for`, `show me`) | Up to 5 links that match, best first. |
