@@ -30,6 +30,8 @@ Anything beyond a plugin's own group and data is a permission it must list (`per
 
 With `"links"`, telcurio's servers open each link a person sends in the plugin's group, as a link preview would. The site sees a request from telcurio, not from the person or their phone. telcurio keeps nothing from the page; what the plugin stores is the plugin's choice and belongs in its README.
 
+With `"members"`, a plugin learns whether each sender has a telcurio profile and can record a person's yes to one (`kit.signUp`). It learns nothing else about them, and telcurio keeps the record of who agreed, when and in which plugin.
+
 Known gap: `kit.person.name` is available to every plugin. It will move behind a permission shown at install.
 
 ## What to store

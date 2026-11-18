@@ -37,7 +37,7 @@ describe("members and sender", () => {
     await t.message(plugin, "hello");
     await t.react(plugin, "✅", { a: 1 });
     await t.intent(plugin, "hello", "one");
-    expect(seen).toEqual(Array(3).fill({ id: "owner", name: "Nisha", owner: true }));
+    expect(seen).toEqual(Array(3).fill({ id: "owner", name: "Nisha", owner: true, profile: true }));
   });
 
   it("delivers another member's events to a plugin with the members permission", async () => {
@@ -47,9 +47,9 @@ describe("members and sender", () => {
     await t.react(plugin, "✅", { a: 1 }, null, "Asha Rao");
     await t.intent(plugin, "hello", "two", null, 1, { id: "u2", name: null });
     expect(seen).toEqual([
-      { id: "asha-rao", name: "Asha Rao", owner: false },
-      { id: "asha-rao", name: "Asha Rao", owner: false },
-      { id: "u2", name: null, owner: false },
+      { id: "asha-rao", name: "Asha Rao", owner: false, profile: false },
+      { id: "asha-rao", name: "Asha Rao", owner: false, profile: false },
+      { id: "u2", name: null, owner: false, profile: false },
     ]);
   });
 
@@ -92,7 +92,7 @@ describe("questions", () => {
     await t.message(plugin, "pick");
     expect(t.asked).toEqual([{ question: "Tonight?", options: ["Dune", "Dark"], ref: { pick: 1 }, group: null, confirm: "{{question}}: {{option}}", keep: false, open: true }]);
     await t.answer(plugin, { pick: 1 }, 1);
-    expect(seen).toEqual([{ ref: { pick: 1 }, choice: 1, option: "Dark", group: null, sender: { id: "owner", name: "Nisha", owner: true } }]);
+    expect(seen).toEqual([{ ref: { pick: 1 }, choice: 1, option: "Dark", group: null, sender: { id: "owner", name: "Nisha", owner: true, profile: true } }]);
     expect(t.sent.map((m) => m.text)).toEqual(["Tonight?: Dark"]);
     expect(t.asked[0].open).toBe(false);
     await expect(t.answer(plugin, { pick: 1 }, 0)).rejects.toThrow(/no open question/);
@@ -217,5 +217,32 @@ describe("intents in an extra group", () => {
     await t.intent(plugin, "something", "one");
     expect(seen).toEqual(["recipes", null]);
     expect(t.sent.map((s) => s.group)).toEqual(["recipes", null]);
+  });
+});
+
+describe("profiles", () => {
+  it("knows who has a profile, and records a yes", async () => {
+    const seen: (boolean | undefined)[] = [];
+    const plugin = definePlugin({
+      ...base,
+      permissions: ["members"],
+      onMessage: async (e, kit) => {
+        seen.push(e.sender?.profile);
+        if (e.text === "yes") await kit.signUp(e.sender!.id);
+      },
+    });
+    const t = createTestKit();
+    await t.message(plugin, "hi");
+    await t.message(plugin, "hi", null, null, "Asha");
+    await t.message(plugin, "yes", null, null, "Asha");
+    await t.message(plugin, "hi", null, null, "Asha");
+    expect(seen).toEqual([true, false, false, true]);
+    expect(t.signedUp).toEqual(["asha"]);
+  });
+
+  it("refuses to sign anyone up for a plugin without members", async () => {
+    const plugin = definePlugin({ ...base, onMessage: async (_e, kit) => kit.signUp("x") });
+    const t = createTestKit();
+    await expect(t.message(plugin, "hi")).rejects.toThrow(/"members" permission/);
   });
 });

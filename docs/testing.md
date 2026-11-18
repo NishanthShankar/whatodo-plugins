@@ -51,6 +51,7 @@ it("logs a glass and reacts", async () => {
 | `t.sent` | `{ text, ref }[]` in order: everything posted in the group |
 | `t.reactions` | emojis reacted, in order |
 | `t.marks` | refs given to `kit.mark`, in order |
+| `t.signedUp` | sender ids given to `kit.signUp`, in order. A member made with a name has `profile: false` until then. |
 | `t.asked` | questions asked with `kit.ask`, in order: `{ question, options, ref, group, confirm, open }` |
 | `t.unsures` | fallback texts from `kit.unsure()`, in order (in telcurio these trigger intent understanding) |
 | `t.dump()` | `{ "collection/key": data }` of everything stored |

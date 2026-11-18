@@ -205,6 +205,7 @@ By default a plugin hears one person: the one who added it. Other people in the 
 - `event.sender` says who sent a message, reaction or intent: `{ id, name, owner }`. telcurio sets it for every plugin; without `"members"` it is always the owner.
 - Store `sender.id` when you need to remember who did something. It stays the same for that person and is not a phone number. `sender.name` is their WhatsApp name: show it, but don't use it as a key, because names change and two people can share one.
 - `kit.person`, `kit.settings`, `kit.today` and the store all belong to the install, so they are the owner's whoever is writing. Times are in the owner's zone.
+- `event.sender.profile` says whether that person has a telcurio profile of their own. Someone a friend added to the group usually doesn't. A plugin may offer them one: ask with `kit.ask`, and on their yes call `kit.signUp(sender.id)`. Never sign someone up without their yes, and keep the offer to one ask per person. Since SDK 1.13.0.
 - There is no list of the group's members. You learn of a person when they first write or react, so keep your own record if you need one.
 - Platform commands (`mentions on`, `reset pin`) only work for the owner.
 - Anyone in the group can read everything the plugin posts there. Don't ask for `"members"` in a plugin that holds private data.
