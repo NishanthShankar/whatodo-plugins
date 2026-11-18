@@ -454,3 +454,84 @@ describe("plain sentences in a group", () => {
     expect(t.sent[2].text).toContain(yoga.url);
   });
 });
+
+describe("moving a link to another group", () => {
+  const asha = { id: "asha", name: "Asha", owner: false, profile: true };
+  const moveAsk = (t: ReturnType<typeof createTestKit>) => t.asked.filter((a) => (a.ref as { move?: string[] })?.move).at(-1)!;
+
+  it("asks which group with a poll, moves it on the answer, and says so", async () => {
+    const t = createTestKit();
+    await t.message(plugin, "new group recipes");
+    await t.message(plugin, "new group workouts");
+    await send(t, pasta.url, [pasta]);
+    const ref = t.marks[0];
+    t.sent.length = 0;
+    await t.message(plugin, "move", ref);
+    const q = moveAsk(t);
+    expect(q.question).toBe("Move Creamy garlic pasta in 10 minutes to which group?");
+    expect(q.options).toEqual(["recipes", "workouts", "Leave it here"]);
+    await t.answer(plugin, q.ref, 0);
+    expect(items(t)[0].group).toBe("recipes");
+    expect(t.sent.at(-1)!.text).toBe("Moved to *recipes*.");
+    expect(q.open).toBe(false);
+    // From a group it can go back to the main one; where it is now is never offered.
+    await t.message(plugin, "move this", ref, "recipes");
+    expect(moveAsk(t).options).toEqual(["MediaStore", "workouts", "Leave it here"]);
+    expect(moveAsk(t).group).toBe("recipes");
+    await t.answer(plugin, moveAsk(t).ref, 2);
+    expect(items(t)[0].group).toBe("recipes");
+    await t.message(plugin, "wrong group", ref, "recipes");
+    await t.answer(plugin, moveAsk(t).ref, 0);
+    expect(items(t)[0].group).toBeNull();
+  });
+
+  it("offers only the groups both people are part of, and says so when there are none", async () => {
+    const t = createTestKit();
+    await t.message(plugin, "new group recipes");
+    await t.message(plugin, "new group family");
+    // Asha shares a link in the main group. She has written nowhere else.
+    await t.message(plugin, yoga.url, null, null, asha, [yoga]);
+    const ref = t.marks.at(-1)!;
+    await t.message(plugin, "move", ref, null, asha);
+    expect(t.sent.at(-1)!.text).toBe("No groups in common. You can move it on app.whatodo.today, or forward it to your own group.");
+    // The owner asking about Asha's link is held to the groups Asha is in as well.
+    await t.message(plugin, "move", ref);
+    expect(t.sent.at(-1)!.text).toMatch(/^No groups in common/);
+    // Once Asha has written in the family group, it is the one they share.
+    await t.message(plugin, "hello", null, "family", asha);
+    await t.message(plugin, "move", ref);
+    expect(moveAsk(t).options).toEqual(["family", "Leave it here"]);
+    // Only the person who asked decides.
+    await t.answer(plugin, moveAsk(t).ref, 0, asha);
+    expect(items(t)[0].group).toBeNull();
+    await t.answer(plugin, moveAsk(t).ref, 0);
+    expect(items(t)[0].group).toBe("family");
+  });
+
+  it("a link forwarded into another group becomes a second copy there, tagged with who forwarded it", async () => {
+    const t = createTestKit();
+    await t.message(plugin, "new group recipes");
+    await send(t, pasta.url, [pasta]);
+    await t.message(plugin, pasta.url, null, "recipes", asha, [pasta]);
+    const all = items(t);
+    expect(all).toHaveLength(2);
+    const copy = all.find((i) => i.group === "recipes")!;
+    expect(copy.forwarded).toMatchObject({ by: { id: "asha", name: "Asha" }, from: null });
+    expect(all.find((i) => i.group === null)!.forwarded).toBeUndefined();
+    // Sent again in a group it is already in: still one copy there.
+    await t.message(plugin, pasta.url, null, "recipes", asha, [pasta]);
+    expect(items(t)).toHaveLength(2);
+    const page = (await t.load(plugin)) as unknown as { links: { group: string | null; forwarded: { from: string | null } | null }[] };
+    expect(page.links.find((l) => l.group === "recipes")!.forwarded).toMatchObject({ from: null });
+    // Removing one copy leaves the other findable as the only copy.
+    await t.act(plugin, "remove", { id: copy.id });
+    await send(t, pasta.url, [pasta]);
+    expect(items(t)).toHaveLength(1);
+  });
+
+  it("points a plain request to move at replying to the link", async () => {
+    const t = createTestKit();
+    await t.intent(plugin, "can you move that pasta link", "move");
+    expect(t.sent.at(-1)!.text).toMatch(/^Reply to the link you want to move/);
+  });
+});
