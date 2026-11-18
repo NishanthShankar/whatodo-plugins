@@ -173,9 +173,8 @@ describe("a friend without a profile", () => {
     await t.schedule(habits, "checkin");
     await t.answer(habits, checkin(t).ref, 0, asha);
     const o = offer(t, "asha")!;
-    expect(o.question).toBe("Create your telcurio account?");
-    // The words go in a message just before the poll, tagging her.
-    expect(o).toMatchObject({ intro: "Good start {{mention}}. Let me create an account for you, so you can join the streak race too. Just vote *Yes* and I'll set it all up.", mention: "asha" });
+    expect(o.question).toBe("Good start Asha. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.");
+    expect(o).toMatchObject({ intro: null, mention: null });
     expect(o).toMatchObject({ options: ["Yes", "Not now"], group: P, keep: false });
     // Counted already: the streak doesn't wait for the answer.
     expect((await web(t))[0].habits[0].people.find((p) => p.id === "asha")).toMatchObject({ name: "Asha Rao", streak: 1 });
