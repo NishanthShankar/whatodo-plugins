@@ -1,4 +1,4 @@
-import { definePlugin, type Json, type Kit, type Link, type Sender } from "../../sdk";
+import { definePlugin, type ApiDef, type Json, type Kit, type Link, type Sender } from "../../sdk";
 import { copy, DONE, MAIN_NAME, SAVED, STAY, type Row } from "./copy";
 import { rank, type Searchable } from "./search";
 
@@ -105,8 +105,12 @@ async function all(kit: Kit, group: string | null = null): Promise<{ id: string;
   return group ? rows.filter((r) => r.item.group === group) : rows;
 }
 
+/** Every write of a link goes through here, so the person's other systems hear of each one (api.events). */
 async function save(kit: Kit, id: string, item: Item) {
+  const before = await kit.store.get<Item>("links", id);
   await kit.store.put("links", id, item as unknown as Json, item.at);
+  const event = !before ? "link.added" : (before.group ?? null) !== (item.group ?? null) ? "link.moved" : "link.updated";
+  await kit.emit(event, { link: await publicLink(kit, id, item) });
 }
 
 /** The saved copies of one address: one id per group it is in. (Before 1.3.0 this was a single id.) */
@@ -125,7 +129,117 @@ async function remove(kit: Kit, id: string) {
   if (!item) return;
   await setCopies(kit, item.canonical, (await copies(kit, item.canonical)).filter((x) => x !== id));
   await kit.store.delete("links", id);
+  await kit.emit("link.deleted", { link: await publicLink(kit, id, item) });
 }
+
+// ── For the person's other systems (the "api" permission) ──
+
+/**
+ * A link as their other systems see it. The same things the person sees on their page, with
+ * two differences: no telcurio ids of people (only the name of whoever sent it), and the group
+ * by name as well as key.
+ */
+async function publicLink(kit: Kit, id: string, item: Item, names?: Map<string, string>): Promise<Json> {
+  const group = item.group ? { key: item.group, name: names?.get(item.group) ?? (await groupName(kit, item.group)) ?? item.group } : null;
+  return {
+    id,
+    url: item.url,
+    canonical: item.canonical,
+    site: item.site,
+    kind: item.kind,
+    found: item.found,
+    title: item.title,
+    description: item.description,
+    author: item.author,
+    image: item.image,
+    seconds: item.seconds,
+    note: item.note,
+    group,
+    liked: !!item.liked,
+    important: !!item.important,
+    savedBy: item.by?.name ?? null,
+    forwarded: !!item.forwarded,
+    savedAt: new Date(item.at).toISOString(),
+  };
+}
+
+function publicGroup(key: string, g: Category, count: number): Json {
+  return { key, name: g.name, closed: !!g.closed, links: count, createdAt: new Date(g.created).toISOString() };
+}
+
+const yes = (v: string | undefined) => v === "true" || v === "1" || v === "yes";
+
+const api: ApiDef = {
+  get: {
+    links: {
+      about: "Saved links, newest first. With q, the links that match those words, best match first.",
+      params: {
+        q: "Words to look for in titles, captions, notes and who posted it.",
+        group: "A group's key or name. \"main\" for the links that are in no group.",
+        liked: "true for only the liked ones.",
+        important: "true for only the important ones.",
+        since: "Only links saved after this moment: an ISO date (2026-11-19T10:00:00Z) or milliseconds.",
+        limit: "How many to return, 1 to 100. 50 if left out.",
+        after: "The id of the last link you got, to get the ones after it.",
+      },
+      async run(kit, p) {
+        const names = new Map<string, string>();
+        const groups = await kit.store.list<Category>("groups");
+        for (const g of groups) names.set(g.key, g.data.name);
+        let rows = (await all(kit)).reverse();
+        if (p.group !== undefined && p.group !== "") {
+          const wanted = p.group.trim().toLowerCase();
+          const key = wanted === "main" ? null : (groups.find((g) => g.key === wanted)?.key ?? groups.find((g) => slug(g.data.name) === slug(wanted))?.key);
+          rows = key === undefined ? [] : rows.filter((r) => (r.item.group ?? null) === key);
+        }
+        if (yes(p.liked)) rows = rows.filter((r) => r.item.liked);
+        if (yes(p.important)) rows = rows.filter((r) => r.item.important);
+        if (p.since) {
+          const since = /^\d+$/.test(p.since) ? Number(p.since) : Date.parse(p.since);
+          if (!Number.isNaN(since)) rows = rows.filter((r) => r.item.at > since);
+        }
+        if (p.q?.trim()) rows = rank(await searchable(kit, rows), p.q.replace(/\s+/g, " ").trim().slice(0, 200));
+        const total = rows.length;
+        if (p.after) {
+          const at = rows.findIndex((r) => r.id === p.after);
+          rows = at < 0 ? [] : rows.slice(at + 1);
+        }
+        const limit = Math.min(Math.max(Math.floor(Number(p.limit ?? 50)) || 50, 1), 100);
+        const page = rows.slice(0, limit);
+        const links: Json[] = [];
+        for (const r of page) links.push(await publicLink(kit, r.id, r.item, names));
+        return { total, links, next: rows.length > limit ? page[page.length - 1].id : null };
+      },
+    },
+    link: {
+      about: "One saved link, by its id.",
+      params: { id: "The link's id." },
+      async run(kit, p) {
+        const item = p.id ? await kit.store.get<Item>("links", p.id) : null;
+        return { link: item ? await publicLink(kit, p.id, item) : null };
+      },
+    },
+    groups: {
+      about: "The groups links are kept in, with how many links each holds.",
+      async run(kit) {
+        const rows = await all(kit);
+        const groups = await kit.store.list<Category>("groups");
+        return {
+          main: { name: MAIN_NAME, links: rows.filter((r) => !r.item.group).length },
+          groups: groups.map((g) => publicGroup(g.key, g.data, rows.filter((r) => r.item.group === g.key).length)),
+        };
+      },
+    },
+  },
+  events: {
+    "link.added": "A link was saved.",
+    "link.updated": "A saved link changed: its note, a like, an important mark, or its details were read again.",
+    "link.moved": "A saved link was moved to another group.",
+    "link.deleted": "A saved link was removed.",
+    "group.added": "A group for links was made, or an existing WhatsApp group became one.",
+    "group.closed": "A group for links was closed. Its links stay saved.",
+  },
+};
 
 async function groupName(kit: Kit, key: string | null): Promise<string | null> {
   return key ? ((await kit.store.get<Category>("groups", key))?.name ?? key) : null;
@@ -211,6 +325,7 @@ async function createGroup(kit: Kit, name: string): Promise<{ key: string; name:
     hello: copy.groupHello({ name: category.name }),
   });
   await kit.store.put("groups", key, category as unknown as Json, category.created);
+  await kit.emit("group.added", { group: publicGroup(key, category, 0) });
   return { key, name: category.name };
 }
 
@@ -222,11 +337,15 @@ async function existingGroup(kit: Kit, kind: "joined" | "left", key: string, nam
   const old = await kit.store.get<Category>("groups", key);
   if (kind === "left") {
     // Its links stay saved under its name, as when a group is closed.
-    if (old && !old.closed) await kit.store.put("groups", key, { ...old, closed: true } as unknown as Json, old.created);
+    if (old && !old.closed) {
+      await kit.store.put("groups", key, { ...old, closed: true } as unknown as Json, old.created);
+      await kit.emit("group.closed", { group: publicGroup(key, { ...old, closed: true }, (await all(kit, key)).length) });
+    }
     return;
   }
   const category: Category = { name: name.trim().replace(/\s+/g, " ").slice(0, 40) || "Links", created: old?.created ?? kit.now };
   await kit.store.put("groups", key, category as unknown as Json, category.created);
+  await kit.emit("group.added", { group: publicGroup(key, category, (await all(kit, key)).length) });
   kit.send(copy.joinedGroup({ name: category.name }));
 }
 
@@ -243,6 +362,7 @@ async function closeGroup(kit: Kit, key: string): Promise<Category | null> {
   if (!category || category.closed) return null;
   await kit.groups.close(key);
   await kit.store.put("groups", key, { ...category, closed: true } as unknown as Json, category.created);
+  await kit.emit("group.closed", { group: publicGroup(key, { ...category, closed: true }, (await all(kit, key)).length) });
   return category;
 }
 
@@ -452,7 +572,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.4.1",
+  version: "1.5.0",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
@@ -464,7 +584,8 @@ export default definePlugin({
   tier: 2,
   unlisted: true,
   // "members": a group can be shared, and each link remembers who sent it.
-  permissions: ["links", "groups", "members"],
+  permissions: ["links", "groups", "members", "api"],
+  api,
   listing: {
     title: "Save Reels and Videos on WhatsApp, Find Later | telcurio",
     description: "Forward Instagram reels and YouTube videos to a WhatsApp chat. Their titles and captions are kept, so you can find any of them later with a few words.",
