@@ -436,3 +436,21 @@ describe("shared groups", () => {
     expect(((await t.load(plugin, { link: "gone" })) as unknown as { link: null }).link).toBeNull();
   });
 });
+
+describe("plain sentences in a group", () => {
+  it("look only at that group's links and answer there", async () => {
+    const t = createTestKit();
+    await t.message(plugin, "new group recipes");
+    await t.message(plugin, pasta.url, null, "recipes", undefined, [pasta]);
+    await t.message(plugin, yoga.url, null, null, undefined, [yoga]);
+    t.sent.length = 0;
+    await t.intent(plugin, "what did I save lately", "recent", null, 1, undefined, "recipes");
+    expect(t.sent[0].text).toContain(pasta.url);
+    expect(t.sent[0].text).not.toContain(yoga.url);
+    expect(t.sent[0].group).toBe("recipes");
+    await t.intent(plugin, "where are the stretches", "search", null, 1, undefined, "recipes");
+    expect(t.sent[1].text).toMatch(/Nothing saved matches/);
+    await t.intent(plugin, "where are the stretches", "search");
+    expect(t.sent[2].text).toContain(yoga.url);
+  });
+});

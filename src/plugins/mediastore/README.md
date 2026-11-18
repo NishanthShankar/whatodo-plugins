@@ -33,7 +33,7 @@ On a link you sent (or on a single result the plugin posted):
 | reply `like`, `unlike`, `important`, `not important`, `no note` | Does that. 👍 |
 | reply `move to recipes` / `move to main` | Puts it under that group. 👍 |
 
-A message can hold up to 3 links; each is saved. In one of your extra groups, links are saved under that group, and `find`, `recent`, `liked`, `important`, `undo` and `count` look only at that group's links.
+A message can hold up to 3 links; each is saved. In one of your extra groups, links are saved under that group, and `find`, `recent`, `liked`, `important`, `undo` and `count` look only at that group's links. Plain sentences there do the same. In the main group they look through everything.
 
 Anything else goes to telcurio's intent model, so plain sentences work: "where is that pasta video I saved", "show me what I liked". Intents: `search`, `recent`, `liked`, `important`, `groups`, `new_group`, `undo`, `help`. No targets.
 
