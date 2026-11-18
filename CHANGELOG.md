@@ -2,6 +2,11 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.15.0] - 2026-11-18
+
+### Added
+- `kit.person.id`: the owner's id, the same one their events carry as `sender.id`. A plugin that keeps records per person can now find the owner's own outside an event, on a page load or in a schedule. Test kit: `"owner"`.
+
 ## [1.14.0] - 2026-11-18
 
 ### Added

@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.14.0";
+export const SDK_VERSION = "1.15.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -68,6 +68,12 @@ export interface Store {
 }
 
 export interface Person {
+  /**
+   * The id their own events carry as `sender.id`. With it a plugin that hears several people
+   * can find the owner's own records outside an event too (a page load, a schedule). Not a
+   * phone number. telcurio always sets it since SDK 1.15.0.
+   */
+  id?: string;
   name: string | null;
   /** IANA zone, like "Asia/Kolkata". */
   timezone: string;
