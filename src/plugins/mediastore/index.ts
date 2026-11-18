@@ -1,4 +1,5 @@
 import { definePlugin, type Json, type Kit, type Link, type Sender } from "../../sdk";
+import { copy, DONE, MAIN_NAME, SAVED, STAY, type Row } from "./copy";
 import { rank, type Searchable } from "./search";
 
 /**
@@ -75,24 +76,6 @@ const plainEmoji = (e: string) => e.replace(/[︎️]/g, "").replace(/[\u{1F3FB}
 const LIKE_EMOJI = new Set(["❤", "♥", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💖", "💗", "💕", "💓", "💘", "😍", "🥰", "😻"]);
 const IMPORTANT_EMOJI = new Set(["⭐", "🌟", "📌", "📍", "❗", "‼", "🚩", "🔖"]);
 
-const HELP = [
-  "*MediaStore*",
-  "",
-  "Send or forward a link and I keep it with its title and caption. Add a few words of your own in the same message if you like.",
-  "",
-  "_find pasta_ looks through everything you've saved",
-  "_recent_ shows your latest links",
-  "_liked_ and _important_ show the ones you marked",
-  "_undo_ removes the last link you saved",
-  "",
-  "On a link you sent: react ❤️ to like it or ⭐ to mark it important. Reply to it with words to add a note, with _move_ to put it in another group, or with _delete_ to remove it.",
-  "",
-  "_new group recipes_ makes a WhatsApp group just for one kind of link",
-  "_groups_ lists them, _close group recipes_ stops one",
-  "",
-  "Everything is on app.whatodo.today too, with pictures and filters.",
-].join("\n");
-
 /** "My Recipes!" -> "my-recipes" */
 export function slug(name: string): string {
   return name
@@ -158,19 +141,22 @@ function heading(item: Item): string {
   return first ? clip(first.replace(/\s+/g, " ").trim(), 80)! : item.url;
 }
 
-function line(item: Item, n?: number): string {
-  const marks = `${item.important ? "⭐ " : ""}${item.liked ? "❤️ " : ""}`;
-  const by = [item.author, what(item)].filter(Boolean).join(" · ");
-  const out = [`${n ? `${n}. ` : ""}${marks}*${heading(item)}*`, by];
-  if (item.note && item.title) out.push(`_${clip(item.note.replace(/\s+/g, " "), 120)}_`);
-  out.push(item.url);
-  return out.join("\n");
+/** A link as a list shows it. The note gets a line of its own only under a title. */
+function row(item: Item): Row {
+  return {
+    heading: heading(item),
+    author: item.author,
+    what: what(item),
+    note: item.note && item.title ? clip(item.note.replace(/\s+/g, " "), 120) : null,
+    url: item.url,
+    liked: !!item.liked,
+    important: !!item.important,
+  };
 }
 
-function show(kit: Kit, title: string, rows: { id: string; item: Item }[], total: number) {
+function show(kit: Kit, say: (list: { rows: Row[]; more: number }) => string, rows: { id: string; item: Item }[], total: number) {
   const shown = rows.slice(0, SHOW);
-  const more = total > shown.length ? `\n\n_${total - shown.length} more on app.whatodo.today._` : "";
-  const text = `${title}\n\n${shown.map((r, i) => line(r.item, shown.length > 1 ? i + 1 : undefined)).join("\n\n")}${more}`;
+  const text = say({ rows: shown.map((r) => row(r.item)), more: total - shown.length });
   // One result: reacting or replying to this message works like on the link itself.
   const ref: LinkRef | null = shown.length === 1 ? { kind: "link", ids: [shown[0].id] } : null;
   kit.send(text.slice(0, 3900), ref ? { ref: ref as unknown as Json } : undefined);
@@ -193,10 +179,10 @@ async function searchable(kit: Kit, rows: { id: string; item: Item }[]): Promise
 async function search(kit: Kit, query: string, group: string | null) {
   const q = query.replace(/\s+/g, " ").trim();
   const rows = await all(kit, group);
-  if (!rows.length) return kit.send("Nothing is saved yet. Send or forward a link and I'll keep it.");
+  if (!rows.length) return kit.send(copy.nothingSavedYet());
   const found = rank(await searchable(kit, rows), q);
-  if (!found.length) return kit.send(`Nothing saved matches "${clip(q, 60)}". Send _recent_ to see your latest links.`);
-  show(kit, `🔎 *${clip(q, 60)}*: ${found.length} found`, found, found.length);
+  if (!found.length) return kit.send(copy.noMatch({ query: clip(q, 60)! }));
+  show(kit, (list) => copy.found({ query: clip(q, 60)!, count: found.length, ...list }), found, found.length);
 }
 
 async function list(kit: Kit, group: string | null, which: "recent" | "liked" | "important") {
@@ -204,26 +190,25 @@ async function list(kit: Kit, group: string | null, which: "recent" | "liked" | 
   if (which === "liked") rows = rows.filter((r) => r.item.liked);
   if (which === "important") rows = rows.filter((r) => r.item.important);
   if (!rows.length) {
-    if (which === "liked") return kit.send("You haven't liked any yet. React ❤️ to a link you sent.");
-    if (which === "important") return kit.send("Nothing is marked important yet. React ⭐ to a link you sent.");
-    return kit.send("Nothing is saved yet. Send or forward a link and I'll keep it.");
+    if (which === "liked") return kit.send(copy.noneLiked());
+    if (which === "important") return kit.send(copy.noneImportant());
+    return kit.send(copy.nothingSavedYet());
   }
-  const title = which === "liked" ? "❤️ *Liked*" : which === "important" ? "⭐ *Important*" : "🎬 *Latest*";
-  show(kit, title, rows, rows.length);
+  show(kit, which === "liked" ? copy.liked : which === "important" ? copy.important : copy.latest, rows, rows.length);
 }
 
 async function createGroup(kit: Kit, name: string): Promise<{ key: string; name: string } | { error: string }> {
   const clean = name.trim().replace(/\s+/g, " ").slice(0, 20);
   const key = slug(clean);
-  if (!key) return { error: "Give the group a name, like _new group recipes_." };
+  if (!key) return { error: copy.groupNeedsName() };
   const existing = await kit.store.get<Category>("groups", key);
-  if (existing && !existing.closed) return { error: `You already have a group called *${existing.name}*.` };
+  if (existing && !existing.closed) return { error: copy.groupExists({ name: existing.name }) };
   const open = (await kit.store.list<Category>("groups")).filter((g) => !g.data.closed);
-  if (!existing && open.length >= MAX_GROUPS) return { error: `That's the most groups I can keep (${MAX_GROUPS}). Close one first.` };
+  if (!existing && open.length >= MAX_GROUPS) return { error: copy.tooManyGroups({ max: MAX_GROUPS }) };
   const category: Category = { name: existing?.name ?? clean, created: existing?.created ?? kit.now };
   await kit.groups.open(key, {
-    name: `🎬 ${category.name}`.slice(0, 25),
-    hello: `🎬 This group is for your *${category.name}* links. Send or forward a link here and I'll keep it under ${category.name}.\n\n_find_ and _recent_ here look only through this group's links.`,
+    name: copy.groupTitle({ name: category.name }).slice(0, 25),
+    hello: copy.groupHello({ name: category.name }),
   });
   await kit.store.put("groups", key, category as unknown as Json, category.created);
   return { key, name: category.name };
@@ -242,7 +227,7 @@ async function existingGroup(kit: Kit, kind: "joined" | "left", key: string, nam
   }
   const category: Category = { name: name.trim().replace(/\s+/g, " ").slice(0, 40) || "Links", created: old?.created ?? kit.now };
   await kit.store.put("groups", key, category as unknown as Json, category.created);
-  kit.send(`🎬 I'm saving the links sent in this group now. Send or forward a YouTube video, a short or an Instagram reel here and I'll keep it under *${category.name}*.\n\n_find_ and a few words looks through this group's links.`);
+  kit.send(copy.joinedGroup({ name: category.name }));
 }
 
 /** A group's key from what the person called it: the key itself for groups made here, the name for ones they already had. */
@@ -263,14 +248,9 @@ async function closeGroup(kit: Kit, key: string): Promise<Category | null> {
 
 async function groupsText(kit: Kit): Promise<string> {
   const groups = (await kit.store.list<Category>("groups")).filter((g) => !g.data.closed);
-  if (!groups.length) return "No groups yet. Send _new group recipes_ to make one for one kind of link.";
+  if (!groups.length) return copy.noGroups();
   const rows = await all(kit);
-  const lines = ["*Your groups*", ""];
-  for (const g of groups) {
-    const n = rows.filter((r) => r.item.group === g.key).length;
-    lines.push(`*${g.data.name}*: ${n} link${n === 1 ? "" : "s"}`);
-  }
-  return lines.join("\n");
+  return copy.groups({ groups: groups.map((g) => ({ name: g.data.name, count: rows.filter((r) => r.item.group === g.key).length })) });
 }
 
 /** Keep the links of one message. Returns the ids, in order. */
@@ -360,22 +340,22 @@ async function command(kit: Kit, text: string, lower: string, here: string | nul
   m = text.match(/^(?:new|add|create|make)\s+(?:a\s+)?(?:group|category|folder)\s+(?:(?:for|called|named)\s+)?(.+)$/i);
   if (m) {
     const made = await createGroup(kit, m[1]);
-    kit.send("error" in made ? made.error : `🎬 I'm making a WhatsApp group for *${made.name}*. Send its links there once it appears.`);
+    kit.send("error" in made ? made.error : copy.makingGroup({ name: made.name }));
     return true;
   }
   m = lower.match(/^(?:close|remove|delete|stop)\s+(?:the\s+)?(?:group|category|folder)(?:\s+(.+))?$/);
   if (m && (m[1] || here)) {
     const key = m[1] ? await keyFor(kit, m[1]) : here!;
     const closed = await closeGroup(kit, key);
-    kit.send(closed ? `*${closed.name}* is closed. Its links are still saved.` : `I don't have a group called "${m[1] ?? key}". Send _groups_ to see yours.`);
+    kit.send(closed ? copy.groupClosed({ name: closed.name }) : copy.noSuchGroup({ name: m[1] ?? key }));
     return true;
   }
   if (/^(undo|delete last|remove last|oops)$/.test(lower)) {
     const last = (await all(kit, here)).at(-1);
-    if (!last) kit.send("Nothing is saved yet.");
+    if (!last) kit.send(copy.nothingSaved());
     else {
       await remove(kit, last.id);
-      kit.send(`Removed *${heading(last.item)}*.`);
+      kit.send(copy.removed({ heading: heading(last.item) }));
     }
     return true;
   }
@@ -383,8 +363,8 @@ async function command(kit: Kit, text: string, lower: string, here: string | nul
     const rows = await all(kit, here);
     const by = new Map<string, number>();
     for (const r of rows) by.set(r.item.site, (by.get(r.item.site) ?? 0) + 1);
-    const parts = [...by].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([site, n]) => `${n} ${site}`);
-    kit.send(rows.length ? `You have ${rows.length} link${rows.length === 1 ? "" : "s"} saved: ${parts.join(", ")}.` : "Nothing is saved yet.");
+    const sites = [...by].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([site, n]) => ({ site, n }));
+    kit.send(rows.length ? copy.count({ total: rows.length, sites }) : copy.nothingSaved());
     return true;
   }
   return false;
@@ -393,8 +373,6 @@ async function command(kit: Kit, text: string, lower: string, here: string | nul
 /** A reply to a saved link: a word that changes it, or a note about it. */
 /** "move", "move this", "shift it to another group": they want it elsewhere but haven't said where. */
 const MOVE = /^(?:(?:can you |please )?(?:move|shift|transfer|file)(?:\s+(?:it|this|that|this one))?(?:\s+(?:somewhere else|elsewhere|to (?:another|a different|some other|my) group))?|wrong group)$/;
-const STAY = "Leave it here";
-const MAIN_NAME = "MediaStore";
 
 interface MoveRef {
   move: string[];
@@ -434,9 +412,9 @@ async function moveTargets(kit: Kit, rows: { id: string; item: Item }[], sender:
 async function askMove(kit: Kit, rows: { id: string; item: Item }[], sender: Sender | undefined, here: string | null) {
   if (!sender) return;
   const targets = await moveTargets(kit, rows, sender);
-  if (!targets.length) return kit.send("No groups in common. You can move it on app.whatodo.today, or forward it to your own group.");
+  if (!targets.length) return kit.send(copy.noGroupsInCommon());
   const ref: MoveRef = { move: rows.map((r) => r.id), by: sender.id };
-  kit.ask(`Move *${clip(heading(rows[0].item), 60)}* to which group?`.replace(/\*/g, ""), [...targets.map((t) => t.name), STAY], { ref: ref as unknown as Json, ...(here ? { group: here } : {}), confirm: false });
+  kit.ask(copy.moveQuestion({ title: clip(heading(rows[0].item), 60)! }).replace(/\*/g, ""), [...targets.map((t) => t.name), STAY], { ref: ref as unknown as Json, ...(here ? { group: here } : {}), confirm: false });
 }
 
 async function onReply(kit: Kit, ids: string[], text: string, lower: string, sender: Sender | undefined, here: string | null) {
@@ -445,14 +423,14 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
     const item = await kit.store.get<Item>("links", id);
     if (item) rows.push({ id, item });
   }
-  if (!rows.length) return kit.send("That link isn't saved any more.");
+  if (!rows.length) return kit.send(copy.linkGone());
   const each = async (change: (item: Item) => Item) => {
     for (const r of rows) await save(kit, r.id, change(r.item));
-    kit.react("👍");
+    kit.react(DONE);
   };
   if (/^(delete|remove|forget)(\s+(it|this|that))?$/.test(lower)) {
     for (const r of rows) await remove(kit, r.id);
-    return kit.react("👍");
+    return kit.react(DONE);
   }
   if (/^(like|love|fav|favou?rite|heart)$/.test(lower)) return each((i) => ({ ...i, liked: true }));
   if (/^(unlike|not liked|unfavou?rite)$/.test(lower)) return each((i) => ({ ...i, liked: false, reacted: i.reacted === "liked" ? null : i.reacted }));
@@ -465,7 +443,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
     const main = /^(main|none|no group|mediastore)$/.test(move[1]);
     const key = main ? null : await keyFor(kit, move[1]);
     const category = key ? await kit.store.get<Category>("groups", key) : null;
-    if (key && !category) return kit.send(`I don't have a group called "${move[1]}". Send _new group ${move[1]}_ to make it.`);
+    if (key && !category) return kit.send(copy.noGroupToMoveTo({ name: move[1] }));
     return each((i) => ({ ...i, group: key }));
   }
   // Anything else is their own note about it.
@@ -481,7 +459,7 @@ export default definePlugin({
   tagline: "Forward reels and videos. Find them again by what they're about.",
   description:
     "Forward a YouTube video, a short or an Instagram reel to its WhatsApp group and it is kept with its title, caption and who posted it. Later, send a few words and get the link back. Like a link with ❤️, mark it important with ⭐, and add notes of your own.",
-  groupName: "🎬 MediaStore",
+  groupName: copy.groupName(),
   price: 0,
   tier: 2,
   unlisted: true,
@@ -492,9 +470,8 @@ export default definePlugin({
     description: "Forward Instagram reels and YouTube videos to a WhatsApp chat. Their titles and captions are kept, so you can find any of them later with a few words.",
     h1: "Save reels and videos on WhatsApp",
   },
-  welcome:
-    "🎬 You've added *MediaStore*.\n\nSend or forward a link here: a YouTube video, a short, an Instagram reel. I'll keep it so you can find it later.\n\nSend _help_ for more.",
-  help: HELP,
+  welcome: copy.welcome(),
+  help: copy.help(),
 
   async onGroup(event, kit) {
     await existingGroup(kit, event.kind, event.key, event.name);
@@ -510,23 +487,14 @@ export default definePlugin({
     // A message with links: keep them. Anything else they wrote in it is their note.
     if (event.links?.length) {
       const ids = await keep(kit, event.links, ownWords(event.text), here, event.sender);
-      if (ids === "full") return kit.send(`That's the most links I can keep (${MAX_LINKS}). Delete some on app.whatodo.today first.`);
+      if (ids === "full") return kit.send(copy.tooManyLinks({ max: MAX_LINKS }));
       const ref: LinkRef = { kind: "link", ids };
       kit.mark(ref as unknown as Json);
-      kit.react("👍");
+      kit.react(SAVED);
       if (!(await kit.store.get("state", "intro"))) {
         await kit.store.put("state", "intro", 1);
         const read = event.links.some((l) => l.found);
-        kit.send(
-          [
-            read
-              ? "🎬 Saved. I've kept its title and caption too, so next time it's easier to find: send _find_ and a few words about it."
-              : "🎬 Saved. I couldn't read this one's title or caption, so add a few words of your own by replying to your link. For most links I keep the title and caption, and you can find them with _find_ and a few words.",
-            "",
-            "On your link: react ❤️ to like it or ⭐ to mark it important, or reply to it with a note of your own.",
-            "From now on you'll just get a 👍.",
-          ].join("\n"),
-        );
+        kit.send(copy.firstSave({ read }));
       }
       return;
     }
@@ -534,7 +502,7 @@ export default definePlugin({
     if (isRef(event.quotedRef) && text) return onReply(kit, event.quotedRef.ids, text, lower, event.sender, here);
 
     if (await command(kit, text, lower, here)) return;
-    kit.unsure("I didn't get that. Send a link to save it, or _find_ and a few words to look for one. Send _help_ for more.");
+    kit.unsure(copy.unsure());
   },
 
   async onAnswer(event, kit) {
@@ -544,7 +512,7 @@ export default definePlugin({
     kit.close(ref as unknown as Json);
     if (event.option === STAY) return;
     const key = event.option === MAIN_NAME ? null : ((await kit.store.list<Category>("groups")).find((g) => !g.data.closed && g.data.name === event.option)?.key ?? undefined);
-    if (key === undefined) return kit.send("That group isn't there any more.");
+    if (key === undefined) return kit.send(copy.groupGone());
     let moved = 0;
     for (const id of ref.move) {
       const item = await kit.store.get<Item>("links", id);
@@ -552,7 +520,7 @@ export default definePlugin({
       await save(kit, id, { ...item, group: key });
       moved++;
     }
-    kit.send(moved ? `Moved to *${event.option}*.` : "That link isn't saved any more.");
+    kit.send(moved ? copy.moved({ name: event.option }) : copy.linkGone());
   },
 
   async onReaction(event, kit) {
@@ -600,18 +568,18 @@ export default definePlugin({
         return kit.send(await groupsText(kit));
       case "new_group": {
         const m = event.text.match(/(?:group|category|folder)\s+(?:(?:for|called|named)\s+)?(?:my\s+)?(.+)$/i);
-        if (!m) return kit.send("What should it be called? Send _new group recipes_.");
+        if (!m) return kit.send(copy.nameTheGroup());
         const made = await createGroup(kit, m[1].replace(/[.!?]+$/, ""));
-        return kit.send("error" in made ? made.error : `🎬 I'm making a WhatsApp group for *${made.name}*. Send its links there once it appears.`);
+        return kit.send("error" in made ? made.error : copy.makingGroup({ name: made.name }));
       }
       case "move":
-        return kit.send("Reply to the link you want to move and send _move_. I'll show you the groups it can go to.");
+        return kit.send(copy.howToMove());
       case "undo": {
         await command(kit, "undo", "undo", here);
         return;
       }
       default:
-        return kit.send(HELP);
+        return kit.send(copy.help());
     }
   },
 
