@@ -246,3 +246,12 @@ describe("profiles", () => {
     await expect(t.message(plugin, "hi")).rejects.toThrow(/"members" permission/);
   });
 });
+
+describe("a member's page", () => {
+  it("loads for the person asking, and needs members", async () => {
+    const plugin = definePlugin({ ...base, permissions: ["members"], web: { load: async () => ({ all: true }), loadFor: async (_kit, sender) => ({ who: sender.id }) } });
+    const t = createTestKit();
+    expect(await t.loadFor(plugin, "Asha")).toEqual({ who: "asha" });
+    expect(() => definePlugin({ ...base, web: { load: async () => ({}), loadFor: async () => ({}) } })).toThrow(/web.loadFor needs/);
+  });
+});
