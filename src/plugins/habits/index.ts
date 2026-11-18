@@ -2,14 +2,15 @@ import { definePlugin, type Kit } from "../../sdk";
 import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
- * Habits: one message per habit every day; react ✅ or 👍 if you did it, ❌ if you didn't.
- * Every reaction gets a 👍 back so you know it landed.
+ * Habits: one poll per habit every day: tap Yes if you did it, No if you didn't. The poll stays
+ * and the answer can be changed until that habit's next check-in goes out.
  *
  * Storage
  *   habits  key = habit id   data = { name, createdDay, archived, hour?, days? }   sort = createdAt
  *   logs    key = "<habitId>:<day>"   data = 1   sort = day   (did it)
  *   missed  key = "<habitId>:<day>"   data = 1   sort = day   (said they didn't: the day is
  *           closed, it counts like no answer for streaks, and that day isn't asked again)
+ *   asked   key = habit id   data = the day of its latest check-in   sort = that day
  */
 
 interface Habit {
@@ -26,6 +27,9 @@ interface PromptRef {
   habitId: string;
   day: string;
 }
+
+/** The check-in poll's choices, in this order: 0 did it, 1 didn't. */
+const CHECKIN_OPTIONS = ["Yes", "No"];
 
 const DONE = new Set(["✅", "✔️", "☑️", "👍", "💪", "🔥"]);
 const MISSED = new Set(["❌", "✖️", "❎", "👎", "🚫"]);
@@ -215,8 +219,9 @@ const HELP = [
   "_add gym on mon wed fri_ adds a habit for some days only",
   "_days gym tue thu_ changes its days, _days gym every day_ puts it back",
   "_simple on_ makes my check-in just the habit's name, and lets you send just the name to log it. _simple off_ turns it off",
+  "_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it",
   "",
-  "Every day I send one message per habit. React ✅ or 👍 if you did it, ❌ if you didn't.",
+  "Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
 ].join("\n");
 
 /** Web input → sorted weekdays, or null for every day. */
@@ -230,27 +235,29 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "1.6.1",
+  version: "2.0.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
   tagline: "Build habits with a daily check-in and streaks.",
   description:
-    "Add the habits you want to keep, every day or only on the days you pick. On each habit's days I message you at the time you pick; react ✅ or 👍 if you did it. Your streaks show as green squares, and the web page shows the last month.",
+    "Add the habits you want to keep, every day or only on the days you pick. On each habit's days I ask you at the time you pick with a poll; tap Yes or No. Your streaks show as green squares, and the web page shows the last month.",
   groupName: "🌱 Habits",
   price: 0,
   tier: 1,
   listing: {
     title: "Habit Tracker on WhatsApp: Daily Check-ins | telcurio",
     description:
-      "Track habits on WhatsApp. Get a daily check-in, react to mark it done and watch your streak grow. Free, in its own WhatsApp group. No app.",
+      "Track habits on WhatsApp. Get a daily check-in, tap Yes or No and watch your streak grow. Free, in its own WhatsApp group. No app.",
     h1: "Habit tracker on WhatsApp",
   },
-  welcome: "🌱 You've installed *Habits*.\n\nStart with _add meditate_ (or any habit). Every day I'll ask about each one; react ✅ or 👍 if you did it, ❌ if you didn't.\n\nSend _help_ any time.",
+  welcome: "🌱 You've installed *Habits*.\n\nStart with _add meditate_ (or any habit). Every day I'll ask about each one with a poll: tap Yes if you did it, No if you didn't.\n\nSend _help_ any time.",
   help: HELP,
   // quickLog ("simple messages"): the check-in is just the habit's name, and a message that is
   // only a habit's name logs it for today. Off unless turned on.
-  settings: { checkinHour: 21, quickLog: false },
+  // deletePolls: the check-in poll is deleted once it is answered, and a line says what was
+  // chosen. Off unless turned on: the poll stays and the answer can be changed.
+  settings: { checkinHour: 21, quickLog: false, deletePolls: false },
   // Hourly, so each habit can be asked at its own time (the default time otherwise).
   schedules: [{ id: "checkin", hour: "hourly" }],
 
@@ -292,6 +299,13 @@ export default definePlugin({
       const hour = time[2] ? to24(+time[2], time[4]) : null;
       if (time[2] && hour === null) return kit.send("Give me a time like _time 10pm_.");
       await kit.setSettings({ checkinHour: hour });
+      return kit.react("👍");
+    }
+
+    // "delete polls on" / "delete polls off": whether an answered check-in poll is deleted
+    const del = lower.replace(/[!.]+$/, "").match(/^delete (?:the )?polls?(?: after (?:voting|answering|i vote|i answer))?\s+(on|off)$/);
+    if (del) {
+      await kit.setSettings({ deletePolls: del[1] === "on" });
       return kit.react("👍");
     }
 
@@ -450,6 +464,16 @@ export default definePlugin({
     kit.react(e ? "👍" : "");
   },
 
+  async onAnswer(event, kit) {
+    // A tap on a check-in poll: Yes did it, No didn't (closes the day). While the poll stays
+    // they can change it, and the latest answer is the one that counts.
+    const ref = event.ref as PromptRef | null;
+    if (!ref || typeof ref !== "object" || typeof ref.habitId !== "string" || typeof ref.day !== "string") return;
+    await setDay(kit, ref.habitId, ref.day, event.choice === 0 ? "done" : "missed");
+    // A 👍 on the poll says it landed. Once is enough, and a deleted poll has its own line.
+    if (!event.changed && kit.settings.deletePolls !== true) kit.react("👍");
+  },
+
   async onSchedule(event, kit) {
     if (event.id !== "checkin" && event.id !== "nightly") return;
     const now = kit.time.hour(kit.now);
@@ -460,11 +484,18 @@ export default definePlugin({
       if (done.has(kit.today)) continue;
       if (await kit.store.get("missed", `${id}:${kit.today}`)) continue; // they already said no
       const s = streak(done, kit.today, habit.days);
-      // Simple messages: the check-in is the habit's name and nothing else. Reactions work the same.
-      const text = kit.settings.quickLog === true
-        ? habit.name
-        : `🌱 Did you *${habit.name}* today?\n${grid(done, kit.today, 7, habit.createdDay, habit.days)}${s ? `  🔥 ${s}` : ""}\n\n_React ✅ if you did, ❌ if you didn't._`;
-      kit.send(text, { ref: { habitId: id, day: kit.today } });
+      // This habit's earlier check-in stops taking answers now that a new one goes out.
+      const last = await kit.store.get<string>("asked", id);
+      if (last && last !== kit.today) kit.close({ habitId: id, day: last });
+      await kit.store.put("asked", id, kit.today, kit.today);
+      // Simple messages: the question is the habit's name and nothing else.
+      const question = kit.settings.quickLog === true ? habit.name : `🌱 Did you ${habit.name} today?${s ? `  🔥 ${s}` : ""}`;
+      kit.ask(question.slice(0, 255), CHECKIN_OPTIONS, {
+        ref: { habitId: id, day: kit.today },
+        // The poll stays so the answer can be corrected, unless they asked for it to be deleted.
+        keep: kit.settings.deletePolls !== true,
+        confirm: `*${habit.name}*: {{option}}`,
+      });
     }
   },
 
@@ -494,6 +525,7 @@ export default definePlugin({
         timezone: kit.person.timezone,
         habitHour: typeof hour === "number" ? hour : null,
         quickLog: kit.settings.quickLog === true,
+        deletePolls: kit.settings.deletePolls === true,
         habits: out,
       };
     },
@@ -537,6 +569,10 @@ export default definePlugin({
       /** Turn quick log on or off: a message that is only a habit's name logs it. */
       async setQuickLog(kit, { on }) {
         await kit.setSettings({ quickLog: on === true });
+      },
+      /** Whether an answered check-in poll is deleted (with a line saying what was chosen) or stays. */
+      async setDeletePolls(kit, { on }) {
+        await kit.setSettings({ deletePolls: on === true });
       },
       async setHour(kit, { hour }) {
         const h = hour === null ? null : Number(hour);
