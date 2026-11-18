@@ -1,0 +1,67 @@
+# 🎬 MediaStore
+
+Forward a YouTube video, a short or an Instagram reel and it is kept with its title, caption and who posted it, so you can find it later with a few words. Lives in its own WhatsApp group, "🎬 MediaStore". Not listed yet: only people telcurio allows can add it. The name may change.
+
+## Commands
+
+Send these in the MediaStore group.
+
+| Message | What happens |
+|---|---|
+| a link, sent or forwarded | Saved with its details. 🕐 while they are read, then 👍. The very first time, one message explains that the caption is kept and how to find things. |
+| a link with words of your own | Saved, and your words are kept as its note. 👍 |
+| a link you already saved | One copy stays. Its details are read again and a new note replaces the old. 👍 |
+| `find pasta` (also `search`, `look for`, `show me`) | Up to 5 links that match, best first. |
+| `recent` (also `latest`, `list`, `last`) | Your latest 5 links. |
+| `liked` / `important` | The ones you marked. |
+| `undo` (also `delete last`) | Removes the last link you saved, and says which. |
+| `count` | How many links you have, by site. |
+| `new group recipes` | Makes a WhatsApp group for one kind of link. |
+| `groups` | Lists your groups and how many links each has. |
+| `close group recipes` | Closes that group. Its links stay saved. |
+| `help` | The command list. |
+
+On a link you sent (or on a single result the plugin posted):
+
+| You | What happens |
+|---|---|
+| react ❤️ (any heart) | Liked. |
+| react ⭐ (also 🌟 📌 ❗ 🚩 🔖) | Marked important. |
+| change or remove your reaction | Takes back the mark that reaction set. |
+| reply with words | Kept as your note. 👍 |
+| reply `delete` | Removed. 👍 |
+| reply `like`, `unlike`, `important`, `not important`, `no note` | Does that. 👍 |
+| reply `move to recipes` / `move to main` | Puts it under that group. 👍 |
+
+A message can hold up to 3 links; each is saved. In one of your extra groups, links are saved under that group, and `find`, `recent`, `liked`, `important`, `undo` and `count` look only at that group's links.
+
+Anything else goes to telcurio's intent model, so plain sentences work: "where is that pasta video I saved", "show me what I liked". Intents: `search`, `recent`, `liked`, `important`, `groups`, `new_group`, `undo`, `help`. No targets.
+
+Search is plain word matching, weighted: your note first, then the title, who posted it, the site and group, then the caption. A link must match as many of your words as the best match does. It costs nothing to run.
+
+Limits: 3000 links, 20 groups, 1500 characters of caption and 500 of note per link.
+
+## Data
+
+| Collection | Key | Data | Sort |
+|---|---|---|---|
+| `links` | link id | `{ url, canonical, site, kind, found, title, description, author, image, seconds, note, group, at, liked?, important?, reacted? }` | saved time (ms) |
+| `urls` | hash of `canonical` | the link id | none |
+| `groups` | group key | `{ name, created, closed? }` | created (ms) |
+| `state` | `intro` | `1` once the first-save note was sent | none |
+
+`image` is the picture's address, never the picture. `reacted` is the mark the person's current reaction set. Refs: `{ kind: "link", ids }` on the person's link message (through `kit.mark`) and on a single result.
+
+## Web page
+
+Lockable. `load({ limit? })` returns `{ total, max, links: [{ id, url, site, kind, found, title, description, author, image, seconds, note, group, at, liked, important }], groups: [{ key, name, closed, count }] }`, newest first, 600 links unless `limit` says otherwise (1000 at most), captions cut to 400 characters.
+
+Actions: `setLiked { id, on }`, `setImportant { id, on }`, `setNote { id, note }`, `move { id, group }` (`null` for the main group), `remove { id }`, `createGroup { name }`, `closeGroup { key }`.
+
+## Privacy
+
+Permissions: `links` and `groups`.
+
+Reads only its own groups' messages, its own stored data, and the person's time zone and name. When you send a link, telcurio's servers open that link's public page, the way a link preview does, and hand the plugin its title, caption, who posted it, length and picture address. The site sees a request from telcurio, not from you. Nothing behind a login is read, and nothing of what is said or shown in a video.
+
+Stores each link with those details and your own note. Pictures are not stored, only their addresses. A message it can't read is sent by telcurio, with the intent descriptions, to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.
