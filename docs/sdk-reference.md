@@ -250,6 +250,7 @@ api: {
 
 - `GET /api/v1/<plugin id>/<name>?limit=5` with `Authorization: Bearer <key>` runs `get[name].run(kit, { limit: "5" })` and sends back `{ ok: true, data }`. The kit is read-only, as on a page load.
 - `await kit.emit("link.added", data)` in any handler that can write. telcurio posts it to the address the person set up, signed, and tries again if it fails. The plugin never learns whether anyone is listening.
+- The person can limit a key or a callback address to some of the install's groups. `run(kit, params, scope)` gets `scope.groups` (group keys, `null` in the list for the main group; `null` instead of a list for no limit) and must return nothing from other groups. `kit.emit(event, data, { group })` names the group, or groups, an event happened in.
 - Return and emit only what the person may see themselves. In a group with other people that includes what those people sent, so think about what you put in.
 - telcurio does the keys, the limits, the signing and the retries. A plugin still can't reach the internet itself.
 

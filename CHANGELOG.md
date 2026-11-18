@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.20.0] - 2026-11-19
+
+### Added
+- Keys and callback addresses can be limited to some of an install's groups. An endpoint's `run(kit, params, scope)` gets `scope.groups` (the keys of the groups the calling key may see, null for the main one; `null` for no limit) and must keep to it. `kit.emit(event, data, { group })` says which group, or groups, an event happened in, so telcurio only calls the addresses that asked for that group.
+- Test kit: `t.api(plugin, name, params, { groups })`, and `t.emitted[n].group`.
+
 ## [1.19.0] - 2026-11-19
 
 ### Added
