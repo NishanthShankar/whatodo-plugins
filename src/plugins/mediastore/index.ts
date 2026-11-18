@@ -377,7 +377,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string) {
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.2.0",
+  version: "1.2.1",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
@@ -465,13 +465,15 @@ export default definePlugin({
   },
 
   async onIntent(event, kit) {
+    // Asked in one of the extra groups: look only at that group's links, as the plain commands do.
+    const here = event.group ?? null;
     switch (event.intent) {
       case "search":
-        return search(kit, event.text, null);
+        return search(kit, event.text, here);
       case "recent":
       case "liked":
       case "important":
-        return list(kit, null, event.intent);
+        return list(kit, here, event.intent);
       case "groups":
         return kit.send(await groupsText(kit));
       case "new_group": {
@@ -481,7 +483,7 @@ export default definePlugin({
         return kit.send("error" in made ? made.error : `🎬 I'm making a WhatsApp group for *${made.name}*. Send its links there once it appears.`);
       }
       case "undo": {
-        await command(kit, "undo", "undo", null);
+        await command(kit, "undo", "undo", here);
         return;
       }
       default:

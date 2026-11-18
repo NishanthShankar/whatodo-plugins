@@ -1,5 +1,10 @@
 # Changelog: MediaStore
 
+## [1.2.1] - 2026-11-18
+
+### Fixed
+- A plain sentence in one of your extra groups ("where is that pasta video") now looks only at that group's links and answers there, the same as _find pasta_ does. It used to look through everything and answer in the main group.
+
 ## [1.2.0] - 2026-11-18
 
 ### Added
