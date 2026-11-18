@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.5.3] - 2026-11-18
+
+### Added
+- If someone else votes on a person's profile offer, telcurio says once: "I need consent from Asha for this, so only Asha's vote counts here."
+
 ## [3.5.2] - 2026-11-18
 
 ### Changed
