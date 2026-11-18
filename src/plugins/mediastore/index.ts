@@ -373,7 +373,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string) {
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.0.0",
+  version: "1.1.0",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
@@ -526,6 +526,16 @@ export default definePlugin({
         const item = await kit.store.get<Item>("links", String(id));
         const clean = String(note ?? "").trim().slice(0, NOTE_CHARS);
         if (item) await save(kit, String(id), { ...item, note: clean || null });
+      },
+      /**
+       * A link's picture address stopped working (Instagram's do after a few days) and the
+       * page got today's from telcurio: keep it, so it isn't asked for again tomorrow.
+       */
+      async setImage(kit, { id, image }) {
+        const item = await kit.store.get<Item>("links", String(id));
+        const url = String(image ?? "");
+        if (!item || !/^https:\/\/[^\s]+$/.test(url) || url.length > 2000) return;
+        await save(kit, String(id), { ...item, image: url });
       },
       /** Put a link under a group, or back in the main one (`group: null`). */
       async move(kit, { id, group }) {

@@ -364,6 +364,11 @@ describe("web page", () => {
     await expect(t.act(plugin, "createGroup", { name: "recipes" })).rejects.toThrow(/already have/);
     await t.act(plugin, "closeGroup", { key: "recipes" });
     expect(t.groups.has("recipes")).toBe(false);
+    await t.act(plugin, "setImage", { id, image: "https://cdn.test/new.jpg" });
+    expect(items(t)[0].image).toBe("https://cdn.test/new.jpg");
+    await t.act(plugin, "setImage", { id, image: "javascript:alert(1)" });
+    await t.act(plugin, "setImage", { id: "gone", image: "https://cdn.test/x.jpg" });
+    expect(items(t)[0].image).toBe("https://cdn.test/new.jpg");
     await t.act(plugin, "remove", { id });
     expect(items(t)).toHaveLength(0);
   });
