@@ -64,6 +64,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   /** Who answered what, per question. */
   const answers = new Map<Asked, Map<string, number>>();
   const reactions: string[] = [];
+  /** Sender ids given to kit.signUp(), in order: people who agreed to a profile of their own. */
+  const signedUp: string[] = [];
   /** Refs given to kit.mark(), in order: the person's messages the plugin asked to remember. */
   const marks: Json[] = [];
   /** Fallback texts from kit.unsure(), in order. In telcurio these trigger intent understanding. */
@@ -162,6 +164,11 @@ export function createTestKit(opts: TestKitOptions = {}) {
       if (typeof fallback !== "string" || !fallback.trim()) throw new Error("kit.unsure: give a fallback message");
       unsures.push(fallback);
     },
+    async signUp(senderId) {
+      if (current && !current.permissions?.includes("members")) throw new Error(`${current.id}: kit.signUp needs the "members" permission`);
+      if (typeof senderId !== "string" || !senderId) throw new Error("kit.signUp: give the sender's id");
+      if (!signedUp.includes(senderId)) signedUp.push(senderId);
+    },
     id: () => `id${++counter}`,
     hooks: {
       async url(key) {
@@ -203,12 +210,14 @@ export function createTestKit(opts: TestKitOptions = {}) {
    * with that name (their id is the name in lowercase, so the same name is the same person).
    */
   const senderOf = (plugin: PluginDef, from?: string | Partial<Sender>): Sender => {
-    const owner: Sender = { id: "owner", name: person.name, owner: true };
+    const owner: Sender = { id: "owner", name: person.name, owner: true, profile: true };
     if (from === undefined) return owner;
     const s: Sender =
       typeof from === "string"
-        ? { id: from.toLowerCase().replace(/\s+/g, "-"), name: from, owner: false }
-        : { id: from.id ?? "owner", name: from.name ?? null, owner: from.owner ?? (from.id ?? "owner") === "owner" };
+        ? { id: from.toLowerCase().replace(/\s+/g, "-"), name: from, owner: false, profile: false }
+        : { id: from.id ?? "owner", name: from.name ?? null, owner: from.owner ?? (from.id ?? "owner") === "owner", profile: from.profile ?? (from.owner ?? (from.id ?? "owner") === "owner") };
+    // As in telcurio: once they agreed (kit.signUp), their events say so.
+    if (signedUp.includes(s.id)) s.profile = true;
     if (!s.owner && !plugin.permissions?.includes("members")) {
       throw new Error(`${plugin.id}: a message from someone else needs the "members" permission (telcurio wouldn't deliver it)`);
     }
@@ -226,6 +235,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     asked,
     reactions,
     marks,
+    signedUp,
     unsures,
     /** Keys of the hooks that are open. */
     hooks,

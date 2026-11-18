@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.13.0] - 2026-11-18
+
+### Added
+- `Sender.profile`: whether the person has a telcurio profile of their own. True for the owner; usually false for someone a friend brought into a group.
+- `kit.signUp(senderId)`: records that a person agreed to have their own profile. Ask them first with `kit.ask`. From then on their events carry `sender.profile: true`. Needs `"members"`.
+- Test kit: `t.signedUp`, and `profile` on the senders it makes (true for the owner, false for a named member until they are signed up).
+
 ## [1.12.1] - 2026-11-18
 
 ### Changed

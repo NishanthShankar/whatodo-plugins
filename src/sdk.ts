@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.12.1";
+export const SDK_VERSION = "1.13.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -87,6 +87,12 @@ export interface Sender {
   name: string | null;
   /** True for the person who added the plugin. */
   owner: boolean;
+  /**
+   * Whether they have a telcurio profile of their own. Always true for the owner. Someone a
+   * friend brought into a group usually has none: they can be offered one, and
+   * `kit.signUp(sender.id)` records their yes. Since SDK 1.13.0.
+   */
+  profile?: boolean;
 }
 
 export interface Kit {
@@ -165,6 +171,14 @@ export interface Kit {
    * SDK 1.4.0.
    */
   unsure(fallback: string): void;
+  /**
+   * This person said yes to having their own telcurio profile (ask first, with `kit.ask`;
+   * never call it without their yes). telcurio records that they agreed, when and in which
+   * plugin, and from then on their events arrive with `sender.profile: true`. Give the
+   * `sender.id` of someone who has written or answered in one of the plugin's groups. Needs
+   * the "members" permission. Since SDK 1.13.0.
+   */
+  signUp(senderId: string): Promise<void>;
   /** A short random id for new records. */
   id(): string;
   /**
