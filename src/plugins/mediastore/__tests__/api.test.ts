@@ -74,3 +74,43 @@ describe("telling another system what happened", () => {
     expect(Object.keys(plugin.api!.events!).sort()).toEqual(["group.added", "group.closed", "link.added", "link.deleted", "link.moved", "link.updated"]);
   });
 });
+
+describe("limited to some groups", () => {
+  it("a key limited to a group sees only that group, whatever it asks for", async () => {
+    const t = createTestKit();
+    await three(t);
+    const only = { groups: ["recipes"] };
+    const seen = (await t.api(plugin, "links", {}, only)) as unknown as Out;
+    expect(seen.links.map((l) => l.url)).toEqual(["https://www.instagram.com/reel/bbb/"]);
+    expect(((await t.api(plugin, "links", { group: "main" }, only)) as unknown as Out).total).toBe(0);
+    const outside = (await links(t, { group: "main" })).links[0].id;
+    expect(await t.api(plugin, "link", { id: outside }, only)).toEqual({ link: null });
+    expect(await t.api(plugin, "groups", {}, only)).toMatchObject({ main: null, groups: [{ key: "recipes" }] });
+    expect(((await t.api(plugin, "links", {}, { groups: [null] })) as unknown as Out).total).toBe(2);
+  });
+
+  it("reads several groups at once", async () => {
+    const t = createTestKit();
+    await three(t);
+    expect((await links(t, { group: "recipes, main" })).total).toBe(3);
+    expect((await links(t, { group: "recipes,nope" })).total).toBe(1);
+  });
+
+  it("says which group each event happened in, and both groups for a move", async () => {
+    const t = createTestKit();
+    await send(t, "https://youtu.be/aaa", [pasta]);
+    const id = (await links(t)).links[0].id;
+    await t.message(plugin, "new group recipes");
+    await t.act(plugin, "move", { id, group: "recipes" });
+    await t.act(plugin, "setLiked", { id, on: true });
+    await t.act(plugin, "remove", { id });
+    expect(t.emitted.map((e) => [e.event, e.group])).toEqual([
+      ["link.added", null],
+      ["group.added", "recipes"],
+      ["link.moved", [null, "recipes"]],
+      ["link.updated", "recipes"],
+      ["link.deleted", "recipes"],
+    ]);
+    expect(t.emitted[2].data).toMatchObject({ from: null, link: { group: { key: "recipes" } } });
+  });
+});

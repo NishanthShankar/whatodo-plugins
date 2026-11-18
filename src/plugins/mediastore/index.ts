@@ -109,8 +109,13 @@ async function all(kit: Kit, group: string | null = null): Promise<{ id: string;
 async function save(kit: Kit, id: string, item: Item) {
   const before = await kit.store.get<Item>("links", id);
   await kit.store.put("links", id, item as unknown as Json, item.at);
-  const event = !before ? "link.added" : (before.group ?? null) !== (item.group ?? null) ? "link.moved" : "link.updated";
-  await kit.emit(event, { link: await publicLink(kit, id, item) });
+  const from = before ? (before.group ?? null) : null;
+  const to = item.group ?? null;
+  const link = await publicLink(kit, id, item);
+  if (!before) return await kit.emit("link.added", { link }, { group: to });
+  // A move is news for both groups: the one it left and the one it is in now.
+  if (from !== to) return await kit.emit("link.moved", { link, from: from ? { key: from, name: (await groupName(kit, from)) ?? from } : null }, { group: [from, to] });
+  await kit.emit("link.updated", { link }, { group: to });
 }
 
 /** The saved copies of one address: one id per group it is in. (Before 1.3.0 this was a single id.) */
@@ -129,7 +134,7 @@ async function remove(kit: Kit, id: string) {
   if (!item) return;
   await setCopies(kit, item.canonical, (await copies(kit, item.canonical)).filter((x) => x !== id));
   await kit.store.delete("links", id);
-  await kit.emit("link.deleted", { link: await publicLink(kit, id, item) });
+  await kit.emit("link.deleted", { link: await publicLink(kit, id, item) }, { group: item.group ?? null });
 }
 
 // ── For the person's other systems (the "api" permission) ──
@@ -168,6 +173,8 @@ function publicGroup(key: string, g: Category, count: number): Json {
 }
 
 const yes = (v: string | undefined) => v === "true" || v === "1" || v === "yes";
+/** May a key limited to `groups` (null: no limit) see what is in this group? */
+const within = (groups: (string | null)[] | null, group: string | null | undefined) => groups === null || groups.includes(group ?? null);
 
 const api: ApiDef = {
   get: {
@@ -175,22 +182,28 @@ const api: ApiDef = {
       about: "Saved links, newest first. With q, the links that match those words, best match first.",
       params: {
         q: "Words to look for in titles, captions, notes and who posted it.",
-        group: "A group's key or name. \"main\" for the links that are in no group.",
+        group: "A group's key or name, or several separated by commas. \"main\" for the links that are in no group.",
         liked: "true for only the liked ones.",
         important: "true for only the important ones.",
         since: "Only links saved after this moment: an ISO date (2026-11-19T10:00:00Z) or milliseconds.",
         limit: "How many to return, 1 to 100. 50 if left out.",
         after: "The id of the last link you got, to get the ones after it.",
       },
-      async run(kit, p) {
+      async run(kit, p, scope) {
         const names = new Map<string, string>();
         const groups = await kit.store.list<Category>("groups");
         for (const g of groups) names.set(g.key, g.data.name);
-        let rows = (await all(kit)).reverse();
+        // A key limited to some groups never sees past them, whatever it asks for.
+        let rows = (await all(kit)).reverse().filter((r) => within(scope.groups, r.item.group));
         if (p.group !== undefined && p.group !== "") {
-          const wanted = p.group.trim().toLowerCase();
-          const key = wanted === "main" ? null : (groups.find((g) => g.key === wanted)?.key ?? groups.find((g) => slug(g.data.name) === slug(wanted))?.key);
-          rows = key === undefined ? [] : rows.filter((r) => (r.item.group ?? null) === key);
+          const keys = new Set<string | null>();
+          for (const one of p.group.split(",")) {
+            const wanted = one.trim().toLowerCase();
+            if (!wanted) continue;
+            const key = wanted === "main" ? null : (groups.find((g) => g.key === wanted)?.key ?? groups.find((g) => slug(g.data.name) === slug(wanted))?.key);
+            if (key !== undefined) keys.add(key);
+          }
+          rows = rows.filter((r) => keys.has(r.item.group ?? null));
         }
         if (yes(p.liked)) rows = rows.filter((r) => r.item.liked);
         if (yes(p.important)) rows = rows.filter((r) => r.item.important);
@@ -214,18 +227,19 @@ const api: ApiDef = {
     link: {
       about: "One saved link, by its id.",
       params: { id: "The link's id." },
-      async run(kit, p) {
+      async run(kit, p, scope) {
         const item = p.id ? await kit.store.get<Item>("links", p.id) : null;
-        return { link: item ? await publicLink(kit, p.id, item) : null };
+        return { link: item && within(scope.groups, item.group) ? await publicLink(kit, p.id, item) : null };
       },
     },
     groups: {
       about: "The groups links are kept in, with how many links each holds.",
-      async run(kit) {
+      async run(kit, _p, scope) {
         const rows = await all(kit);
-        const groups = await kit.store.list<Category>("groups");
+        const groups = (await kit.store.list<Category>("groups")).filter((g) => within(scope.groups, g.key));
         return {
-          main: { name: MAIN_NAME, links: rows.filter((r) => !r.item.group).length },
+          // null when the key is limited to other groups.
+          main: within(scope.groups, null) ? { name: MAIN_NAME, links: rows.filter((r) => !r.item.group).length } : null,
           groups: groups.map((g) => publicGroup(g.key, g.data, rows.filter((r) => r.item.group === g.key).length)),
         };
       },
@@ -325,7 +339,7 @@ async function createGroup(kit: Kit, name: string): Promise<{ key: string; name:
     hello: copy.groupHello({ name: category.name }),
   });
   await kit.store.put("groups", key, category as unknown as Json, category.created);
-  await kit.emit("group.added", { group: publicGroup(key, category, 0) });
+  await kit.emit("group.added", { group: publicGroup(key, category, 0) }, { group: key });
   return { key, name: category.name };
 }
 
@@ -339,13 +353,13 @@ async function existingGroup(kit: Kit, kind: "joined" | "left", key: string, nam
     // Its links stay saved under its name, as when a group is closed.
     if (old && !old.closed) {
       await kit.store.put("groups", key, { ...old, closed: true } as unknown as Json, old.created);
-      await kit.emit("group.closed", { group: publicGroup(key, { ...old, closed: true }, (await all(kit, key)).length) });
+      await kit.emit("group.closed", { group: publicGroup(key, { ...old, closed: true }, (await all(kit, key)).length) }, { group: key });
     }
     return;
   }
   const category: Category = { name: name.trim().replace(/\s+/g, " ").slice(0, 40) || "Links", created: old?.created ?? kit.now };
   await kit.store.put("groups", key, category as unknown as Json, category.created);
-  await kit.emit("group.added", { group: publicGroup(key, category, (await all(kit, key)).length) });
+  await kit.emit("group.added", { group: publicGroup(key, category, (await all(kit, key)).length) }, { group: key });
   kit.send(copy.joinedGroup({ name: category.name }));
 }
 
@@ -362,7 +376,7 @@ async function closeGroup(kit: Kit, key: string): Promise<Category | null> {
   if (!category || category.closed) return null;
   await kit.groups.close(key);
   await kit.store.put("groups", key, { ...category, closed: true } as unknown as Json, category.created);
-  await kit.emit("group.closed", { group: publicGroup(key, { ...category, closed: true }, (await all(kit, key)).length) });
+  await kit.emit("group.closed", { group: publicGroup(key, { ...category, closed: true }, (await all(kit, key)).length) }, { group: key });
   return category;
 }
 
@@ -572,7 +586,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.5.0",
+  version: "1.6.0",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
