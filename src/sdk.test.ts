@@ -90,7 +90,7 @@ describe("questions", () => {
     const { plugin, seen } = make([]);
     const t = createTestKit({ person: { name: "Nisha", timezone: "Asia/Kolkata" } });
     await t.message(plugin, "pick");
-    expect(t.asked).toEqual([{ question: "Tonight?", options: ["Dune", "Dark"], ref: { pick: 1 }, group: null, confirm: "{{question}}: {{option}}", open: true }]);
+    expect(t.asked).toEqual([{ question: "Tonight?", options: ["Dune", "Dark"], ref: { pick: 1 }, group: null, confirm: "{{question}}: {{option}}", keep: false, open: true }]);
     await t.answer(plugin, { pick: 1 }, 1);
     expect(seen).toEqual([{ ref: { pick: 1 }, choice: 1, option: "Dark", group: null, sender: { id: "owner", name: "Nisha", owner: true } }]);
     expect(t.sent.map((m) => m.text)).toEqual(["Tonight?: Dark"]);
