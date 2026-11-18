@@ -36,6 +36,10 @@ export interface Asked {
   confirm: string | false;
   /** Asked with `keep`: the poll stays, and answers can change until it is closed. */
   keep: boolean;
+  /** The message posted just before the poll, as written (`{{mention}}` not filled in); null for none. */
+  intro: string | null;
+  /** The sender id tagged in the intro; null for none. */
+  mention: string | null;
   /** False once it was answered by the only person (unless `keep`), replaced, or closed with kit.close(). */
   open: boolean;
 }
@@ -149,11 +153,12 @@ export function createTestKit(opts: TestKitOptions = {}) {
       sent.push({ text, ref: o?.ref === undefined ? null : clone(o.ref), group: o?.group ?? here });
     },
     ask(question, options, o) {
-      checkAsk(question, options);
+      checkAsk(question, options, o);
+      if (o?.mention !== undefined && current && !current.permissions?.includes("members")) throw new Error(`${current.id}: a mention in kit.ask needs the "members" permission`);
       const ref = o?.ref === undefined ? null : clone(o.ref);
       // Asking again with the same ref replaces the earlier question.
       if (ref !== null) for (const a of asked) if (a.open && JSON.stringify(a.ref) === JSON.stringify(ref)) a.open = false;
-      asked.push({ question, options: [...options], ref, group: o?.group ?? here, confirm: o?.confirm ?? "{{question}}: {{option}}", keep: o?.keep === true, open: true });
+      asked.push({ question, options: [...options], ref, group: o?.group ?? here, confirm: o?.confirm ?? "{{question}}: {{option}}", keep: o?.keep === true, intro: o?.intro ?? null, mention: o?.mention ?? null, open: true });
     },
     close(ref) {
       for (const a of asked) if (a.open && JSON.stringify(a.ref) === JSON.stringify(ref)) a.open = false;

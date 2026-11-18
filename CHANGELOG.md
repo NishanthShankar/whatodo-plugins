@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.16.0] - 2026-11-18
+
+### Added
+- `kit.ask(..., { intro, mention })`: `intro` is a message posted just before the poll, for what a poll's question can't carry (more than 255 characters, bold, a mention). With `mention` (a `sender.id`), `{{mention}}` in the intro tags that person. A mention needs `"members"`.
+- Test kit: `t.asked[n].intro` and `.mention`.
+
 ## [1.15.0] - 2026-11-18
 
 ### Added

@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.15.0";
+export const SDK_VERSION = "1.16.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -145,9 +145,15 @@ export interface Kit {
    * and each change arrives as `onAnswer` with `changed: true`. It closes when you call
    * `kit.close(ref)` or ask again with the same ref; the poll stays in the chat, and a later
    * change on it is refused. Since SDK 1.11.0.
+   *
+   * `intro`: a message posted just before the poll, for what a poll's question can't carry:
+   * more than 255 characters, *bold*, or a mention. With `mention` (a `sender.id`), write
+   * `{{mention}}` in the intro where that person should be tagged; they are notified. A
+   * mention needs the "members" permission. Where no poll can go, the intro and the question
+   * go out as one message. Since SDK 1.16.0.
    * Since SDK 1.9.0.
    */
-  ask(question: string, options: string[], opts?: { ref?: Json; group?: string; confirm?: string | false; keep?: boolean }): void;
+  ask(question: string, options: string[], opts?: { ref?: Json; group?: string; confirm?: string | false; keep?: boolean; intro?: string; mention?: string }): void;
   /**
    * The question asked with `ref` is settled: its polls are deleted (left in place for a
    * question asked with `keep`) and no more answers are taken. Call it when a message that wasn't one of the options answered the question ("3
@@ -482,7 +488,15 @@ export function compareVersions(a: string, b: string): number {
 }
 
 /** The limits of a question (`kit.ask`), shared by telcurio and the test kit. Throws a plain sentence when one is broken. */
-export function checkAsk(question: string, options: string[]): void {
+export function checkAsk(question: string, options: string[], opts?: { intro?: string; mention?: string }): void {
+  if (opts?.intro !== undefined) {
+    if (typeof opts.intro !== "string" || !opts.intro.trim()) throw new Error("kit.ask: the intro is empty");
+    if (opts.intro.length > 1000) throw new Error("kit.ask: the intro is longer than 1000 characters");
+  }
+  if (opts?.mention !== undefined) {
+    if (typeof opts.mention !== "string" || !opts.mention) throw new Error("kit.ask: mention takes a sender id");
+    if (!opts.intro?.includes("{{mention}}")) throw new Error("kit.ask: write {{mention}} in the intro where the person should be tagged");
+  } else if (opts?.intro?.includes("{{mention}}")) throw new Error("kit.ask: the intro has {{mention}} but no mention was given");
   if (typeof question !== "string" || !question.trim()) throw new Error("kit.ask: give a question");
   if (question.length > 255) throw new Error("kit.ask: the question is longer than 255 characters");
   if (!Array.isArray(options) || options.length < 2 || options.length > 100) throw new Error("kit.ask: give 2 to 100 options");
