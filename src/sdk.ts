@@ -565,3 +565,6 @@ export function definePlugin(def: PluginDef): PluginDef {
   }
   return def;
 }
+
+// Wordings for a plugin's messages (see src/copy.ts). Since SDK 1.18.0.
+export { fixed, msg, useRandom, type Message, type Wording } from "./copy";
