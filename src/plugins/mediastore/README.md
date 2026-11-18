@@ -74,3 +74,11 @@ A MediaStore group can be shared: anyone you add to it can send links, search, m
 Reads only the messages in its own groups (from everyone in them), its own stored data, and the person's time zone and name. When you send a link, telcurio's servers open that link's public page, the way a link preview does, and hand the plugin its title, caption, who posted it, length and picture address. The site sees a request from telcurio, not from you. Nothing behind a login is read, and nothing of what is said or shown in a video.
 
 Stores each link with those details and your own note. Pictures are not stored, only their addresses. A message it can't read is sent by telcurio, with the intent descriptions, to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.
+
+## For your other systems (private for now)
+
+On the MediaStore page, under Settings, you can make a key and add a callback address.
+
+- **Read:** `GET /api/v1/mediastore/links` with `Authorization: Bearer <key>`. Parameters: `q`, `group` (a key, a name or `main`), `liked`, `important`, `since`, `limit` (up to 100) and `after` (the last id you got). Also `link?id=` and `groups`.
+- **Be told:** `link.added`, `link.updated`, `link.moved`, `link.deleted`, `group.added`, `group.closed`. Each call is a signed POST with `{ id, event, plugin, at, data }`.
+- A key can only read. Whoever sent a link is given by name, never by id.

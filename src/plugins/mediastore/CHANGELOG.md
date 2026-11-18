@@ -1,5 +1,12 @@
 # Changelog: MediaStore
 
+## [1.5.0] - 2026-11-19
+
+### Added
+- An API for your own other systems, private for now. With a key you make on the MediaStore page, a script or backend of yours can read your saved links (`links`, with search, group, liked, important, since and paging), one link (`link`) and your groups (`groups`).
+- Callbacks: an address of yours is called when a link is added, changed, moved or deleted, and when a group is made or closed. Every call is signed.
+- What leaves is what you see on your page, without anyone's telcurio id: whoever sent a link is given by name only.
+
 ## [1.4.1] - 2026-11-19
 
 ### Changed
