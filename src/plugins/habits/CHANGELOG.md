@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.5.1] - 2026-11-18
+
+### Changed
+- The profile offer tags the person and reads: "Good start @Asha. Let me create an account for you, so you can join the streak race too. Just vote *Yes* and I'll set it all up." The poll under it asks "Create your telcurio account?" with Yes and Not now.
+
 ## [3.5.0] - 2026-11-18
 
 ### Changed
