@@ -34,6 +34,38 @@ How the poll behaves (the owner's decisions, 2026-11-18):
 
 Check-in messages from before 2.0.0 still work: reacting ✅ 👍 💪 🔥 or ❌ ✖️ ❎ 👎 🚫 to one, or replying `yes` / `no`, logs that day, and every reaction gets a 👍 back.
 
+### Pacts
+
+A pact is a habit kept with other people: friends, a study partner, a partner. It lives in its own WhatsApp group, which the person adds the others to.
+
+In your private Habits group:
+
+| Message | What happens |
+|---|---|
+| `new pact gym buddies` | Makes a WhatsApp group for the pact. Add your people to it. |
+| `pacts` | Lists your pacts. |
+| `close pact gym buddies` | Ends the pact and closes its group. What was logged is kept. |
+
+In a pact's group, from anyone there:
+
+| Message | What happens |
+|---|---|
+| `add gym` (also `at 7am`, `on mon wed fri`) | Adds a habit to the pact. You are doing it. 👍 |
+| `habits` | Everyone's streak for each habit, and the together streak. |
+| `join gym` / `leave gym` | Start or stop doing a habit someone else added. 👍 |
+| `done gym` / `undo gym` | Log or un-log your own today. ✅ / 👍 |
+| `stop gym`, `time gym 7am`, `days gym mon wed` | Only the person who added the habit or who made the pact. 👍 |
+| `track me` | Keep my streak (for someone who said Not now to a profile). |
+
+How a pact behaves (the owner's decisions, 2026-11-18):
+- One poll a day per habit for the whole group, always kept, so the poll shows who did it. Answers can change until that habit's next check-in. Nothing is posted or reacted for an answer.
+- The question carries the standings: "🤝 Did you Gym today?  Together 🔥 4 · Asha 🔥 12 · Ravi 🔥 4".
+- Each person has their own streak. The together streak counts days everyone doing the habit said Yes; a No or no answer from one person breaks it. A person counts from the day they joined, and stops counting after a week of silence.
+- You are doing a habit once you add it, answer its poll or send `join`. So people can watch without taking part.
+- Whose answers are kept: the pact's owner and anyone with a telcurio profile. Someone without one gets one poll, on their first answer: "Asha, you've started forming a habit. Want your own telcurio profile, so I can track your streak too? Tap Yes and I'll set you up. Nothing else to do." with Yes and Not now. Yes records their agreement (`kit.signUp`) and counts what they answered. Not now deletes it, and they are never asked again. Only the person named can answer their offer.
+- Pact habits are apart from the private ones: they don't show in your private list.
+- Limits: 10 pacts, 12 habits in a pact.
+
 ## Schedules
 
 | Id | When | Does |
@@ -56,11 +88,22 @@ Check-in messages from before 2.0.0 still work: reacting ✅ 👍 💪 🔥 or �
 | `logs` | `<habitId>:<day>` | `1` | day |
 | `missed` | `<habitId>:<day>` | `1` | day |
 | `asked` | habit id | the day of its latest check-in | that day |
+| `pacts` | group key | `{ name, created, closed? }` | created (ms) |
+| `phabits` | habit id | `{ pact, name, createdDay, archived, hour?, days?, by }` | created (ms) |
+| `pjoins` | `<habitId>:<personId>` | `{ name, since, last? }`: who is doing a habit | none |
+| `plogs` / `pmissed` | `<habitId>:<personId>:<day>` | `1` | day |
+| `pwait` | `<personId>:<habitId>` | `1`: answered before deciding on a profile | none |
+| `people` | person id | `{ name, asked?, profile? }` | none |
+| `pasked` | habit id | the day of its latest pact check-in | that day |
 
 ## Web page
 
-Lockable. `load({ days? })` returns `{ today, timezone, habitHour, quickLog, deletePolls, habits: [{ id, name, hour, days, createdDay, streak, best, total, doneDays }] }`. Actions: `create`, `rename`, `archive`, `setDay`, `setHabitHour`, `setHabitDays`, `setHour`, `setQuickLog { on }`, `setDeletePolls { on }`.
+Lockable. `load({ days? })` returns `{ today, timezone, habitHour, quickLog, deletePolls, habits: [{ id, name, hour, days, createdDay, streak, best, total, doneDays }] }`. Actions: `create`, `rename`, `archive`, `setDay`, `setHabitHour`, `setHabitDays`, `setHour`, `setQuickLog { on }`, `setDeletePolls { on }`, `createPact { name }`, `closePact { key }`. `load` also returns `pacts: [{ key, name, closed, habits: [{ id, name, hour, days, together, people: [{ id, name, streak, total, doneDays }] }] }]`.
 
 ## Privacy
 
-Reads only its own group's messages, its own stored data, the person's time zone and name. Stores habit names and the days they were done. A message it can't read, with its intent descriptions and your habit names, is sent by telcurio to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.
+Permissions: `groups` and `members`, both for pacts.
+
+In a pact, everyone in its group is heard and can see everything posted there, including each other's answers on the polls. For each person doing a habit it stores the WhatsApp name they show, the days they said Yes or No, and whether they agreed to a telcurio profile. A person's id here is not a phone number. Someone who says Not now has their answers deleted and nothing further kept.
+
+Your private Habits group is different: it reads only its own group's messages, its own stored data, the person's time zone and name. Stores habit names and the days they were done. A message it can't read, with its intent descriptions and your habit names, is sent by telcurio to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.

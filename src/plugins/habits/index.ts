@@ -1,4 +1,5 @@
 import { definePlugin, type Kit } from "../../sdk";
+import { closePact, createPact, isOfferRef, isPactRef, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, type Tools } from "./pact";
 import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
@@ -221,8 +222,16 @@ const HELP = [
   "_simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off",
   "_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it",
   "",
+  "*Pacts:* a habit you keep with other people.",
+  "_new pact gym buddies_ makes a WhatsApp group for it. Add your people there, then tell me a habit in that group",
+  "_pacts_ lists yours, _close pact gym buddies_ ends one",
+  "In a pact everyone answers the same poll and sees who did it. _habits_ there shows everyone's streaks",
+  "",
   "Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
 ].join("\n");
+
+/** What pacts borrow from the parsing above (pact.ts can't import this file back). */
+const TOOLS: Tools = { splitAdd, parseHour, scanHour, hourLabel, habitName };
 
 /** Web input → sorted weekdays, or null for every day. */
 function checkDays(days: unknown): number[] | null {
@@ -235,7 +244,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "2.1.1",
+  version: "3.0.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -245,6 +254,9 @@ export default definePlugin({
   groupName: "🌱 Habits",
   price: 0,
   tier: 1,
+  // Pacts: a habit kept with other people, each in its own group ("groups") that friends are
+  // added to and answer in ("members"). The private Habits group still hears only its owner.
+  permissions: ["groups", "members"],
   listing: {
     title: "Habit Tracker on WhatsApp: Daily Check-ins | telcurio",
     description:
@@ -262,6 +274,9 @@ export default definePlugin({
   schedules: [{ id: "checkin", hour: "hourly" }],
 
   async onMessage(event, kit) {
+    // A pact's group: everyone there is heard. The private group: only the person it belongs to.
+    if (event.group) return pactMessage(event, kit, TOOLS);
+    if (event.sender && !event.sender.owner) return;
     const text = event.text.trim();
     const lower = text.toLowerCase();
 
@@ -276,6 +291,9 @@ export default definePlugin({
         return;
       }
     }
+
+    // "new pact gym buddies", "pacts", "close pact gym buddies"
+    if (await privatePact(kit, text, lower.replace(/[!.]+$/, ""))) return;
 
     if (/^(help|\?|menu|commands)$/i.test(lower)) return kit.send(HELP);
     if (/^(habits|list|streaks?|show|my habits|status)$/i.test(lower)) return kit.send(await summary(kit));
@@ -394,7 +412,10 @@ export default definePlugin({
     },
   },
 
-  async onIntent({ text, intent, target }, kit) {
+  async onIntent(event, kit) {
+    if (event.group) return pactIntent(event, kit, TOOLS);
+    if (event.sender && !event.sender.owner) return;
+    const { text, intent, target } = event;
     const list = await active(kit);
     if (intent === "help") return kit.send(HELP);
     if (intent === "list") return kit.send(await summary(kit));
@@ -454,6 +475,8 @@ export default definePlugin({
   },
 
   async onReaction(event, kit) {
+    // Reactions answer the private check-ins of before 2.0.0. Pacts are answered on their polls.
+    if (event.group || (event.sender && !event.sender.owner)) return;
     const ref = event.ref as PromptRef | null;
     if (!ref || typeof ref !== "object" || !("habitId" in ref)) return;
     const e = event.emoji;
@@ -467,6 +490,8 @@ export default definePlugin({
   async onAnswer(event, kit) {
     // A tap on a check-in poll: Yes did it, No didn't (closes the day). While the poll stays
     // they can change it, and the latest answer is the one that counts.
+    if (isOfferRef(event.ref) || isPactRef(event.ref)) return pactAnswer(event, kit);
+    if (event.sender && !event.sender.owner) return;
     const ref = event.ref as PromptRef | null;
     if (!ref || typeof ref !== "object" || typeof ref.habitId !== "string" || typeof ref.day !== "string") return;
     await setDay(kit, ref.habitId, ref.day, event.choice === 0 ? "done" : "missed");
@@ -498,6 +523,8 @@ export default definePlugin({
         confirm: `*${habit.name}*: {{option}}`,
       });
     }
+    // Pacts: one poll per due habit, for the whole group.
+    await pactCheckins(kit, now, event.id === "nightly");
   },
 
   web: {
@@ -528,6 +555,7 @@ export default definePlugin({
         quickLog: kit.settings.quickLog === true,
         deletePolls: kit.settings.deletePolls === true,
         habits: out,
+        pacts: await pactsForWeb(kit, days),
       };
     },
     actions: {
@@ -570,6 +598,15 @@ export default definePlugin({
       /** Turn quick log on or off: a message that is only a habit's name logs it. */
       async setQuickLog(kit, { on }) {
         await kit.setSettings({ quickLog: on === true });
+      },
+      /** Start a pact: a habit group to keep with other people. */
+      async createPact(kit, { name }) {
+        const made = await createPact(kit, String(name ?? ""));
+        if ("error" in made) throw new Error(made.error.replace(/[_*]/g, ""));
+        return made;
+      },
+      async closePact(kit, { key }) {
+        await closePact(kit, String(key));
       },
       /** Whether an answered check-in poll is deleted (with a line saying what was chosen) or stays. */
       async setDeletePolls(kit, { on }) {
