@@ -408,3 +408,31 @@ describe("helpers", () => {
     expect(t.sent[0].text).toContain("*MediaStore*");
   });
 });
+
+describe("shared groups", () => {
+  it("remembers who sent each link, and hears other members", async () => {
+    const t = createTestKit();
+    await t.message(plugin, pasta.url, null, null, undefined, [pasta]);
+    await t.message(plugin, yoga.url, null, null, "Asha", [yoga]);
+    const by = items(t).map((i) => i.by);
+    expect(by).toEqual([
+      { id: "owner", name: "Test Person", owner: true },
+      { id: "asha", name: "Asha", owner: false },
+    ]);
+    const data = (await t.load(plugin)) as unknown as { links: { by: { name: string } | null }[] };
+    expect(data.links.map((l) => l.by?.name)).toEqual(["Asha", "Test Person"]);
+    await t.message(plugin, "find pasta", null, null, "Asha");
+    expect(t.sent.at(-1)!.text).toContain(pasta.url);
+  });
+
+  it("loads one link in full", async () => {
+    const t = createTestKit();
+    await t.message(plugin, pasta.url, null, null, undefined, [{ ...pasta, description: "y".repeat(900) }]);
+    const id = items(t)[0].id;
+    const one = (await t.load(plugin, { link: id })) as unknown as { link: { id: string; description: string; liked: boolean } };
+    expect(one.link).toMatchObject({ id, liked: false });
+    expect(one.link.description).toHaveLength(900);
+    expect(((await t.load(plugin)) as unknown as { links: { description: string }[] }).links[0].description).toHaveLength(400);
+    expect(((await t.load(plugin, { link: "gone" })) as unknown as { link: null }).link).toBeNull();
+  });
+});

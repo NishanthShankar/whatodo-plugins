@@ -45,23 +45,25 @@ Limits: 3000 links, 20 groups, 1500 characters of caption and 500 of note per li
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `links` | link id | `{ url, canonical, site, kind, found, title, description, author, image, seconds, note, group, at, liked?, important?, reacted? }` | saved time (ms) |
+| `links` | link id | `{ url, canonical, site, kind, found, title, description, author, image, seconds, note, group, at, liked?, important?, reacted?, by? }` | saved time (ms) |
 | `urls` | hash of `canonical` | the link id | none |
 | `groups` | group key | `{ name, created, closed? }` | created (ms) |
 | `state` | `intro` | `1` once the first-save note was sent | none |
 
-`image` is the picture's address, never the picture. `reacted` is the mark the person's current reaction set. Refs: `{ kind: "link", ids }` on the person's link message (through `kit.mark`) and on a single result.
+`image` is the picture's address, never the picture. `by` is who sent the link: `{ id, name, owner }` (`id` is not a phone number; unset on links saved before 1.2.0). `reacted` is the mark the person's current reaction set. Refs: `{ kind: "link", ids }` on the person's link message (through `kit.mark`) and on a single result.
 
 ## Web page
 
-Lockable. `load({ limit? })` returns `{ total, max, links: [{ id, url, site, kind, found, title, description, author, image, seconds, note, group, at, liked, important }], groups: [{ key, name, closed, count }] }`, newest first, 600 links unless `limit` says otherwise (1000 at most), captions cut to 400 characters.
+Lockable. `load({ limit? })` returns `{ total, max, links: [{ id, url, site, kind, found, title, description, author, image, seconds, note, group, at, liked, important, by }], groups: [{ key, name, closed, count }] }`, newest first, 600 links unless `limit` says otherwise (1000 at most), captions cut to 400 characters. `load({ link: id })` returns `{ link }`: that one link in full, or `null`.
 
 Actions: `setLiked { id, on }`, `setImportant { id, on }`, `setNote { id, note }`, `move { id, group }` (`null` for the main group), `setImage { id, image }` (a fresh https picture address, when the kept one stopped working), `remove { id }`, `createGroup { name }`, `closeGroup { key }`.
 
 ## Privacy
 
-Permissions: `links` and `groups`.
+Permissions: `links`, `groups` and `members`.
 
-Reads only its own groups' messages, its own stored data, and the person's time zone and name. When you send a link, telcurio's servers open that link's public page, the way a link preview does, and hand the plugin its title, caption, who posted it, length and picture address. The site sees a request from telcurio, not from you. Nothing behind a login is read, and nothing of what is said or shown in a video.
+A MediaStore group can be shared: anyone you add to it can send links, search, mark and remove, and can read everything the plugin posts there. Each link keeps the WhatsApp name of who sent it.
+
+Reads only the messages in its own groups (from everyone in them), its own stored data, and the person's time zone and name. When you send a link, telcurio's servers open that link's public page, the way a link preview does, and hand the plugin its title, caption, who posted it, length and picture address. The site sees a request from telcurio, not from you. Nothing behind a login is read, and nothing of what is said or shown in a video.
 
 Stores each link with those details and your own note. Pictures are not stored, only their addresses. A message it can't read is sent by telcurio, with the intent descriptions, to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.
