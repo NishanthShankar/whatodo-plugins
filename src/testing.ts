@@ -209,7 +209,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
     },
   };
 
-  const person = opts.person ?? { name: "Test Person", timezone: "Asia/Kolkata" };
+  // The owner's id is the one their events carry (see senderOf).
+  const person = { id: "owner", ...(opts.person ?? { name: "Test Person", timezone: "Asia/Kolkata" }) };
   /**
    * Who an event is from. Nothing: the person who added the plugin. A string: another member
    * with that name (their id is the name in lowercase, so the same name is the same person).

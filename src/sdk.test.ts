@@ -58,7 +58,7 @@ describe("members and sender", () => {
     const plugin = definePlugin({ ...base, permissions: ["members"], onMessage: async (_e, kit) => void (person = kit.person) });
     const t = createTestKit({ person: { name: "Nisha", timezone: "Asia/Kolkata" } });
     await t.message(plugin, "hello", null, null, "Asha");
-    expect(person).toEqual({ name: "Nisha", timezone: "Asia/Kolkata" });
+    expect(person).toEqual({ id: "owner", name: "Nisha", timezone: "Asia/Kolkata" });
   });
 
   it("refuses another member's event without the permission", async () => {
