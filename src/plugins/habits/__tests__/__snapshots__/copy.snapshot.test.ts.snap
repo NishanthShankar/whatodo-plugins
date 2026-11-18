@@ -1,0 +1,4531 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`habits: every reply, word for word > a Habits group where only friends have habits 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi: add yoga at 6am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Habits*
+
+1. *Yoga*  ⏰ 6am
+Ravi  🔥 0
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: time off",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Habits*
+
+1. *Yoga*  ⏰ 6am
+Ravi  🔥 0
+
+_The default check-in is off; habits with their own time (⏰) still get one. Send time 9pm to turn it on._",
+      },
+    ],
+    "step": "ravi: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Yoga today?  Ravi 🔥 0",
+        "ref": {
+          "day": "2026-11-09",
+          "habitId": "id1",
+          "pact": "",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule nightly on 2026-11-09 at 21",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > a crowd in the person's own habit, and an owner without a name 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Asha. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "asha",
+        },
+      },
+    ],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "asha: done meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Meditate* is someone else's habit, so only they can change when it's asked.",
+      },
+    ],
+    "step": "asha: time meditate 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi: add yoga",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Yoga* was added by someone else, so only they or the person whose group this is can change its time.",
+      },
+    ],
+    "step": "asha: time yoga 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Yoga* was added by someone else, so only they or the person whose group this is can change its days.",
+      },
+    ],
+    "step": "asha: days yoga tue",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*
+⬜
+Together 🔥 0
+Asha Rao  🔥 1
+
+2. *Yoga*
+Ravi  🔥 0
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Meditate today?  Together 🔥 0 · Asha 🔥 1 · Someone 🔥 0",
+        "ref": {
+          "day": "2026-11-09",
+          "habitId": "id1",
+        },
+      },
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Yoga today?  Ravi 🔥 0",
+        "ref": {
+          "day": "2026-11-09",
+          "habitId": "id2",
+          "pact": "",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-09 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*
+⬜
+Together 🔥 0
+Asha Rao  🔥 1
+
+2. *Yoga*
+Ravi  🔥 0
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "asha means list: how is it going",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p1: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p2: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p3: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p4: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p5: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p6: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p7: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p8: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p9: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p10: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p11: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p12: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p13: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p14: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Meditate today?  Together 🔥 0 · Asha 🔥 1 · Someone 🔥 0 · Participant01 🔥 0 · Participant02 🔥 0 · Participant03 🔥 0 · Participant04 🔥 0 · Participant05 🔥 0 · Participant06 🔥 0 · Participant07 🔥 0 · Participant08 🔥 0",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "id1",
+        },
+      },
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Yoga today?  Ravi 🔥 0",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "id2",
+          "pact": "",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-10 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: simple on",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "Meditate  Together 🔥 0 · Someone 🔥 0 · Asha 🔥 0 · Participant01 🔥 0 · Participant02 🔥 0 · Participant03 🔥 0 · Participant04 🔥 0 · Participant05 🔥 0 · Participant06 🔥 0 · Participant07 🔥 0 · Participant08 🔥 0 · Participant09 🔥 0",
+        "ref": {
+          "day": "2026-11-11",
+          "habitId": "id1",
+        },
+      },
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Yoga today?  Ravi 🔥 0",
+        "ref": {
+          "day": "2026-11-11",
+          "habitId": "id2",
+          "pact": "",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-11 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*
+⬜⬜⬜
+Together 🔥 0
+Asha Rao  🔥 0
+Participant01 Surname  🔥 0
+Participant02 Surname  🔥 0
+Participant03 Surname  🔥 0
+Participant04 Surname  🔥 0
+Participant05 Surname  🔥 0
+Participant06 Surname  🔥 0
+Participant07 Surname  🔥 0
+Participant08 Surname  🔥 0
+Participant09 Surname  🔥 0
+Participant10 Surname  🔥 0
+Participant11 Surname  🔥 0
+Participant12 Surname  🔥 0
+Participant13 Surname  🔥 0
+Participant14 Surname  🔥 0
+
+2. *Yoga*
+Ravi  🔥 0
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > a friend's plain sentences in the person's own Habits group 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Meera, you're set up. I'm keeping your streak from here on.",
+      },
+    ],
+    "step": "meera means set_me_up: can you set me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi means set_me_up: can you set me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*
+⬜
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "asha means list: how is it going",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*
+⬜
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "asha means help: what can I do here",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "What should I call it? Like _add gym on mon wed fri_.",
+      },
+    ],
+    "step": "asha means add_habit: I want to start a habit",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Asha. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "asha",
+        },
+      },
+    ],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha means add_habit: I want to meditate daily",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "asha means log_done: did it",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha means add_habit: I want to track yoga every day at 6am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Which habit? Send _habits_ to see them.",
+      },
+    ],
+    "step": "asha means log_done: did it",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "asha means log_done: did my yoga",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha means missed: skipped yoga",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha means undo_done: undo yoga",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*
+⬜
+Together 🔥 0
+Asha Rao  🔥 1
+
+2. *Yoga*  ⏰ 6am
+Asha Rao  🔥 0
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "asha means set_time: move yoga to 7",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "That's the most habits one group can hold (12). Stop one first.",
+      },
+    ],
+    "step": "asha means add_habit: I want to swim",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "That's the most habits one group can hold (12). Stop one first.",
+      },
+    ],
+    "step": "asha: add swim",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > a habit group's daily check-in, its answers and the profile offer 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *gym buddies*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group gym buddies",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: add gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: add run on tue thu at 6am",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Gym today?  Test 🔥 0",
+        "ref": {
+          "day": "2026-11-09",
+          "habitId": "id1",
+          "pact": "gym-buddies",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-09 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner votes 0 on Gym",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Asha. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "asha",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "asha votes 0 on Gym",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "anon",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "anon votes 1 on Gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "ravi votes 0 on Gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I need consent from Asha for this, so only Asha's vote counts here.",
+      },
+    ],
+    "step": "ravi votes 0 on Asha's offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "anon votes 0 on Asha's offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I need consent from the person I asked, so only their vote counts here.",
+      },
+    ],
+    "step": "ravi votes 1 on the nameless offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "Asha, you're set up. I'm keeping your streak from here on.",
+      },
+    ],
+    "step": "asha votes 0 on Asha's offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "You're set up. I'm keeping your streak from here on.",
+      },
+    ],
+    "step": "anon votes 0 on the nameless offer",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Meera. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "meera",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "meera votes 0 on Gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "No problem, Meera. Just ask me to set it up for you later if you change your mind.",
+      },
+    ],
+    "step": "meera votes 1 on Meera's offer",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Run today?  Test 🔥 0",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "id2",
+          "pact": "gym-buddies",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-10 at 6",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Gym today?  Together 🔥 0 · Asha 🔥 1 · Meera 🔥 1 · Ravi 🔥 1 · Test 🔥 1 · Someone 🔥 0",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "id1",
+          "pact": "gym-buddies",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-10 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p1 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p2 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p3 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p4 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p5 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p6 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p7 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p8 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p9 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p10 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p11 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p12 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p13 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "p14 in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Gym today?  Together 🔥 0 · Someone 🔥 0 · Asha 🔥 0 · Meera 🔥 0 · Participant01 🔥 0 · Participant02 🔥 0 · Participant03 🔥 0 · Participant04 🔥 0 · Participant05 🔥 0 · Participant06 🔥 0 · Participant07 🔥 0 · Participant08 🔥 0",
+        "ref": {
+          "day": "2026-11-11",
+          "habitId": "id1",
+          "pact": "gym-buddies",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule nightly on 2026-11-11 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "🌱 *gym buddies*
+
+1. *Gym*  Together 🔥 0
+Someone  🔥 0
+Asha Rao  🔥 0
+Meera Nair  🔥 0
+Participant01 Surname  🔥 0
+Participant02 Surname  🔥 0
+Participant03 Surname  🔥 0
+Participant04 Surname  🔥 0
+Participant05 Surname  🔥 0
+Participant06 Surname  🔥 0
+Participant07 Surname  🔥 0
+Participant08 Surname  🔥 0
+Participant09 Surname  🔥 0
+Participant10 Surname  🔥 0
+Participant11 Surname  🔥 0
+Participant12 Surname  🔥 0
+Participant13 Surname  🔥 0
+Participant14 Surname  🔥 0
+Ravi  🔥 0
+Test Person  🔥 0
+
+2. *Run*  ⏰ 6am  📅 Tue, Thu
+Test Person  🔥 0",
+      },
+    ],
+    "step": "owner in gym-buddies: habits",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > everyone in a habit group 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *gym buddies*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group gym buddies",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "🌱 *gym buddies* has no habits yet. Add one here, like _add gym_.",
+      },
+    ],
+    "step": "owner in gym-buddies: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: add gym",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Asha. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "asha",
+        },
+      },
+    ],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "asha in gym-buddies: done gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi in gym-buddies: add run at 6am on weekdays",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "anon",
+        },
+      },
+    ],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "anon in gym-buddies: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "🌱 *gym buddies*
+
+1. *Gym*  Together 🔥 0
+Asha Rao  🔥 1
+Someone  🔥 0
+Test Person  🔥 0
+
+2. *Run*  ⏰ 6am  📅 weekdays
+Ravi  🔥 0",
+      },
+    ],
+    "step": "owner in gym-buddies: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "🌱 *gym buddies*
+
+1. *Gym*  Together 🔥 0
+Asha Rao  🔥 1
+Someone  🔥 0
+Test Person  🔥 0
+
+2. *Run*  ⏰ 6am  📅 weekdays
+Ravi  🔥 0",
+      },
+    ],
+    "step": "asha in gym-buddies: standings",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I need consent from Asha for this, so only Asha's vote counts here.",
+      },
+    ],
+    "step": "anon votes 1 on Asha's offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I need consent from the person I asked, so only their vote counts here.",
+      },
+    ],
+    "step": "asha votes 1 on the nameless offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "Asha, you're set up. I'm keeping your streak from here on.",
+      },
+    ],
+    "step": "asha in gym-buddies: set me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "You're set up. I'm keeping your streak from here on.",
+      },
+    ],
+    "step": "anon in gym-buddies: set me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi in gym-buddies: set me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: set me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "To have a group of your own, log in at app.whatodo.today and add Habits there. It takes a minute, and then I'll make it for you.",
+      },
+    ],
+    "step": "asha in gym-buddies: create my own group",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "asha in gym-buddies: what is this",
+    "unsures": [
+      "I didn't get that. Tell me a habit to add here, or send _habits_ to see how it's going.",
+    ],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: done gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner in gym-buddies: done nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: undo gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner in gym-buddies: undo nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: join run",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner in gym-buddies: join nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: leave run",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner in gym-buddies: leave nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "*Run* was added by someone else, so only they or Test can change its time.",
+      },
+    ],
+    "step": "asha in gym-buddies: time run 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "*Run* was added by someone else, so only they or Test can change its days.",
+      },
+    ],
+    "step": "asha in gym-buddies: days run tue",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "Give me a time like _time run 7am_.",
+      },
+    ],
+    "step": "ravi in gym-buddies: time run 25",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi in gym-buddies: time run 8am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: time run default",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner in gym-buddies: time nothing 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: days run tue thu",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner in gym-buddies: days nothing tue",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "Tell me the habit and the days, like _days gym mon wed fri_.",
+      },
+    ],
+    "step": "owner in gym-buddies: days run blah",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "Name the habit, like _add gym_.",
+      },
+    ],
+    "step": "owner in gym-buddies: add ...",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Meera. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "meera",
+        },
+      },
+    ],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "meera in gym-buddies: add gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "🌱 *gym buddies*
+
+1. *Ghost*
+_Nobody has answered yet._
+
+2. *Gym*  Together 🔥 0
+Asha Rao  🔥 1
+Someone  🔥 0
+Meera Nair  🔥 0
+Test Person  🔥 0
+
+3. *Run*  📅 Tue, Thu
+Ravi  🔥 0",
+      },
+    ],
+    "step": "owner in gym-buddies: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "That's the most habits one group can hold (12). Stop one first.",
+      },
+    ],
+    "step": "owner in gym-buddies: add swim",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*gym buddies* is closed. What everyone logged is kept.",
+      },
+    ],
+    "step": "owner: close group gym buddies",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner in gym-buddies: habits",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > everyone in a habit group 2`] = `
+{
+  "gym-buddies": {
+    "hello": "🌱 This is your habit group *gym buddies*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 gym buddies",
+  },
+}
+`;
+
+exports[`habits: every reply, word for word > friends in the person's own Habits group 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add gym on mon wed fri at 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*
+⬜
+
+2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+⬜
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "asha: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Asha. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "asha",
+        },
+      },
+    ],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "asha: done meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "anon",
+        },
+      },
+    ],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "anon: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "ravi: done meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Meera. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "meera",
+        },
+      },
+    ],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "meera: join gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I need consent from Asha for this, so only Asha's vote counts here.",
+      },
+    ],
+    "step": "ravi votes 0 on Asha's offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "meera votes 1 on Asha's offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I need consent from the person I asked, so only their vote counts here.",
+      },
+    ],
+    "step": "ravi votes 0 on the nameless offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Asha, you're set up. I'm keeping your streak from here on.",
+      },
+    ],
+    "step": "asha votes 0 on Asha's offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "No problem. Just ask me to set it up for you later if you change your mind.",
+      },
+    ],
+    "step": "anon votes 1 on the nameless offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "No problem, Meera. Just ask me to set it up for you later if you change your mind.",
+      },
+    ],
+    "step": "meera votes 1 on Meera's offer",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "You're set up. I'm keeping your streak from here on.",
+      },
+    ],
+    "step": "anon: set me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Meera, you're set up. I'm keeping your streak from here on.",
+      },
+    ],
+    "step": "meera: hook me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi: set me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: done meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*  🔥 1
+🟩
+Together 🔥 0
+Asha Rao  🔥 1
+Ravi  🔥 1
+Someone  🔥 0
+
+2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+⬜
+Together 🔥 0
+Meera Nair  🔥 0
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*  🔥 1
+🟩
+Together 🔥 0
+Asha Rao  🔥 1
+Ravi  🔥 1
+Someone  🔥 0
+
+2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+⬜
+Together 🔥 0
+Meera Nair  🔥 0
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "asha: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha: undo meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha: leave meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha: join meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "asha: done meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Meditate* is Test's habit, so only they can change when it's asked.",
+      },
+    ],
+    "step": "asha: time meditate 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha: add meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "To have a group of your own, log in at app.whatodo.today and add Habits there. It takes a minute, and then I'll make it for you.",
+      },
+    ],
+    "step": "asha: make a group",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "asha: what is this",
+    "unsures": [
+      "I didn't get that. Tell me a habit to add, answer a poll to take part in one, or send _habits_ to see how it's going.",
+    ],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi: add stretch on weekdays at 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha: add yoga",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Stretch* was added by someone else, so only they or Test can change its time.",
+      },
+    ],
+    "step": "asha: time stretch 8am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Stretch* was added by someone else, so only they or Test can change its days.",
+      },
+    ],
+    "step": "asha: days stretch tue",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Give me a time like _time stretch 7am_.",
+      },
+    ],
+    "step": "ravi: time stretch 25",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi: time stretch 8am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi: time stretch default",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi: days stretch tue thu",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Tell me the habit and the days, like _days gym mon wed fri_.",
+      },
+    ],
+    "step": "ravi: days stretch blah",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "ravi: days nothing tue",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "ravi: time nothing 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Name the habit, like _add gym_.",
+      },
+    ],
+    "step": "asha: add ...",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "asha: done nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "asha: undo nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "asha: join nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing" here. Send _habits_ to see them.",
+      },
+    ],
+    "step": "asha: leave nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "asha: done yoga",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha: undo yoga",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha: join stretch",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha: leave stretch",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: done yoga",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: time stretch 9am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*  🔥 1
+🟩
+Together 🔥 0
+Asha Rao  🔥 1
+Ravi  🔥 1
+Someone  🔥 0
+
+2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+⬜
+Together 🔥 0
+Meera Nair  🔥 0
+
+3. *Ghost*
+_Nobody has answered yet._
+
+4. *Yoga*  Together 🔥 0
+Test Person  🔥 1
+Asha Rao  🔥 0
+
+5. *Stretch*  ⏰ 9am  📅 Tue, Thu
+Ravi  🔥 0
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Meditate today?  Together 🔥 0 · Asha 🔥 1 · Ravi 🔥 1 · Test 🔥 1 · Someone 🔥 0",
+        "ref": {
+          "day": "2026-11-09",
+          "habitId": "id1",
+        },
+      },
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Ghost today?",
+        "ref": {
+          "day": "2026-11-09",
+          "habitId": "ghost",
+          "pact": "",
+        },
+      },
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Yoga today?  Together 🔥 0 · Test 🔥 1 · Asha 🔥 0",
+        "ref": {
+          "day": "2026-11-09",
+          "habitId": "id4",
+          "pact": "",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-09 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner votes 0 on Meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "asha votes 0 on Meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Tara. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "tara",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "tara votes 0 on Yoga",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: simple on",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "Meditate  Together 🔥 0 · Asha 🔥 1 · Ravi 🔥 1 · Test 🔥 1 · Someone 🔥 0",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "id1",
+        },
+      },
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Ghost today?",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "ghost",
+          "pact": "",
+        },
+      },
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Yoga today?  Together 🔥 0 · Tara 🔥 1 · Test 🔥 1 · Asha 🔥 0",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "id4",
+          "pact": "",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-10 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*  🔥 1
+🟩⬜
+Together 🔥 0
+Asha Rao  🔥 1
+Ravi  🔥 1
+Someone  🔥 0
+
+2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+⬜▫️
+Together 🔥 0
+Meera Nair  🔥 0
+
+3. *Ghost*
+_Nobody has answered yet._
+
+4. *Yoga*  Together 🔥 0
+Tara  🔥 1
+Test Person  🔥 1
+Asha Rao  🔥 0
+
+5. *Stretch*  ⏰ 9am  📅 Tue, Thu
+Ravi  🔥 0
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > making, listing and closing habit groups 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "You have one Habits group, this one. Send _new group gym buddies_ to make another, for a different set of habits or of people.",
+      },
+    ],
+    "step": "owner: groups",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *gym buddies*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group gym buddies",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "You already have a group called *gym buddies*.",
+      },
+    ],
+    "step": "owner: new group gym buddies",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Give the group a name, like _new group gym buddies_.",
+      },
+    ],
+    "step": "owner: new group !!!",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *Morning runners and ea*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: make a pact called Morning runners and early risers",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: add gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies: add run",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in morning-runners-and-ea: add walk",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habit groups*
+
+🌱 *Habits* (this one)
+🌱 *gym buddies*: 2 habits
+🌱 *Morning runners and ea*: 1 habit",
+      },
+    ],
+    "step": "owner: groups",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*gym buddies* is closed. What everyone logged is kept.",
+      },
+    ],
+    "step": "owner: close group gym buddies",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I don't have a group called "nothing". Send _groups_ to see yours.",
+      },
+    ],
+    "step": "owner: close group nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habit groups*
+
+🌱 *Habits* (this one)
+🌱 *Morning runners and ea*: 1 habit",
+      },
+    ],
+    "step": "owner: pacts",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *gym buddies*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group gym buddies",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "x-fam",
+        "ref": null,
+        "text": "🌱 I'm keeping habits in this group now.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. Anyone here can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+      },
+    ],
+    "step": "an existing group joins",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "x-blank",
+        "ref": null,
+        "text": "🌱 I'm keeping habits in this group now.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. Anyone here can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+      },
+    ],
+    "step": "an existing group with no name joins",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habit groups*
+
+🌱 *Habits* (this one)
+🌱 *gym buddies*: 2 habits
+🌱 *Morning runners and ea*: 1 habit
+🌱 *Habits*: 0 habits
+🌱 *Family*: 0 habits",
+      },
+    ],
+    "step": "owner: groups",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "an existing group leaves",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Habits* is closed. What everyone logged is kept.",
+      },
+    ],
+    "step": "owner: close group habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habit groups*
+
+🌱 *Habits* (this one)
+🌱 *gym buddies*: 2 habits
+🌱 *Morning runners and ea*: 1 habit",
+      },
+    ],
+    "step": "owner: groups",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "web: a group with no name",
+    "threw": "Give the group a name, like new group gym buddies.",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "web: a group that exists",
+    "threw": "You already have a group called gym buddies.",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *team 0*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group team 0",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *team 1*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group team 1",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *team 2*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group team 2",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *team 3*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group team 3",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *team 4*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group team 4",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *team 5*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group team 5",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *team 6*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group team 6",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *team 7*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group team 7",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "That's the most habit groups I can keep (10). Close one first.",
+      },
+    ],
+    "step": "owner: new group team 8",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "That's the most habit groups I can keep (10). Close one first.",
+      },
+    ],
+    "step": "owner: new group one too many",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "web: one group too many",
+    "threw": "That's the most habit groups I can keep (10). Close one first.",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > making, listing and closing habit groups 2`] = `
+{
+  "gym-buddies": {
+    "hello": "🌱 This is your habit group *gym buddies*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 gym buddies",
+  },
+  "morning-runners-and-ea": {
+    "hello": "🌱 This is your habit group *Morning runners and ea*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 Morning runners and ea",
+  },
+  "team-0": {
+    "hello": "🌱 This is your habit group *team 0*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 team 0",
+  },
+  "team-1": {
+    "hello": "🌱 This is your habit group *team 1*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 team 1",
+  },
+  "team-2": {
+    "hello": "🌱 This is your habit group *team 2*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 team 2",
+  },
+  "team-3": {
+    "hello": "🌱 This is your habit group *team 3*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 team 3",
+  },
+  "team-4": {
+    "hello": "🌱 This is your habit group *team 4*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 team 4",
+  },
+  "team-5": {
+    "hello": "🌱 This is your habit group *team 5*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 team 5",
+  },
+  "team-6": {
+    "hello": "🌱 This is your habit group *team 6*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 team 6",
+  },
+  "team-7": {
+    "hello": "🌱 This is your habit group *team 7*.
+
+Tell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.
+
+Send _habits_ here any time to see how it's going.",
+    "name": "🌱 team 7",
+  },
+}
+`;
+
+exports[`habits: every reply, word for word > plain sentences in a habit group 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌱 I'm making a WhatsApp group called *gym buddies*. Once it appears, tell me a habit there. Add other people to it if you want company.",
+      },
+    ],
+    "step": "owner: new group gym buddies",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "There are no habits here yet. Add one, like _add gym_.",
+      },
+    ],
+    "step": "asha in gym-buddies means log_done: did it",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "Asha, you're set up. I'm keeping your streak from here on.",
+      },
+    ],
+    "step": "asha in gym-buddies means set_me_up: set me up please",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies means set_me_up: set me up please",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "What should I call it? Like _add gym on mon wed fri_.",
+      },
+    ],
+    "step": "asha in gym-buddies means add_habit: I want to start a habit",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha in gym-buddies means add_habit: I want to go to the gym on weekdays at 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Meera. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "meera",
+        },
+      },
+    ],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "meera in gym-buddies means log_done: did it",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies means add_habit: let's read every day",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "Which habit? Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner in gym-buddies means log_done: did it",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies means log_done: I did read",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "ravi in gym-buddies means missed: no gym for me",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner in gym-buddies means undo_done: not read, sorry",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "🌱 *gym buddies*
+
+1. *Gym*  Together 🔥 0  ⏰ 7am  📅 weekdays
+Meera Nair  🔥 1
+Asha Rao  🔥 0
+Ravi  🔥 0
+
+2. *Read*
+Test Person  🔥 0",
+      },
+    ],
+    "step": "owner in gym-buddies means list: who is ahead",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "🌱 *gym buddies*
+
+1. *Gym*  Together 🔥 0  ⏰ 7am  📅 weekdays
+Meera Nair  🔥 1
+Asha Rao  🔥 0
+Ravi  🔥 0
+
+2. *Read*
+Test Person  🔥 0",
+      },
+    ],
+    "step": "ravi in gym-buddies means help: what can I say",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": "gym-buddies",
+        "ref": null,
+        "text": "That's the most habits one group can hold (12). Stop one first.",
+      },
+    ],
+    "step": "owner in gym-buddies means add_habit: I want to swim",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > the daily check-in and its answers 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add read at 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add gym on tue thu",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Meditate today?  🔥 0",
+        "ref": {
+          "day": "2026-11-09",
+          "habitId": "id1",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-09 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner votes 0 on Meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner votes 1 on Meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner votes 0 on Meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Read*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Read today?  🔥 0",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "id2",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-10 at 7",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Meditate today?  🔥 1",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "id1",
+        },
+      },
+      {
+        "confirm": "*Gym*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Gym today?  🔥 0",
+        "ref": {
+          "day": "2026-11-10",
+          "habitId": "id3",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-10 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner votes 0 on Meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner votes 1 on Gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: simple on",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "Meditate  🔥 2",
+        "ref": {
+          "day": "2026-11-11",
+          "habitId": "id1",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-11 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: delete polls on",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "Meditate  🔥 0",
+        "ref": {
+          "day": "2026-11-12",
+          "habitId": "id1",
+        },
+      },
+      {
+        "confirm": "*Gym*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "Gym  🔥 0",
+        "ref": {
+          "day": "2026-11-12",
+          "habitId": "id3",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-12 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Meditate*: Yes",
+      },
+    ],
+    "step": "owner votes 0 on Meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Gym*: No",
+      },
+    ],
+    "step": "owner votes 1 on Gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: simple off",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "*Meditate*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Meditate today?  🔥 1",
+        "ref": {
+          "day": "2026-11-13",
+          "habitId": "id1",
+        },
+      },
+      {
+        "confirm": "*Read*: {{option}}",
+        "group": null,
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "options": [
+          "Yes",
+          "No",
+        ],
+        "question": "🌱 Did you Read today?  🔥 0",
+        "ref": {
+          "day": "2026-11-13",
+          "habitId": "id2",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule nightly on 2026-11-13 at 21",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Read*: No",
+      },
+    ],
+    "step": "owner votes 1 on Read",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > the person's own commands 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "No habits yet. Add one: _add meditate_",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add read at 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add gym on mon wed fri",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Name the habit, like _add meditate_.",
+      },
+    ],
+    "step": "owner: add ...",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: add meditate at 6am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: done meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: done read",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: done gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: done meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: done meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: done gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: undo gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: done 1",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: did gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Read*  ⏰ 7am
+🟩⬜⬜⬜🟩⬜⬜
+
+2. *Gym*  🔥 1  📅 Mon, Wed, Fri
+🟩▫️⬜▫️🟩▫️▫️
+
+3. *Meditate*  ⏰ 6am
+🟩🟩🟩⬜⬜⬜⬜
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Read*  ⏰ 7am
+🟩⬜⬜⬜🟩⬜⬜
+
+2. *Gym*  🔥 1  📅 Mon, Wed, Fri
+🟩▫️⬜▫️🟩▫️▫️
+
+3. *Meditate*  ⏰ 6am
+🟩🟩🟩⬜⬜⬜⬜
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: streaks",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing". Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner: done nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing". Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner: undo nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing". Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner: stop nothing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Give me a time like _time meditate 7am_.",
+      },
+    ],
+    "step": "owner: time meditate 25",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: time meditate 5am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: time meditate default",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: time read off",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Give me a time like _time 10pm_.",
+      },
+    ],
+    "step": "owner: time 25",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: time 10pm",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Gym*  🔥 1  📅 Mon, Wed, Fri
+🟩▫️⬜▫️🟩▫️▫️
+
+2. *Meditate*
+🟩🟩🟩⬜⬜⬜⬜
+
+3. *Read*
+🟩⬜⬜⬜🟩⬜⬜
+
+_I check in at 10pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: time off",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Gym*  🔥 1  📅 Mon, Wed, Fri
+🟩▫️⬜▫️🟩▫️▫️
+
+2. *Meditate*
+🟩🟩🟩⬜⬜⬜⬜
+
+3. *Read*
+🟩⬜⬜⬜🟩⬜⬜
+
+_The default check-in is off; habits with their own time (⏰) still get one. Send time 9pm to turn it on._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: delete polls on",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: delete polls off",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: simple on",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: Meditate!",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: simple off",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner: meditate",
+    "unsures": [
+      "I didn't get that. Send _help_ to see what I can do.",
+    ],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: days gym tue thu",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "I can't find "nothing". Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner: days nothing tue",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Tell me the habit and the days, like _days gym mon wed fri_ or _days gym every day_.",
+      },
+    ],
+    "step": "owner: days gym blah",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: days gym every day",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: stop gym",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*  🔥 1
+🟩🟩🟩⬜⬜⬜🟩
+
+2. *Read*
+🟩⬜⬜⬜🟩⬜⬜
+
+_The default check-in is off; habits with their own time (⏰) still get one. Send time 9pm to turn it on._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner: what is this",
+    "unsures": [
+      "I didn't get that. Send _help_ to see what I can do.",
+    ],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner: yes",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner: no",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner: maybe",
+    "unsures": [
+      "I didn't get that. Send _help_ to see what I can do.",
+    ],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Habits*
+
+_add meditate_ starts a habit
+_habits_ shows your streaks
+_done meditate_ logs it for today, _undo meditate_ takes it back
+_stop meditate_ stops tracking it
+_time 10pm_ sets the default check-in time, _time off_ turns it off
+_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back
+_add read at 10pm_ adds a habit with its own time
+_add gym on mon wed fri_ adds a habit for some days only
+_days gym tue thu_ changes its days, _days gym every day_ puts it back
+_simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off
+_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it
+
+*More groups:* _new group gym buddies_ makes another Habits group, for a different set of habits or of people
+_groups_ lists yours, _close group gym buddies_ ends one
+
+*With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks
+
+Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
+      },
+    ],
+    "step": "owner: help (straight to the plugin)",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner reacts ✅ to an old check-in",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner reacts ❌ to an old check-in",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner reacts 🎉 to an old check-in",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "",
+    ],
+    "sent": [],
+    "step": "owner reacts null to an old check-in",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > the person's own plain sentences 1`] = `
+[
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "You don't have any habits yet. Start with _add meditate_.",
+      },
+    ],
+    "step": "owner means log_done: I did it",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means set_me_up: set me up",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Habits*
+
+_add meditate_ starts a habit
+_habits_ shows your streaks
+_done meditate_ logs it for today, _undo meditate_ takes it back
+_stop meditate_ stops tracking it
+_time 10pm_ sets the default check-in time, _time off_ turns it off
+_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back
+_add read at 10pm_ adds a habit with its own time
+_add gym on mon wed fri_ adds a habit for some days only
+_days gym tue thu_ changes its days, _days gym every day_ puts it back
+_simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off
+_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it
+
+*More groups:* _new group gym buddies_ makes another Habits group, for a different set of habits or of people
+_groups_ lists yours, _close group gym buddies_ ends one
+
+*With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks
+
+Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
+      },
+    ],
+    "step": "owner means help: how does this work",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "No habits yet. Add one: _add meditate_",
+      },
+    ],
+    "step": "owner means list: how am I doing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "What should I call it? Like _add gym on mon wed fri_.",
+      },
+    ],
+    "step": "owner means add_habit: I want to start a habit",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means add_habit: I want to run every day at 6am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means add_habit: help me meditate on weekdays",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Run*  ⏰ 6am
+⬜
+
+2. *Meditate*  📅 weekdays
+⬜
+
+_I check in at 9pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner means list: how am I doing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means default_time: stop the check-ins",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "What time? Like _time 9pm_, or _time off_.",
+      },
+    ],
+    "step": "owner means default_time: change when you ask me",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means default_time: ask me at 8pm",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Which habit? Send _habits_ to see them.",
+      },
+    ],
+    "step": "owner means log_done: I did it",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner means log_done: I did it",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "✅",
+    ],
+    "sent": [],
+    "step": "owner means log_done: finished my meditate for today",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means missed: no run today",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means undo_done: oops not meditate",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Which days? Like _days run mon wed fri_.",
+      },
+    ],
+    "step": "owner means set_days: change the days for run",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means set_days: run on weekends only",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "What time? Like _time run 7am_.",
+      },
+    ],
+    "step": "owner means set_time: change the time for run",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means set_time: run at 7am",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means set_time: run back to the usual time",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*  📅 weekdays
+⬜
+
+2. *Run*  📅 weekends
+▫️
+
+_I check in at 8pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner means list: how am I doing",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "owner means remove_habit: I don't want run any more",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your habits* (last 14 days)
+
+1. *Meditate*  📅 weekdays
+⬜
+
+_I check in at 8pm unless a habit has its own time (⏰)._",
+      },
+    ],
+    "step": "owner: habits",
+    "unsures": [],
+  },
+]
+`;
+
+exports[`habits: every reply, word for word > what the listing says on WhatsApp 1`] = `
+{
+  "groupName": "🌱 Habits",
+  "help": "*Habits*
+
+_add meditate_ starts a habit
+_habits_ shows your streaks
+_done meditate_ logs it for today, _undo meditate_ takes it back
+_stop meditate_ stops tracking it
+_time 10pm_ sets the default check-in time, _time off_ turns it off
+_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back
+_add read at 10pm_ adds a habit with its own time
+_add gym on mon wed fri_ adds a habit for some days only
+_days gym tue thu_ changes its days, _days gym every day_ puts it back
+_simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off
+_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it
+
+*More groups:* _new group gym buddies_ makes another Habits group, for a different set of habits or of people
+_groups_ lists yours, _close group gym buddies_ ends one
+
+*With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks
+
+Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
+  "welcome": "🌱 You've installed *Habits*.
+
+Tell me a habit you want to build, in your own words, or send _add meditate_. Every day I'll ask about each one with a poll: tap Yes if you did it, No if you didn't.
+
+Send _help_ any time.",
+}
+`;
