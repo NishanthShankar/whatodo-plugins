@@ -178,9 +178,13 @@ describe("a friend without a profile", () => {
     expect(o).toMatchObject({ options: ["Yes", "Not now"], group: P, keep: false });
     // Counted already: the streak doesn't wait for the answer.
     expect((await web(t))[0].habits[0].people.find((p) => p.id === "asha")).toMatchObject({ name: "Asha Rao", streak: 1 });
-    // Someone else tapping her offer changes nothing.
+    // Someone else tapping her offer changes nothing, and is told why, once.
     await t.answer(habits, o.ref, 0, ravi);
     expect(t.signedUp).toEqual([]);
+    expect(t.sent.at(-1)!.text).toBe("I need consent from Asha for this, so only Asha's vote counts here.");
+    const said = t.sent.length;
+    await t.answer(habits, o.ref, 1, ravi);
+    expect(t.sent.length).toBe(said);
     await t.answer(habits, o.ref, 0, asha);
     expect(t.signedUp).toEqual(["asha"]);
     expect(t.sent.at(-1)!.text).toBe("Asha, you're set up. I'm keeping your streak from here on.");

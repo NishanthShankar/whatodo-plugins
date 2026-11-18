@@ -56,6 +56,8 @@ interface Person {
   asked?: string;
   /** true: said yes. false: said not now. */
   profile?: boolean;
+  /** Someone else voted on their offer and was told it needs their own consent (said once). */
+  told?: boolean;
 }
 
 export interface PactRef {
@@ -607,7 +609,14 @@ export async function pactAnswer(event: AnswerEvent, kit: Kit): Promise<void> {
   const ref = event.ref;
   if (isOfferRef(ref)) {
     // The offer is one person's to answer; a tap from anyone else on it is not theirs to give.
-    if (sender.id !== ref.offer) return;
+    if (sender.id !== ref.offer) {
+      const them = await kit.store.get<Person>("people", ref.offer);
+      if (!them || them.told) return;
+      await kit.store.put("people", ref.offer, { ...them, told: true } as unknown as Json);
+      const name = first(them.name);
+      kit.send(name ? `I need consent from ${name} for this, so only ${name}'s vote counts here.` : "I need consent from the person I asked, so only their vote counts here.");
+      return;
+    }
     if (event.choice === 0) {
       await accept(kit, sender);
       kit.send(`${first(sender.name) ? `${first(sender.name)}, you're` : "You're"} set up. I'm keeping your streak from here on.`);
