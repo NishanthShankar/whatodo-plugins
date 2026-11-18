@@ -1,0 +1,697 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`forms copy: a form's own group > given later: once, not to an unknown form, not to a closed one 1`] = `
+{
+  "asked": [],
+  "groups": [
+    [
+      "contact",
+      {
+        "hello": "📬 This group is for your form *Contact*. Every submission to it arrives here.
+
+Send _last_ for the latest one or _address_ for the form's address.",
+        "name": "📬 Contact",
+      },
+    ],
+  ],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 I'm making a WhatsApp group just for *Contact*. Its submissions will arrive there (here until it's ready).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Contact* already has its own group.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a form called "nope". Send _forms_ to see yours.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Old One* is closed. Send _new form old-one in its own group_ to open it again.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: a form's own group > inside it, last, address, new address and close are about that form 1`] = `
+{
+  "asked": [],
+  "groups": [
+    [
+      "contact",
+      {
+        "hello": "📬 This group is for your form *Contact*. Every submission to it arrives here.
+
+Send _last_ for the latest one or _address_ for the form's address.",
+        "name": "📬 Contact",
+      },
+    ],
+  ],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": "contact",
+      "ref": null,
+      "text": "Nothing has come in yet.",
+    },
+    {
+      "group": "contact",
+      "ref": {
+        "id": "mwkitz40id1",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+*name:* Asha",
+    },
+    {
+      "group": "contact",
+      "ref": {
+        "id": "mwkitz40id1",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+*name:* Asha",
+    },
+    {
+      "group": "contact",
+      "ref": null,
+      "text": "📬 *Contact*
+
+Post to this address:
+https://hooks.test/contact
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.",
+    },
+    {
+      "group": "contact",
+      "ref": null,
+      "text": "📬 *Contact* has a new address. The old one no longer works, so update your website:
+
+https://hooks.test/contact
+
+Everything it received is still here.",
+    },
+    {
+      "group": "contact",
+      "ref": null,
+      "text": "*Contact* is closed. Its address no longer works. What it received is still on app.whatodo.today.",
+    },
+    {
+      "group": "contact",
+      "ref": null,
+      "text": "*Contact* is closed. Send _new form contact_ to open it again with a new address.",
+    },
+    {
+      "group": "contact",
+      "ref": null,
+      "text": "*Contact* is closed. Send _new form contact_ to open it again with a new address.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: a form's own group > made with the form, and the daily number said there 1`] = `
+{
+  "asked": [],
+  "groups": [
+    [
+      "partner-applications-for-this",
+      {
+        "hello": "📬 This group is for your form *Partner Applications For This Year*. Every submission to it arrives here.
+
+Send _last_ for the latest one or _address_ for the form's address.",
+        "name": "📬 Partner Applications F",
+      },
+    ],
+  ],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 Your form *Partner Applications For This Year* is ready.
+
+Post to this address:
+https://hooks.test/partner-applications-for-this
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.
+
+I'm making a WhatsApp group just for this form. Submissions will arrive there (here until it's ready). Send _address partner-applications-for-this_ to see this again.",
+    },
+    {
+      "group": "partner-applications-for-this",
+      "ref": {
+        "id": "mwkitz40id1",
+        "kind": "submission",
+      },
+      "text": "📬 *Partner Applications For This Year*
+*name:* Asha",
+    },
+    {
+      "group": "partner-applications-for-this",
+      "ref": null,
+      "text": "📬 *Partner Applications For This Year* has had more than 1 submissions today. I'll stop messaging about it until tomorrow. They're all on app.whatodo.today.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: making and listing > a new address, for an unknown form and for a closed one 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 *Contact* has a new address. The old one no longer works, so update your website:
+
+https://hooks.test/contact
+
+Everything it received is still here.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a form called "nope". Send _forms_ to see yours.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Contact* is closed. Its address no longer works. What it received is still on app.whatodo.today.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Contact* is closed. Send _new form contact_ to open it again with a new address.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 Your form *Contact* is ready.
+
+Post to this address:
+https://hooks.test/contact
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.
+
+Submissions will arrive here. Send _address contact_ to see this again.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: making and listing > a new form, a second one of the same name, and one with no name 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 Your form *Contact* is ready.
+
+Post to this address:
+https://hooks.test/contact
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.
+
+Submissions will arrive here. Send _address contact_ to see this again.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "You already have a form called *Contact*. Send _address contact_ for its address.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Give the form a name, like _new form contact_.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: making and listing > no more than fifty 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "That's the most forms I can keep (50). Delete one on app.whatodo.today first.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: making and listing > the address again, of an unknown form and of a closed one 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 *Contact*
+
+Post to this address:
+https://hooks.test/contact
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a form called "nope". Send _forms_ to see yours.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Contact* is closed. Its address no longer works. What it received is still on app.whatodo.today.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Contact* is closed. Send _new form contact_ to open it again with a new address.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a form called "nope". Send _forms_ to see yours.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: making and listing > the list: none, open and closed, one submission and several 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "No forms yet. Send _new form contact_ to make one.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 Your form *Contact* is ready.
+
+Post to this address:
+https://hooks.test/contact
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.
+
+Submissions will arrive here. Send _address contact_ to see this again.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 Your form *Partner Applications* is ready.
+
+Post to this address:
+https://hooks.test/partner-applications
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.
+
+Submissions will arrive here. Send _address partner-applications_ to see this again.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 Your form *Old One* is ready.
+
+Post to this address:
+https://hooks.test/old-one
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.
+
+Submissions will arrive here. Send _address old-one_ to see this again.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id1",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+*name:* Asha",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id2",
+        "kind": "submission",
+      },
+      "text": "📬 *Partner Applications*
+*name:* Asha",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id3",
+        "kind": "submission",
+      },
+      "text": "📬 *Partner Applications*
+*name:* Ravi",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Old One* is closed. Its address no longer works. What it received is still on app.whatodo.today.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your forms*
+
+*Contact*: 1 submission
+https://hooks.test/contact
+
+*Old One* (closed): 0 submissions
+
+*Partner Applications*: 2 submissions
+https://hooks.test/partner-applications",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: submissions > a tick marks one done and is ticked back; taking it off clears it; other emoji do nothing 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "✅",
+    "",
+    "✅",
+  ],
+  "sent": [],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: submissions > fields, long values, many fields, files and nothing at all 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id1",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+*name:* Asha
+*email:* asha@example.com
+*message:* Hello
+📎 id-proof.pdf (234 KB), photo.jpg (1.2 MB), note.txt (500 B)
+_Open the files on app.whatodo.today._",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id2",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+*message:* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id3",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+*field 1:* value 1
+*field 2:* value 2
+*field 3:* value 3
+*field 4:* value 4
+*field 5:* value 5
+*field 6:* value 6
+*field 7:* value 7
+*field 8:* value 8
+*field 9:* value 9
+*field 10:* value 10
+*field 11:* value 11
+*field 12:* value 12
+_and 3 more fields_",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id4",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+_An empty submission._",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id5",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+📎 only.pdf (2 KB)
+_Open the files on app.whatodo.today._",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id6",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+*long field number 1:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 2:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 3:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 4:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 5:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 6:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 7:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 8:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 9:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 10:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 11:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy…
+*long field number 12:* yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: submissions > the daily number: said once, then quiet 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id1",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+*n:* 1",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id2",
+        "kind": "submission",
+      },
+      "text": "📬 *Contact*
+*n:* 2",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 *Contact* has had more than 2 submissions today. I'll stop messaging about it until tomorrow. They're all on app.whatodo.today.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: submissions > the latest: none, of all forms, of one, of an unknown form, and of a form that is gone 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing has come in yet.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 Your form *a* is ready.
+
+Post to this address:
+https://hooks.test/a
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.
+
+Submissions will arrive here. Send _address a_ to see this again.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "📬 Your form *Bee Two* is ready.
+
+Post to this address:
+https://hooks.test/bee-two
+
+Use it as your form's _action_ (method POST), or send JSON to it from a script. Files work with a normal file field.
+
+Submissions will arrive here. Send _address bee-two_ to see this again.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id1",
+        "kind": "submission",
+      },
+      "text": "📬 *a*
+*n:* 1",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkkz4w0id2",
+        "kind": "submission",
+      },
+      "text": "📬 *Bee Two*
+*n:* 2",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkkz4w0id2",
+        "kind": "submission",
+      },
+      "text": "📬 *Bee Two*
+*n:* 2",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkitz40id1",
+        "kind": "submission",
+      },
+      "text": "📬 *a*
+*n:* 1",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a form called "nope". Send _forms_ to see yours.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "id": "mwkkz4w0id2",
+        "kind": "submission",
+      },
+      "text": "📬 *bee-two*
+*n:* 2",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: what the plugin says about itself > help, and a message that is not understood 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Forms*
+
+_new form contact_ makes a form and gives you its address
+_new form contact in its own group_ also makes a WhatsApp group just for it
+_group contact_ gives a form you already have its own group
+_forms_ lists your forms and their addresses
+_address contact_ shows one form's address again
+_last_ (or _last contact_) shows the latest submission
+_new address contact_ replaces a form's address if the old one is being misused
+_close contact_ stops a form taking submissions
+
+Each submission arrives here as a message. React ✅ when you've dealt with it.
+Everything is kept on app.whatodo.today, where you can open the files and delete things.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I didn't get that. Send _help_ to see what I can do.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`forms copy: what the plugin says about itself > welcome, help and group name 1`] = `
+{
+  "groupName": "📬 Forms",
+  "help": "*Forms*
+
+_new form contact_ makes a form and gives you its address
+_new form contact in its own group_ also makes a WhatsApp group just for it
+_group contact_ gives a form you already have its own group
+_forms_ lists your forms and their addresses
+_address contact_ shows one form's address again
+_last_ (or _last contact_) shows the latest submission
+_new address contact_ replaces a form's address if the old one is being misused
+_close contact_ stops a form taking submissions
+
+Each submission arrives here as a message. React ✅ when you've dealt with it.
+Everything is kept on app.whatodo.today, where you can open the files and delete things.",
+  "welcome": "📬 You've installed *Forms*.
+
+Send _new form contact_ to make your first form. I'll give you an address to paste into your website, and every submission will arrive here.
+
+Send _help_ for more.",
+}
+`;
