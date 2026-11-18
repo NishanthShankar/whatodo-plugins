@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-11-18
+
+### Changed
+- Every check-in shows the streak, with simple messages on too: `Read  🔥 5`. A streak of zero is shown as 🔥 0, so the number is always there.
+
 ## [2.0.0] - 2026-11-18
 
 ### Changed
