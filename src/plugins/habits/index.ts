@@ -223,7 +223,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "3.6.0",
+  version: "3.6.1",
   sdk: "1",
   name: "Habits",
   icon: "🌱",

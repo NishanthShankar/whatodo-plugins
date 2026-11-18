@@ -2,6 +2,11 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.18.0] - 2026-11-19
+
+### Added
+- `msg([...])` and `fixed("...")` (src/copy.ts): a plugin writes each message as a list of wordings in its own `copy.ts` and one is picked each time it is sent; `fixed` is for text that code compares against and must have one wording. `useRandom(fn)` replaces the random source in tests. Every plugin in this repo now keeps its text this way.
+
 ## [1.17.0] - 2026-11-18
 
 ### Added
