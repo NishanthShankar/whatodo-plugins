@@ -44,12 +44,11 @@ describe("starting a pact", () => {
     expect(t.sent.at(-1)!.text).toMatch(/don't have a pact/);
   });
 
-  it("keeps the private group to its owner", async () => {
+  it("the private list stays its owner's to change", async () => {
     const t = createTestKit();
     await t.message(habits, "add read", null, null, asha);
     expect(Object.keys(t.dump()).filter((k) => k.startsWith("habits/"))).toHaveLength(0);
-    expect(t.reactions).toEqual([]);
-    expect(t.sent).toEqual([]);
+    expect(t.sent.at(-1)!.text).toBe("This is Test's list, so only they add or change habits here. You can take part in any of them: just answer its poll.");
   });
 });
 
@@ -254,5 +253,93 @@ describe("in the pact's group", () => {
     await expect(t.act(habits, "createPact", { name: "study group" })).rejects.toThrow(/already have/);
     await t.act(habits, "closePact", { key: "study-group" });
     expect((await web(t))[0].closed).toBe(true);
+  });
+});
+
+describe("a friend in the private Habits group", () => {
+  const streaks = async (t: T) => ((await t.load(habits)) as unknown as { habits: { streak: number }[] }).habits.map((h) => h.streak);
+
+  it("takes part by answering the check-in, with their own streak, and the poll then stays for everyone", async () => {
+    const t = createTestKit({ today: "2026-11-10", hour: 21 });
+    await t.message(habits, "add read");
+    await t.message(habits, "delete polls on");
+    await t.schedule(habits, "checkin");
+    const q = t.asked[0];
+    expect(q.keep).toBe(false);
+    await t.answer(habits, q.ref, 0, ravi);
+    // The owner's own streak is untouched by a friend's answer.
+    expect(await streaks(t)).toEqual([0]);
+    t.setToday("2026-11-11");
+    await t.message(habits, "done read");
+    await t.schedule(habits, "checkin");
+    const next = t.asked.at(-1)!;
+    // Asked even though the owner already did it, kept even with delete polls on, and it shows everyone.
+    expect(next.keep).toBe(true);
+    expect(next.question).toBe("🌱 Did you Read today?  Together 🔥 0 · Ravi 🔥 1 · Test 🔥 1");
+    await t.answer(habits, next.ref, 0, ravi);
+    await t.message(habits, "habits");
+    expect(t.sent.at(-1)!.text).toContain("Together 🔥 1");
+    expect(t.sent.at(-1)!.text).toContain("Ravi  🔥 2");
+  });
+
+  it("is offered a profile on their first answer there too", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add read");
+    await t.schedule(habits, "checkin");
+    await t.answer(habits, t.asked[0].ref, 0, asha);
+    const o = offer(t, "asha")!;
+    expect(o.group).toBeNull();
+    await t.answer(habits, o.ref, 1, asha);
+    expect(t.sent.at(-1)!.text).toMatch(/^No problem, Asha\./);
+  });
+
+  it("can log, undo, join, leave and see the list, in a few words or their own", async () => {
+    const t = createTestKit();
+    await t.message(habits, "add read");
+    await t.message(habits, "done read", null, null, ravi);
+    expect(t.reactions.at(-1)).toBe("✅");
+    await t.message(habits, "habits", null, null, ravi);
+    expect(t.sent.at(-1)!.text).toContain("Ravi  🔥 1");
+    await t.message(habits, "undo read", null, null, ravi);
+    await t.message(habits, "leave read", null, null, ravi);
+    await t.message(habits, "habits", null, null, ravi);
+    expect(t.sent.at(-1)!.text).not.toContain("Ravi");
+    await t.intent(habits, "finished reading for today", "log_done", null, 1, ravi);
+    await t.intent(habits, "how are we doing", "list", null, 1, ravi);
+    expect(t.sent.at(-1)!.text).toContain("Ravi  🔥 1");
+    await t.intent(habits, "let's add yoga", "add_habit", null, 1, ravi);
+    expect(t.sent.at(-1)!.text).toMatch(/^This is Test's list/);
+    await t.message(habits, "done yoga", null, null, ravi);
+    expect(t.sent.at(-1)!.text).toMatch(/can't find "yoga" here/);
+  });
+
+  it("is told to log in before having a group of their own, here and in a pact", async () => {
+    const t = createTestKit();
+    await pact(t);
+    const want = "To have a group of your own, log in at app.whatodo.today and add Habits there. It takes a minute, and then I'll make it for you.";
+    await t.message(habits, "new pact study", null, null, ravi);
+    expect(t.sent.at(-1)!.text).toBe(want);
+    await t.message(habits, "I want to make my own group", null, P, ravi);
+    expect(t.sent.at(-1)!.text).toBe(want);
+    expect(t.groups.size).toBe(1);
+  });
+
+  it("sees only what they take part in on their own page", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add read");
+    await t.message(habits, "add walk");
+    await pact(t);
+    await t.message(habits, "done read", null, null, ravi);
+    await t.message(habits, "done gym", null, P, ravi);
+    await t.message(habits, "done gym", null, P);
+    const page = (await t.loadFor(habits, ravi)) as unknown as { groups: { key: string | null; name: string; habits: { name: string; streak: number; together: number; people: { name: string | null; me: boolean; streak: number }[] }[] }[] };
+    expect(page.groups.map((g) => [g.key, g.name, g.habits.map((h) => h.name)])).toEqual([
+      [null, "Test's habits", ["Read"]],
+      [P, "Gym Buddies", ["Gym"]],
+    ]);
+    expect(page.groups[1].habits[0]).toMatchObject({ streak: 1, together: 1 });
+    expect(page.groups[1].habits[0].people.find((p) => p.me)).toMatchObject({ name: null, streak: 1 });
+    // Someone who takes part in nothing sees nothing.
+    expect(((await t.loadFor(habits, asha)) as unknown as { groups: unknown[] }).groups).toEqual([]);
   });
 });

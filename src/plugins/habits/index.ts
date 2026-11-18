@@ -1,5 +1,5 @@
 import { definePlugin, type Kit } from "../../sdk";
-import { closePact, createPact, isOfferRef, isPactRef, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, type Tools } from "./pact";
+import { closePact, createPact, forFriend, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, standings, withStandings, type Tools } from "./pact";
 import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
@@ -196,6 +196,11 @@ async function summary(kit: Kit): Promise<string> {
     const own = typeof habit.hour === "number" ? `  ⏰ ${hourLabel(habit.hour)}` : "";
     const when = habit.days?.length ? `  📅 ${daysLabel(habit.days)}` : "";
     lines.push("", `${i + 1}. *${habit.name}*${s ? `  🔥 ${s}` : ""}${own}${when}`, grid(done, kit.today, 14, habit.createdDay, habit.days));
+    // Friends taking part in it: everyone's streak, and the days all of them did it.
+    if (await hasFriends(kit, id)) {
+      const st = await standings(kit, id, habit.days, { name: kit.person.name, since: habit.createdDay, done });
+      lines.push(`Together 🔥 ${st.together}`, ...st.people.filter((p) => p.id !== OWNER).map((p) => `${p.name ?? "Someone"}  🔥 ${p.streak}`));
+    }
   }
   const hour = kit.settings.checkinHour;
   lines.push(
@@ -244,7 +249,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "3.1.0",
+  version: "3.2.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -274,9 +279,12 @@ export default definePlugin({
   schedules: [{ id: "checkin", hour: "hourly" }],
 
   async onMessage(event, kit) {
-    // A pact's group: everyone there is heard. The private group: only the person it belongs to.
+    // A pact's group: everyone there adds and answers. The person's own Habits group: friends
+    // they added can take part in their habits, but the list stays theirs to change.
     if (event.group) return pactMessage(event, kit, TOOLS);
-    if (event.sender && !event.sender.owner) return;
+    if (event.sender && !event.sender.owner) {
+      return friendMessage(event, kit, (await active(kit)).map((h) => ({ id: h.id, name: h.habit.name })), () => summary(kit));
+    }
     const text = event.text.trim();
     const lower = text.toLowerCase();
 
@@ -415,7 +423,9 @@ export default definePlugin({
 
   async onIntent(event, kit) {
     if (event.group) return pactIntent(event, kit, TOOLS);
-    if (event.sender && !event.sender.owner) return;
+    if (event.sender && !event.sender.owner) {
+      return friendIntent(event, kit, (await active(kit)).map((h) => ({ id: h.id, name: h.habit.name })), () => summary(kit));
+    }
     const { text, intent, target } = event;
     const list = await active(kit);
     // Only someone in a pact needs setting up; here it is the owner, who already is.
@@ -494,9 +504,14 @@ export default definePlugin({
     // A tap on a check-in poll: Yes did it, No didn't (closes the day). While the poll stays
     // they can change it, and the latest answer is the one that counts.
     if (isOfferRef(event.ref) || isPactRef(event.ref)) return pactAnswer(event, kit);
-    if (event.sender && !event.sender.owner) return;
     const ref = event.ref as PromptRef | null;
     if (!ref || typeof ref !== "object" || typeof ref.habitId !== "string" || typeof ref.day !== "string") return;
+    // A friend in the group answering one of the owner's check-ins: they are doing it too.
+    if (event.sender && !event.sender.owner) {
+      const h = await kit.store.get<Habit>("habits", ref.habitId);
+      if (h && !h.archived) await friendAnswer(event, kit, ref.habitId, ref.day);
+      return;
+    }
     await setDay(kit, ref.habitId, ref.day, event.choice === 0 ? "done" : "missed");
     // A 👍 on the poll says it landed. Once is enough, and a deleted poll has its own line.
     if (!event.changed && kit.settings.deletePolls !== true) kit.react("👍");
@@ -509,8 +524,10 @@ export default definePlugin({
       if (event.id === "checkin" && hourOf(habit, kit) !== now) continue;
       if (!isOn(habit.days, kit.today)) continue; // not one of its days
       const done = await doneDays(kit, id);
-      if (done.has(kit.today)) continue;
-      if (await kit.store.get("missed", `${id}:${kit.today}`)) continue; // they already said no
+      // With friends taking part the poll goes out even when the owner has answered: it is theirs too.
+      const shared = await hasFriends(kit, id);
+      if (!shared && done.has(kit.today)) continue;
+      if (!shared && (await kit.store.get("missed", `${id}:${kit.today}`))) continue; // they already said no
       const s = streak(done, kit.today, habit.days);
       // This habit's earlier check-in stops taking answers now that a new one goes out.
       const last = await kit.store.get<string>("asked", id);
@@ -518,11 +535,16 @@ export default definePlugin({
       await kit.store.put("asked", id, kit.today, kit.today);
       // The streak is on every check-in, a zero included. Simple messages: just the habit's
       // name and the streak.
-      const question = kit.settings.quickLog === true ? `${habit.name}  🔥 ${s}` : `🌱 Did you ${habit.name} today?  🔥 ${s}`;
+      const question = shared
+        ? withStandings(kit.settings.quickLog === true ? habit.name : `🌱 Did you ${habit.name} today?`, await standings(kit, id, habit.days, { name: kit.person.name, since: habit.createdDay, done }))
+        : kit.settings.quickLog === true
+          ? `${habit.name}  🔥 ${s}`
+          : `🌱 Did you ${habit.name} today?  🔥 ${s}`;
       kit.ask(question.slice(0, 255), CHECKIN_OPTIONS, {
         ref: { habitId: id, day: kit.today },
         // The poll stays so the answer can be corrected, unless they asked for it to be deleted.
-        keep: kit.settings.deletePolls !== true,
+        // With friends it always stays: the poll is how everyone sees who did it.
+        keep: shared || kit.settings.deletePolls !== true,
         confirm: `*${habit.name}*: {{option}}`,
       });
     }
@@ -560,6 +582,13 @@ export default definePlugin({
         habits: out,
         pacts: await pactsForWeb(kit, days),
       };
+    },
+    /** A friend's own page: the habits they take part in here, and how everyone stands. */
+    async loadFor(kit, sender, args) {
+      const days = Math.min(Math.max(Number(args.days ?? 30) || 30, 7), 120);
+      const mine = [];
+      for (const { id, habit } of await active(kit)) mine.push({ id, name: habit.name, days: habit.days, since: habit.createdDay, done: await doneDays(kit, id) });
+      return forFriend(kit, sender, days, mine);
     },
     actions: {
       async create(kit, { name, days }) {

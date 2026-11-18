@@ -57,6 +57,10 @@ In a pact's group, from anyone there:
 | `stop gym`, `time gym 7am`, `days gym mon wed` | Only the person who added the habit or who made the pact. 👍 |
 | `set me up` / `hook me up` | Set up my profile and keep my streak (for someone who said Not now). |
 
+Friends in your own Habits group: anyone you add there is heard as well, with no step in between. They take part in any of your habits by answering its poll (or `done read`, `join read`), each with their own streak; `habits` shows everyone. They can't add or change habits there: "This is Asha's list, so only they add or change habits here." A habit with friends in it is asked every day even when you've answered, its poll always stays, and its question carries everyone's streak. A friend who asks for a group of their own is told to log in at app.whatodo.today and add Habits.
+
+A friend who logs in sees, on the web, the habits they take part in (`web.loadFor`): their own days and streak, the together streak and everyone's streaks. Nothing else of the owner's.
+
 How a pact behaves (the owner's decisions, 2026-11-18):
 - One poll a day per habit for the whole group, always kept, so the poll shows who did it. Answers can change until that habit's next check-in. Nothing is posted or reacted for an answer.
 - The question carries the standings: "🤝 Did you Gym today?  Together 🔥 4 · Asha 🔥 12 · Ravi 🔥 4".
@@ -98,7 +102,7 @@ How a pact behaves (the owner's decisions, 2026-11-18):
 
 ## Web page
 
-Lockable. `load({ days? })` returns `{ today, timezone, habitHour, quickLog, deletePolls, habits: [{ id, name, hour, days, createdDay, streak, best, total, doneDays }] }`. Actions: `create`, `rename`, `archive`, `setDay`, `setHabitHour`, `setHabitDays`, `setHour`, `setQuickLog { on }`, `setDeletePolls { on }`, `createPact { name }`, `closePact { key }`. `load` also returns `pacts: [{ key, name, closed, habits: [{ id, name, hour, days, together, people: [{ id, name, streak, total, doneDays }] }] }]`.
+Lockable. `load({ days? })` returns `{ today, timezone, habitHour, quickLog, deletePolls, habits: [{ id, name, hour, days, createdDay, streak, best, total, doneDays }] }`. Actions: `create`, `rename`, `archive`, `setDay`, `setHabitHour`, `setHabitDays`, `setHour`, `setQuickLog { on }`, `setDeletePolls { on }`, `createPact { name }`, `closePact { key }`. `loadFor(sender, { days? })` returns `{ today, groups: [{ key, name, habits: [{ id, name, streak, total, doneDays, together, people: [{ name, me, streak }] }] }] }` for a friend: only habits they take part in. `load` also returns `pacts: [{ key, name, closed, habits: [{ id, name, hour, days, together, people: [{ id, name, streak, total, doneDays }] }] }]`.
 
 ## Privacy
 
@@ -106,4 +110,4 @@ Permissions: `groups` and `members`, both for pacts.
 
 In a pact, everyone in its group is heard and can see everything posted there, including each other's answers on the polls. For each person doing a habit it stores the WhatsApp name they show, the days they said Yes or No, and whether they agreed to a telcurio profile. A person's id here is not a phone number. Someone who says Not now has their answers deleted and nothing further kept.
 
-Your private Habits group is different: it reads only its own group's messages, its own stored data, the person's time zone and name. Stores habit names and the days they were done. A message it can't read, with its intent descriptions and your habit names, is sent by telcurio to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.
+Your own Habits group works the same way once you add someone to it: they are heard and can see everything posted there, including your check-ins. With nobody else in it, it reads only its own group's messages, its own stored data, the person's time zone and name. Stores habit names and the days they were done. A message it can't read, with its intent descriptions and your habit names, is sent by telcurio to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.
