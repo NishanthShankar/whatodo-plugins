@@ -17,6 +17,31 @@ const checkin = (t: T) => t.asked.filter((a) => (a.ref as { habitId?: string })?
 const offer = (t: T, id: string) => t.asked.find((a) => (a.ref as { offer?: string })?.offer === id);
 const web = async (t: T) => ((await t.load(habits)) as unknown as { groups: { key: string; name: string; closed: boolean; habits: { name: string; together: number; people: { id: string; name: string | null; streak: number }[] }[] }[] }).groups;
 
+describe("a group the person already had", () => {
+  it("becomes a habit group with its own name, and stops when they choose something else", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.group(habits, "joined", "x-fam", "Family");
+    expect(t.sent.at(-1)).toMatchObject({ group: "x-fam" });
+    expect(t.sent.at(-1)!.text).toContain("keeping habits in this group");
+    await t.message(habits, "add walk", asha, "x-fam");
+    expect((await web(t))[0]).toMatchObject({ key: "x-fam", name: "Family", closed: false, habits: [{ name: "Walk" }] });
+    await t.message(habits, "pacts");
+    expect(t.sent.at(-1)!.text).toContain("*Family*: 1 habit");
+    await t.group(habits, "left", "x-fam", "Family");
+    expect((await web(t)).find((g) => g.key === "x-fam")).toMatchObject({ closed: true });
+    await t.schedule(habits, "checkin");
+    expect(t.asked.filter((a) => a.group === "x-fam")).toHaveLength(0);
+  });
+
+  it("can be closed by its name", async () => {
+    const t = createTestKit();
+    await t.group(habits, "joined", "x-fam", "Family");
+    await t.message(habits, "close group family");
+    expect(t.sent.at(-1)!.text).toContain("*Family* is closed");
+    expect(t.groups.has("x-fam")).toBe(false);
+  });
+});
+
 describe("starting a pact", () => {
   it("makes a group for it, and a habit added there belongs to the pact, not the private list", async () => {
     const t = createTestKit({ hour: 21 });

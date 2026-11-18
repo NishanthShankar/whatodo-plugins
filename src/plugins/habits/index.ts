@@ -1,5 +1,5 @@
 import { definePlugin, type Kit } from "../../sdk";
-import { closePact, createPact, extraLines, ownerChange, ownerDay, ownerJoin, forFriend, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, standings, withStandings, type Tools } from "./pact";
+import { closePact, createPact, existingGroup, extraLines, ownerChange, ownerDay, ownerJoin, forFriend, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, standings, withStandings, type Tools } from "./pact";
 import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
@@ -252,7 +252,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "3.5.3",
+  version: "3.6.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -503,6 +503,10 @@ export default definePlugin({
     await setDay(kit, ref.habitId, ref.day, e && DONE.has(e) ? "done" : e && MISSED.has(e) ? "missed" : null);
     // Acknowledge every reaction so the person knows it landed; take it back when theirs goes.
     kit.react(e ? "👍" : "");
+  },
+
+  async onGroup(event, kit) {
+    await existingGroup(kit, event.kind, event.key, event.name);
   },
 
   async onAnswer(event, kit) {

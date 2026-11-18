@@ -675,6 +675,33 @@ export async function createPact(kit: Kit, name: string): Promise<{ key: string;
   return { key, name: pact.name };
 }
 
+/**
+ * A WhatsApp group the person already had becomes a habit group (`joined`), or stops being one
+ * (`left`). telcurio made the key; the group keeps its own name and its own people.
+ */
+export async function existingGroup(kit: Kit, kind: "joined" | "left", key: string, name: string): Promise<void> {
+  const old = await kit.store.get<Pact>("pacts", key);
+  if (kind === "left") {
+    // Their days and habits are kept, as when a group is closed.
+    if (old && !old.closed) await kit.store.put("pacts", key, { ...old, closed: true } as unknown as Json, old.created);
+    return;
+  }
+  const clean = name.trim().replace(/\s+/g, " ").slice(0, 40) || "Habits";
+  const pact: Pact = { name: clean, created: old?.created ?? kit.now };
+  await kit.store.put("pacts", key, pact as unknown as Json, pact.created);
+  kit.send(
+    "🌱 I'm keeping habits in this group now.\n\nTell me a habit here, like _add gym_, and every day I'll ask about it with a poll. Anyone here can take part or add habits of their own.\n\nSend _habits_ here any time to see how it's going.",
+  );
+}
+
+/** A group's key from what the person called it: the key itself for groups made here, the name for ones they already had. */
+async function keyFor(kit: Kit, said: string): Promise<string> {
+  const key = slug(said);
+  if (await kit.store.get<Pact>("pacts", key)) return key;
+  const byName = (await kit.store.list<Pact>("pacts")).find((x) => !x.data.closed && slug(x.data.name) === key);
+  return byName?.key ?? key;
+}
+
 export async function closePact(kit: Kit, key: string): Promise<Pact | null> {
   const pact = await kit.store.get<Pact>("pacts", key);
   if (!pact || pact.closed) return null;
@@ -707,7 +734,7 @@ export async function privatePact(kit: Kit, text: string, lower: string): Promis
   }
   m = lower.match(new RegExp(`^(?:close|end|delete|remove)\\s+(?:the\\s+)?${GROUP}\\s+(.+)$`));
   if (m) {
-    const closed = await closePact(kit, slug(m[1]));
+    const closed = await closePact(kit, await keyFor(kit, m[1]));
     kit.send(closed ? `*${closed.name}* is closed. What everyone logged is kept.` : `I don't have a group called "${m[1]}". Send _groups_ to see yours.`);
     return true;
   }
