@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.10.0";
+export const SDK_VERSION = "1.11.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -126,12 +126,19 @@ export interface Kit {
    * `confirm`: the line posted once a one-person question is answered. `{{question}}` and
    * `{{option}}` are filled in. Default "{{question}}: {{option}}"; false for none (then say
    * something in `onAnswer`, since the poll is gone). `group` works as in `send`.
+   *
+   * `keep: true` is for an answer the person may want to correct, like a daily check-in. The
+   * poll is not deleted when it is answered and no confirm line is posted: the poll itself
+   * shows the answer. They can change it as often as they like while the question is open,
+   * and each change arrives as `onAnswer` with `changed: true`. It closes when you call
+   * `kit.close(ref)` or ask again with the same ref; the poll stays in the chat, and a later
+   * change on it is refused. Since SDK 1.11.0.
    * Since SDK 1.9.0.
    */
-  ask(question: string, options: string[], opts?: { ref?: Json; group?: string; confirm?: string | false }): void;
+  ask(question: string, options: string[], opts?: { ref?: Json; group?: string; confirm?: string | false; keep?: boolean }): void;
   /**
-   * The question asked with `ref` is settled: its polls are deleted and no more answers are
-   * taken. Call it when a message that wasn't one of the options answered the question ("3
+   * The question asked with `ref` is settled: its polls are deleted (left in place for a
+   * question asked with `keep`) and no more answers are taken. Call it when a message that wasn't one of the options answered the question ("3
    * days" to "When shall I remind you?"), or when a group's vote is decided. Does nothing if
    * no such question is open. Since SDK 1.9.0.
    */
@@ -259,6 +266,7 @@ export interface ReactionEvent {
  * Someone answered a question asked with `kit.ask`. A person's first answer is the one that
  * counts. In a group with several people a person may change it once, ever (telcurio tells
  * them so); that arrives as a second event with `changed: true` and replaces their first.
+ * A question asked with `keep` takes every change while it is open, each with `changed: true`.
  * Since SDK 1.9.0.
  */
 export interface AnswerEvent {

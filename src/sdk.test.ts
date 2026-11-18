@@ -90,7 +90,7 @@ describe("questions", () => {
     const { plugin, seen } = make([]);
     const t = createTestKit({ person: { name: "Nisha", timezone: "Asia/Kolkata" } });
     await t.message(plugin, "pick");
-    expect(t.asked).toEqual([{ question: "Tonight?", options: ["Dune", "Dark"], ref: { pick: 1 }, group: null, confirm: "{{question}}: {{option}}", open: true }]);
+    expect(t.asked).toEqual([{ question: "Tonight?", options: ["Dune", "Dark"], ref: { pick: 1 }, group: null, confirm: "{{question}}: {{option}}", keep: false, open: true }]);
     await t.answer(plugin, { pick: 1 }, 1);
     expect(seen).toEqual([{ ref: { pick: 1 }, choice: 1, option: "Dark", group: null, sender: { id: "owner", name: "Nisha", owner: true } }]);
     expect(t.sent.map((m) => m.text)).toEqual(["Tonight?: Dark"]);
@@ -174,5 +174,28 @@ describe("links and marked messages", () => {
 
   it("knows the permission by name", () => {
     expect(() => definePlugin({ ...base, permissions: ["links"] })).not.toThrow();
+  });
+});
+
+describe("questions that stay", () => {
+  it("keeps a kept question open, takes every change and posts no confirm line", async () => {
+    const seen: [number, boolean][] = [];
+    const plugin = definePlugin({
+      ...base,
+      onMessage: async (e, kit) => (e.text === "done" ? kit.close("q") : kit.ask("Did you?", ["Yes", "No"], { ref: "q", keep: true })),
+      onAnswer: async (e) => void seen.push([e.choice, e.changed ?? false]),
+    });
+    const t = createTestKit();
+    await t.message(plugin, "ask");
+    expect(t.asked[0]).toMatchObject({ keep: true, open: true });
+    await t.answer(plugin, "q", 0);
+    await t.answer(plugin, "q", 1);
+    await t.answer(plugin, "q", 0);
+    await t.answer(plugin, "q", 0);
+    expect(seen).toEqual([[0, false], [1, true], [0, true]]);
+    expect(t.sent).toEqual([]);
+    expect(t.asked[0].open).toBe(true);
+    await t.message(plugin, "done");
+    await expect(t.answer(plugin, "q", 1)).rejects.toThrow(/no open question/);
   });
 });

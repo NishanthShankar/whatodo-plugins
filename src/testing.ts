@@ -34,7 +34,9 @@ export interface Asked {
   group: string | null;
   /** The line posted once a one-person question is answered; false for none. */
   confirm: string | false;
-  /** False once it was answered by the only person, replaced, or closed with kit.close(). */
+  /** Asked with `keep`: the poll stays, and answers can change until it is closed. */
+  keep: boolean;
+  /** False once it was answered by the only person (unless `keep`), replaced, or closed with kit.close(). */
   open: boolean;
 }
 
@@ -144,7 +146,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
       const ref = o?.ref === undefined ? null : clone(o.ref);
       // Asking again with the same ref replaces the earlier question.
       if (ref !== null) for (const a of asked) if (a.open && JSON.stringify(a.ref) === JSON.stringify(ref)) a.open = false;
-      asked.push({ question, options: [...options], ref, group: o?.group ?? here, confirm: o?.confirm ?? "{{question}}: {{option}}", open: true });
+      asked.push({ question, options: [...options], ref, group: o?.group ?? here, confirm: o?.confirm ?? "{{question}}: {{option}}", keep: o?.keep === true, open: true });
     },
     close(ref) {
       for (const a of asked) if (a.open && JSON.stringify(a.ref) === JSON.stringify(ref)) a.open = false;
@@ -279,6 +281,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
      * telcurio: a plugin without "members" has one person, so the answer settles the question
      * and its `confirm` line is posted; with "members" it stays open until `kit.close(ref)`,
      * and a second, different answer from the same person arrives with `changed: true`.
+     * A question asked with `keep` stays open and posts no confirm line, whoever is in the group.
      * Throws when no such question is open or the choice isn't one of its options.
      */
     async answer(plugin: PluginDef, ref: Json | null, choice: number, from?: string | Partial<Sender>) {
@@ -295,11 +298,11 @@ export function createTestKit(opts: TestKitOptions = {}) {
       const before = votes.get(sender.id);
       if (before === choice) return;
       votes.set(sender.id, choice);
-      if (!shared) q.open = false;
+      if (!shared && !q.keep) q.open = false;
       here = q.group;
       try {
         await plugin.onAnswer?.({ ref: q.ref, choice, option: q.options[choice], group: q.group, sender, ...(before === undefined ? {} : { changed: true }) }, kit);
-        if (!shared && q.confirm !== false) {
+        if (!shared && !q.keep && q.confirm !== false) {
           sent.push({ text: q.confirm.replace(/\{\{question\}\}/g, q.question).replace(/\{\{option\}\}/g, q.options[choice]), ref: null, group: q.group });
         }
       } finally {
