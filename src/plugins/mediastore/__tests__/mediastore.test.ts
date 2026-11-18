@@ -535,3 +535,27 @@ describe("moving a link to another group", () => {
     expect(t.sent.at(-1)!.text).toMatch(/^Reply to the link you want to move/);
   });
 });
+
+describe("a group the person already had", () => {
+  it("saves its links under the group's name, and stops when they choose something else", async () => {
+    const t = createTestKit();
+    await t.group(plugin, "joined", "x-fam", "Family Recipes");
+    expect(t.sent.at(-1)).toMatchObject({ group: "x-fam" });
+    await send(t, "https://youtu.be/aaa?si=x", [pasta], "x-fam");
+    expect(items(t)[0]).toMatchObject({ group: "x-fam" });
+    await t.message(plugin, "groups");
+    expect(t.sent.at(-1)!.text).toContain("Family Recipes");
+    await t.group(plugin, "left", "x-fam", "Family Recipes");
+    await t.message(plugin, "groups");
+    expect(t.sent.at(-1)!.text).not.toContain("Family Recipes");
+    expect(items(t)).toHaveLength(1);
+  });
+
+  it("can be closed by its name", async () => {
+    const t = createTestKit();
+    await t.group(plugin, "joined", "x-fam", "Family Recipes");
+    await t.message(plugin, "close group family recipes");
+    expect(t.sent.at(-1)!.text).toContain("*Family Recipes* is closed");
+    expect(t.groups.has("x-fam")).toBe(false);
+  });
+});
