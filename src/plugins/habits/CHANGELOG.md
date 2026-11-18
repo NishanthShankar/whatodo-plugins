@@ -2,6 +2,17 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.2.0] - 2026-11-18
+
+### Added
+- Friends you add to your own Habits group are heard there too. They take part in any of your habits by answering its poll, with their own streak, and can send _habits_, _done read_, _undo read_, _join read_ and _leave read_. The list stays yours: only you add or change habits there.
+- A habit with friends taking part shows everyone in its check-in ("🌱 Did you Read today?  Together 🔥 3 · Asha 🔥 5 · Ravi 🔥 3"), goes out even when you have already answered, and its poll always stays.
+- A friend who asks for a group of their own is told to log in at app.whatodo.today and add Habits.
+- A friend who logs in to telcurio sees the habits they take part in, with their own days and how everyone stands (`web.loadFor`).
+
+### Data
+- Friends in the private group use the same collections as pacts (`pjoins`, `plogs`, `pmissed`, `pwait`, `people`), keyed by the private habit's id. Your own days stay in `logs` and `missed`.
+
 ## [3.1.0] - 2026-11-18
 
 ### Changed

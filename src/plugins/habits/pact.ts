@@ -80,6 +80,8 @@ export interface Tools {
   habitName(text: string): string;
 }
 
+/** The owner's place among a private habit's people (their own days aren't kept under a person id). */
+export const OWNER = "@owner";
 const MAX_PACTS = 10;
 const MAX_PACT_HABITS = 12;
 /** Days without an answer after which someone stops counting toward the together streak. */
@@ -146,7 +148,7 @@ async function join(kit: Kit, habitId: string, sender: Pick<Sender, "id" | "name
  * kept, they're in. If not, what they did waits on their answer to the profile offer, which
  * goes out the first time.
  */
-async function involve(kit: Kit, pact: string, habitId: string, sender: Sender, day: string) {
+async function involve(kit: Kit, pact: string | null, habitId: string, sender: Sender, day: string) {
   if (await tracked(kit, sender)) return await join(kit, habitId, sender, day);
   const person = (await kit.store.get<Person>("people", sender.id)) ?? { name: sender.name };
   if (person.profile === false) return; // said not now: nothing of theirs is kept
@@ -158,7 +160,7 @@ async function involve(kit: Kit, pact: string, habitId: string, sender: Sender, 
   kit.ask(
     `${who ? `${who}, you've` : "You've"} started forming a habit. Want your own telcurio profile, so I can track your streak too? Tap Yes and I'll set you up. Nothing else to do.`,
     OFFER,
-    { ref: ref as unknown as Json, group: pact, confirm: false },
+    { ref: ref as unknown as Json, ...(pact ? { group: pact } : {}), confirm: false },
   );
 }
 
@@ -202,12 +204,24 @@ export interface Standing {
  * everyone doing it said yes. A person counts from the day they joined, and stops counting
  * once they've been silent for a week, so one who drifted off doesn't hold the rest at zero.
  */
-export async function standings(kit: Kit, id: string, habit: PactHabit): Promise<{ people: Standing[]; together: number }> {
+export async function standings(
+  kit: Kit,
+  id: string,
+  days: number[] | null | undefined,
+  /** For a habit in the private group: its owner, whose days are kept with the private habits. */
+  owner?: { name: string | null; since: string; done: Set<string> },
+): Promise<{ people: Standing[]; together: number }> {
+  const habit = { days };
   const joins = await joinsOf(kit, id);
   const people: Standing[] = [];
   for (const j of joins) {
     const done = await daysOf(kit, id, j.id);
     people.push({ id: j.id, name: j.join.name, streak: streak(done, kit.today, habit.days), total: done.size, done });
+  }
+  if (owner) {
+    // The owner always counts: it is their habit, and they are asked every day.
+    joins.push({ id: OWNER, join: { name: owner.name, since: owner.since, last: kit.today } });
+    people.push({ id: OWNER, name: owner.name, streak: streak(owner.done, kit.today, habit.days), total: owner.done.size, done: owner.done });
   }
   const counts = (j: Join, day: string) => j.since <= day && (j.last ?? j.since) >= kit.time.shiftDay(day, -QUIET_DAYS);
   const all = new Set<string>();
@@ -226,7 +240,7 @@ async function summary(kit: Kit, pact: string, name: string, tools: Tools): Prom
   if (!list.length) return `🤝 *${name}* has no habits yet. Add one here, like _add gym_.`;
   const lines = [`🤝 *${name}*`];
   for (const [i, { id, habit }] of list.entries()) {
-    const s = await standings(kit, id, habit);
+    const s = await standings(kit, id, habit.days);
     const own = typeof habit.hour === "number" ? `  ⏰ ${tools.hourLabel(habit.hour)}` : "";
     const when = habit.days?.length ? `  📅 ${daysLabel(habit.days)}` : "";
     lines.push("", `${i + 1}. *${habit.name}*${s.people.length > 1 ? `  Together 🔥 ${s.together}` : ""}${own}${when}`);
@@ -341,6 +355,8 @@ export async function pactMessage(event: MessageEvent, kit: Kit, tools: Tools): 
     }
     return kit.send("Tell me the habit and the days, like _days gym mon wed fri_.");
   }
+  // A group of one's own is made from one's own telcurio, which means logging in first.
+  if (!sender.owner && OWN_GROUP.test(lower)) return kit.send(OWN_GROUP_REPLY);
   m = text.match(/^(?:add|new|start|track|habit)\s*:?\s+(.+)$/i);
   if (m) {
     const { name: raw, hour, days } = tools.splitAdd(m[1]);
@@ -350,6 +366,141 @@ export async function pactMessage(event: MessageEvent, kit: Kit, tools: Tools): 
     return problem ? kit.send(problem) : kit.react("👍");
   }
   kit.unsure("I didn't get that. Tell me a habit to add here, or send _habits_ to see how everyone is doing.");
+}
+
+const OWN_GROUP = /^(?:(?:can i |i want to |i'?d like to )?(?:new|make|create|start|get|have)\s+(?:a\s+|my\s+|my own\s+|an?\s+own\s+)?(?:pact|group|habits?)(?:\s+of my own|\s+for me|\s+for myself)?|my own (?:group|pact|habits?))\b/;
+const OWN_GROUP_REPLY = "To have a group of your own, log in at app.whatodo.today and add Habits there. It takes a minute, and then I'll make it for you.";
+
+/**
+ * A friend in someone's private Habits group. They can take part in any of that person's
+ * habits (answer its poll, log it, see how everyone stands), but the list is the owner's to
+ * add to and change.
+ */
+export async function friendMessage(
+  event: MessageEvent,
+  kit: Kit,
+  list: { id: string; name: string }[],
+  summary: () => Promise<string>,
+): Promise<void> {
+  const sender = event.sender!;
+  const text = event.text.trim();
+  const lower = text.toLowerCase().replace(/[!.]+$/, "");
+  if (/^(habits|list|streaks?|show|status|score|scores|standings)$/.test(lower)) return kit.send(await summary());
+  if (/^(?:(?:please\s+)?(?:hook|set|sign) me up|count me in|set (?:it|my profile) up(?: for me)?|set up my profile)$/.test(lower)) return setUp(kit, sender);
+  if (OWN_GROUP.test(lower)) return kit.send(OWN_GROUP_REPLY);
+  const pick = (which: string) => {
+    const w = which.toLowerCase();
+    return list.find((h) => h.name.toLowerCase() === w) ?? list.find((h) => h.name.toLowerCase().startsWith(w)) ?? list.find((h) => h.name.toLowerCase().includes(w));
+  };
+  const missing = (which: string) => kit.send(`I can't find "${which}" here. Send _habits_ to see them.`);
+  let m = text.match(/^(?:done|did|logged?|✅)\s+(.+)$/i);
+  if (m) {
+    const h = pick(m[1].trim());
+    if (!h) return missing(m[1].trim());
+    await involve(kit, null, h.id, sender, kit.today);
+    await setDay(kit, h.id, sender.id, kit.today, "done");
+    return kit.react("✅");
+  }
+  m = text.match(/^(?:undo|undone|not done)\s+(.+)$/i);
+  if (m) {
+    const h = pick(m[1].trim());
+    if (!h) return missing(m[1].trim());
+    await setDay(kit, h.id, sender.id, kit.today, null);
+    return kit.react("👍");
+  }
+  m = text.match(/^(?:join|i'?m in(?: for| on)?|count me in(?: for| on)?)\s+(.+)$/i);
+  if (m) {
+    const h = pick(m[1].trim());
+    if (!h) return missing(m[1].trim());
+    await involve(kit, null, h.id, sender, kit.today);
+    return kit.react("👍");
+  }
+  m = text.match(/^(?:leave|i'?m out(?: of)?|drop out of)\s+(.+)$/i);
+  if (m) {
+    const h = pick(m[1].trim());
+    if (!h) return missing(m[1].trim());
+    await kit.store.delete("pjoins", `${h.id}:${sender.id}`);
+    await kit.store.delete("pwait", `${sender.id}:${h.id}`);
+    return kit.react("👍");
+  }
+  if (/^(?:add|new|start|track|habit|stop|remove|delete|drop|time|days?|check[- ]?in|reminder)\b/.test(lower)) return kit.send(theirList(kit));
+  kit.unsure("I didn't get that. You can take part in any habit here by answering its poll, or send _habits_ to see how everyone is doing.");
+}
+
+const theirList = (kit: Kit) =>
+  `This is ${first(kit.person.name) ? `${first(kit.person.name)}'s` : "someone else's"} list, so only they add or change habits here. You can take part in any of them: just answer its poll.`;
+
+/** A plain sentence from a friend in someone's private Habits group. */
+export async function friendIntent(event: IntentEvent, kit: Kit, list: { id: string; name: string }[], summary: () => Promise<string>): Promise<void> {
+  const sender = event.sender!;
+  if (event.intent === "set_me_up") return setUp(kit, sender);
+  if (event.intent === "list" || event.intent === "help") return kit.send(await summary());
+  if (event.intent === "log_done" || event.intent === "missed" || event.intent === "undo_done") {
+    const lower = event.text.toLowerCase();
+    const named = list.filter((x) => lower.includes(x.name.toLowerCase()));
+    const h = named.length === 1 ? named[0] : list.length === 1 ? list[0] : undefined;
+    if (!h) return kit.send("Which habit? Send _habits_ to see them.");
+    if (event.intent !== "undo_done") await involve(kit, null, h.id, sender, kit.today);
+    await setDay(kit, h.id, sender.id, kit.today, event.intent === "log_done" ? "done" : event.intent === "missed" ? "missed" : null);
+    return kit.react(event.intent === "log_done" ? "✅" : "👍");
+  }
+  kit.send(theirList(kit));
+}
+
+/** A friend's tap on one of the owner's private check-in polls: they are doing that habit too. */
+export async function friendAnswer(event: AnswerEvent, kit: Kit, habitId: string, day: string): Promise<void> {
+  const sender = event.sender!;
+  await involve(kit, null, habitId, sender, day);
+  if ((await kit.store.get<Person>("people", sender.id))?.profile === false) return;
+  await setDay(kit, habitId, sender.id, day, event.choice === 0 ? "done" : "missed");
+}
+
+/** Does anyone besides the owner take part in this habit? */
+export async function hasFriends(kit: Kit, habitId: string): Promise<boolean> {
+  return (await kit.store.list("pjoins", { prefix: `${habitId}:`, limit: 1 })).length > 0;
+}
+
+/** The standings to add to a check-in's question, within the 255 characters a poll allows. */
+export function withStandings(question: string, s: { people: Standing[]; together: number }): string {
+  const bits = [...(s.people.length > 1 ? [`Together 🔥 ${s.together}`] : []), ...s.people.map((x) => `${first(x.name) ?? "Someone"} 🔥 ${x.streak}`)];
+  let out = question;
+  for (const [i, bit] of bits.entries()) {
+    const next = `${out}${i ? " · " : "  "}${bit}`;
+    if (next.length > 255) break;
+    out = next;
+  }
+  return out;
+}
+
+/**
+ * What a friend sees on the web once they log in: every habit they take part in, in pacts and
+ * in other people's Habits groups, with their own days and how everyone stands.
+ */
+export async function forFriend(kit: Kit, sender: Sender, days: number, privateHabits: { id: string; name: string; days: number[] | null | undefined; since: string; done: Set<string> }[]): Promise<Json> {
+  const from = kit.time.shiftDay(kit.today, -(days - 1));
+  const mine = (s: { people: Standing[]; together: number }) => {
+    const me = s.people.find((p) => p.id === sender.id);
+    return me
+      ? { streak: me.streak, total: me.total, doneDays: [...me.done].filter((d) => d >= from).sort(), together: s.together, people: s.people.map((p) => ({ name: p.id === sender.id ? null : p.name, me: p.id === sender.id, streak: p.streak })) }
+      : null;
+  };
+  const groups: { key: string | null; name: string; habits: unknown[] }[] = [];
+  const own = [];
+  for (const h of privateHabits) {
+    const m = mine(await standings(kit, h.id, h.days, { name: kit.person.name, since: h.since, done: h.done }));
+    if (m) own.push({ id: h.id, name: h.name, ...m });
+  }
+  if (own.length) groups.push({ key: null, name: `${first(kit.person.name) ? `${first(kit.person.name)}'s` : "A friend's"} habits`, habits: own });
+  for (const p of await kit.store.list<Pact>("pacts")) {
+    if (p.data.closed) continue;
+    const habits = [];
+    for (const { id, habit } of await habitsOf(kit, p.key)) {
+      const m = mine(await standings(kit, id, habit.days));
+      if (m) habits.push({ id, name: habit.name, ...m });
+    }
+    if (habits.length) groups.push({ key: p.key, name: p.data.name, habits });
+  }
+  return { today: kit.today, groups } as unknown as Json;
 }
 
 /** A plain sentence in a pact's group, once the intent model has read it. */
@@ -419,14 +570,8 @@ export async function pactCheckins(kit: Kit, hourNow: number, all: boolean): Pro
       if (last === kit.today) continue;
       if (last) kit.close({ pact: p.key, habitId: id, day: last });
       await kit.store.put("pasked", id, kit.today, kit.today);
-      const s = await standings(kit, id, habit);
-      let question = `🤝 Did you ${habit.name} today?`;
-      const bits = [...(s.people.length > 1 ? [`Together 🔥 ${s.together}`] : []), ...s.people.map((x) => `${first(x.name) ?? "Someone"} 🔥 ${x.streak}`)];
-      for (const [i, bit] of bits.entries()) {
-        const next = `${question}${i ? " · " : "  "}${bit}`;
-        if (next.length > 255) break;
-        question = next;
-      }
+      const s = await standings(kit, id, habit.days);
+      const question = withStandings(`🤝 Did you ${habit.name} today?`, s);
       const ref: PactRef = { pact: p.key, habitId: id, day: kit.today };
       // Always kept: the poll is how everyone sees who did it.
       kit.ask(question, CHECKIN, { ref: ref as unknown as Json, group: p.key, keep: true });
@@ -496,7 +641,7 @@ export async function pactsForWeb(kit: Kit, days: number): Promise<Json> {
   for (const p of await kit.store.list<Pact>("pacts")) {
     const habits = [];
     for (const { id, habit } of await habitsOf(kit, p.key)) {
-      const s = await standings(kit, id, habit);
+      const s = await standings(kit, id, habit.days);
       habits.push({
         id,
         name: habit.name,
