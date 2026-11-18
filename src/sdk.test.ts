@@ -90,7 +90,7 @@ describe("questions", () => {
     const { plugin, seen } = make([]);
     const t = createTestKit({ person: { name: "Nisha", timezone: "Asia/Kolkata" } });
     await t.message(plugin, "pick");
-    expect(t.asked).toEqual([{ question: "Tonight?", options: ["Dune", "Dark"], ref: { pick: 1 }, group: null, confirm: "{{question}}: {{option}}", keep: false, open: true }]);
+    expect(t.asked).toEqual([{ question: "Tonight?", options: ["Dune", "Dark"], ref: { pick: 1 }, group: null, confirm: "{{question}}: {{option}}", keep: false, intro: null, mention: null, open: true }]);
     await t.answer(plugin, { pick: 1 }, 1);
     expect(seen).toEqual([{ ref: { pick: 1 }, choice: 1, option: "Dark", group: null, sender: { id: "owner", name: "Nisha", owner: true, profile: true } }]);
     expect(t.sent.map((m) => m.text)).toEqual(["Tonight?: Dark"]);
@@ -174,6 +174,29 @@ describe("links and marked messages", () => {
 
   it("knows the permission by name", () => {
     expect(() => definePlugin({ ...base, permissions: ["links"] })).not.toThrow();
+  });
+});
+
+describe("a question with an intro", () => {
+  const asking = (opts: { intro?: string; mention?: string }, permissions?: ("members")[]) =>
+    definePlugin({ ...base, ...(permissions ? { permissions } : {}), onMessage: async (e, kit) => kit.ask("Create it?", ["Yes", "Not now"], { ...opts, ...(opts.mention ? { mention: e.sender!.id } : {}) }) });
+
+  it("keeps the intro and who is tagged in it", async () => {
+    const t = createTestKit();
+    await t.message(asking({ intro: "Good start {{mention}}.", mention: "x" }, ["members"]), "hi");
+    expect(t.asked[0]).toMatchObject({ question: "Create it?", intro: "Good start {{mention}}.", mention: "owner" });
+  });
+
+  it("has neither unless asked", async () => {
+    const t = createTestKit();
+    await t.message(asking({}), "hi");
+    expect(t.asked[0]).toMatchObject({ intro: null, mention: null });
+  });
+
+  it("refuses a mention without the members permission, or without its place in the intro", async () => {
+    await expect(createTestKit().message(asking({ intro: "Good start {{mention}}.", mention: "x" }), "hi")).rejects.toThrow(/members/);
+    await expect(createTestKit().message(asking({ intro: "Good start.", mention: "x" }, ["members"]), "hi")).rejects.toThrow(/\{\{mention\}\}/);
+    await expect(createTestKit().message(asking({ intro: "Good start {{mention}}." }, ["members"]), "hi")).rejects.toThrow(/no mention/);
   });
 });
 
