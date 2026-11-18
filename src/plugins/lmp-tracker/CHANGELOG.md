@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.1.2] - 2026-11-18
+
+### Changed
+- The tagline and description shown in the store and on the site no longer speak as "I". Messages in WhatsApp still do. Nothing changes in how it works.
+
 ## [3.1.1] - 2026-11-17
 
 ### Changed

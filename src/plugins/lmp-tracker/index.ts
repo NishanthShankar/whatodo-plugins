@@ -291,13 +291,13 @@ const STARTED = /^(yes|yeah|yep|y|ya|haan|today|it came today|started today|yes 
 
 export default definePlugin({
   id: "lmp-tracker",
-  version: "3.1.1",
+  version: "3.1.2",
   sdk: "1",
   name: "Period Tracker",
   icon: "🩸",
-  tagline: "Tell me when your period starts. I remind you when the next one is due.",
+  tagline: "Send the day your period starts. Get a reminder when the next one is due.",
   description:
-    "Keeps track of your periods on WhatsApp. The day your period starts, send period or today. If it started another day, send the date. If the next one is late, I remind you, and if it is two weeks late I suggest a pregnancy test. The more dates you send, the better I know when to expect it.",
+    "Keeps track of your periods on WhatsApp. The day your period starts, send period or today. If it started another day, send the date. If the next one is late you get a reminder, and at two weeks late a suggestion to take a pregnancy test. The more dates you send, the better it knows when to expect yours.",
   groupName: "🌙 Period Tracker",
   price: 0,
   tier: 1,
