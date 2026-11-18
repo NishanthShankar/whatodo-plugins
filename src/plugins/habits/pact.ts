@@ -8,7 +8,7 @@ import { bestStreak, cleanName, daysLabel, isOn, parseDays, scanDays, streak } f
  * tapped what, so the poll is the scoreboard and nothing is posted per answer.
  *
  * Whose answers are kept: the person who made the pact, and anyone with a telcurio profile.
- * Someone without one is offered a profile on their first answer ("Good start @Asha. Let me create an
+ * Someone without one is offered a profile on their first answer ("Good start Asha. Let me create an
  * account for you..."); on their yes their streak is kept from that day, on "not now" what they
  * answered is forgotten and they are not asked again ("set me up" brings it back).
  *
@@ -88,8 +88,6 @@ const MAX_PACT_HABITS = 12;
 const QUIET_DAYS = 7;
 const CHECKIN = ["Yes", "No"];
 const OFFER = ["Yes", "Not now"];
-const OFFER_INTRO = "Good start {{mention}}. Let me create an account for you, so you can join the streak race too. Just vote *Yes* and I'll set it all up.";
-const OFFER_QUESTION = "Create your telcurio account?";
 
 export function slug(name: string): string {
   return name
@@ -157,9 +155,14 @@ async function involve(kit: Kit, pact: string | null, habitId: string, sender: S
   const person = (await kit.store.get<Person>("people", sender.id)) ?? { name: sender.name };
   if (person.asked) return;
   await kit.store.put("people", sender.id, { ...person, name: sender.name, asked: kit.today } as unknown as Json);
+  const who = first(sender.name);
   const ref: OfferRef = { offer: sender.id };
-  // A poll's question can't tag anyone, so the words go in a message just before it.
-  kit.ask(OFFER_QUESTION, OFFER, { ref: ref as unknown as Json, ...(pact ? { group: pact } : {}), confirm: false, intro: OFFER_INTRO, mention: sender.id });
+  // One poll, with their WhatsApp name. No bold: a poll's question shows the asterisks.
+  kit.ask(
+    `Good start${who ? ` ${who.slice(0, 40)}` : ""}. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.`,
+    OFFER,
+    { ref: ref as unknown as Json, ...(pact ? { group: pact } : {}), confirm: false },
+  );
 }
 
 /** What someone answered before 3.5.0 while deciding on a profile now simply counts. */
