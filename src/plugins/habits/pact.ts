@@ -1,5 +1,6 @@
 import type { AnswerEvent, IntentEvent, Json, Kit, MessageEvent, Sender } from "../../sdk";
-import { bestStreak, cleanName, daysLabel, isOn, parseDays, scanDays, streak } from "./streaks";
+import { CHECKIN_OPTIONS, copy, LOGGED, OFFER_OPTIONS, SAVED, type GroupHabit, type Streaker } from "./copy";
+import { bestStreak, cleanName, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
  * Pacts: a habit kept together. A pact is its own WhatsApp group (one of the install's extra
@@ -78,7 +79,6 @@ export interface Tools {
   splitAdd(raw: string): { name: string; hour: number | null; days: number[] | null | undefined };
   parseHour(text: string): number | null;
   scanHour(text: string): number | undefined;
-  hourLabel(h: number): string;
   habitName(text: string): string;
 }
 
@@ -88,8 +88,8 @@ const MAX_PACTS = 10;
 const MAX_PACT_HABITS = 12;
 /** Days without an answer after which someone stops counting toward the together streak. */
 const QUIET_DAYS = 7;
-const CHECKIN = ["Yes", "No"];
-const OFFER = ["Yes", "Not now"];
+/** The most characters a poll's question may have. */
+export const POLL_LIMIT = 255;
 
 export function slug(name: string): string {
   return name
@@ -161,8 +161,8 @@ async function involve(kit: Kit, pact: string | null, habitId: string, sender: S
   const ref: OfferRef = { offer: sender.id };
   // One poll, with their WhatsApp name. No bold: a poll's question shows the asterisks.
   kit.ask(
-    `Good start${who ? ` ${who.slice(0, 40)}` : ""}. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.`,
-    OFFER,
+    copy.offer({ name: who ? who.slice(0, 40) : null }),
+    OFFER_OPTIONS,
     { ref: ref as unknown as Json, ...(pact ? { group: pact } : {}), confirm: false },
   );
 }
@@ -252,19 +252,20 @@ export async function standings(
   return { people, together: streak(together, kit.today, habit.days) };
 }
 
-async function summary(kit: Kit, pact: string, name: string, tools: Tools): Promise<string> {
-  const list = await habitsOf(kit, pact);
-  if (!list.length) return `🌱 *${name}* has no habits yet. Add one here, like _add gym_.`;
-  const lines = [`🌱 *${name}*`];
-  for (const [i, { id, habit }] of list.entries()) {
+/** A group's habits as its summary shows them: when each is asked, and how everyone stands. */
+async function forSummary(kit: Kit, list: Row[]): Promise<GroupHabit[]> {
+  const out: GroupHabit[] = [];
+  for (const { id, habit } of list) {
     const s = await standings(kit, id, habit.days);
-    const own = typeof habit.hour === "number" ? `  ⏰ ${tools.hourLabel(habit.hour)}` : "";
-    const when = habit.days?.length ? `  📅 ${daysLabel(habit.days)}` : "";
-    lines.push("", `${i + 1}. *${habit.name}*${s.people.length > 1 ? `  Together 🔥 ${s.together}` : ""}${own}${when}`);
-    if (!s.people.length) lines.push("_Nobody has answered yet._");
-    for (const p of s.people) lines.push(`${p.name ?? "Someone"}  🔥 ${p.streak}`);
+    out.push({ name: habit.name, hour: typeof habit.hour === "number" ? habit.hour : null, days: habit.days, together: s.together, people: s.people.map((p) => ({ name: p.name, streak: p.streak })) });
   }
-  return lines.join("\n");
+  return out;
+}
+
+async function summary(kit: Kit, pact: string, name: string): Promise<string> {
+  const list = await habitsOf(kit, pact);
+  if (!list.length) return copy.groupNoHabits({ group: name });
+  return copy.groupSummary({ group: name, habits: await forSummary(kit, list) });
 }
 
 function may(habit: PactHabit, sender: Sender): boolean {
@@ -278,7 +279,7 @@ async function addHabit(kit: Kit, pact: string, sender: Sender, name: string, ho
     await involve(kit, pact, same.id, sender, kit.today);
     return null;
   }
-  if (list.length >= MAX_PACT_HABITS) return `That's the most habits one group can hold (${MAX_PACT_HABITS}). Stop one first.`;
+  if (list.length >= MAX_PACT_HABITS) return copy.groupIsFull({ max: MAX_PACT_HABITS });
   const id = kit.id();
   const habit: PactHabit = { pact, name, createdDay: kit.today, archived: false, hour, days: days ?? null, by: sender.id };
   await kit.store.put("phabits", id, habit as unknown as Json, kit.now);
@@ -288,10 +289,10 @@ async function addHabit(kit: Kit, pact: string, sender: Sender, name: string, ho
 
 /** "Set me up": someone who said not now, or was never asked, wants their streak kept after all. */
 async function setUp(kit: Kit, sender: Sender): Promise<void> {
-  if (await tracked(kit, sender)) return kit.react("👍");
+  if (await tracked(kit, sender)) return kit.react(SAVED);
   await accept(kit, sender);
   kit.close({ offer: sender.id });
-  kit.send(`${first(sender.name) ? `${first(sender.name)}, you're` : "You're"} set up. I'm keeping your streak from here on.`);
+  kit.send(copy.setUp({ name: first(sender.name) }));
 }
 
 /**
@@ -301,8 +302,7 @@ async function setUp(kit: Kit, sender: Sender): Promise<void> {
  */
 async function habitCommands(kit: Kit, pact: string, sender: Sender, text: string, tools: Tools): Promise<boolean> {
   const list = await habitsOf(kit, pact);
-  const missing = (which: string) => kit.send(`I can't find "${which}" here. Send _habits_ to see them.`);
-  const notYours = (h: Row, what: string) => kit.send(`*${h.habit.name}* was added by someone else, so only they or ${first(kit.person.name) ?? "the person whose group this is"} can ${what}.`);
+  const missing = (which: string) => kit.send(copy.cantFindHere({ which }));
 
   let m = text.match(/^(?:done|did|logged?|✅)\s+(.+)$/i);
   if (m) {
@@ -310,21 +310,21 @@ async function habitCommands(kit: Kit, pact: string, sender: Sender, text: strin
     if (!h) return missing(m[1].trim()), true;
     await involve(kit, pact, h.id, sender, kit.today);
     await setDay(kit, h.id, sender.id, kit.today, "done");
-    return kit.react("✅"), true;
+    return kit.react(LOGGED), true;
   }
   m = text.match(/^(?:undo|undone|not done)\s+(.+)$/i);
   if (m) {
     const h = find(list, m[1].trim());
     if (!h) return missing(m[1].trim()), true;
     await setDay(kit, h.id, sender.id, kit.today, null);
-    return kit.react("👍"), true;
+    return kit.react(SAVED), true;
   }
   m = text.match(/^(?:join|i'?m in(?: for| on)?|count me in(?: for| on)?)\s+(.+)$/i);
   if (m) {
     const h = find(list, m[1].trim());
     if (!h) return missing(m[1].trim()), true;
     await involve(kit, pact, h.id, sender, kit.today);
-    return kit.react("👍"), true;
+    return kit.react(SAVED), true;
   }
   // "leave gym" and "stop gym" are the same: the habit stops for whoever says it. It goes on
   // for the others, and is stopped altogether only when nobody does it any more.
@@ -333,17 +333,17 @@ async function habitCommands(kit: Kit, pact: string, sender: Sender, text: strin
     const h = find(list, m[1].trim());
     if (!h) return missing(m[1].trim()), true;
     await leave(kit, h.id, sender.id);
-    return kit.react("👍"), true;
+    return kit.react(SAVED), true;
   }
   const tm = text.match(/^(?:time|check[- ]?in|reminder)\s+(.+?)\s+(?:at\s+)?(default|reset|\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)$/i);
   if (tm) {
     const h = find(list, tm[1].trim());
     if (!h) return missing(tm[1].trim()), true;
-    if (!may(h.habit, sender)) return notYours(h, "change its time"), true;
+    if (!may(h.habit, sender)) return kit.send(copy.notYoursTime({ habit: h.habit.name, owner: first(kit.person.name) })), true;
     const hour = /^(default|reset)$/i.test(tm[2]) ? null : tools.parseHour(tm[2]);
-    if (hour === null && !/^(default|reset)$/i.test(tm[2])) return kit.send(`Give me a time like _time ${h.habit.name.toLowerCase()} 7am_.`), true;
+    if (hour === null && !/^(default|reset)$/i.test(tm[2])) return kit.send(copy.giveHabitTimeFor({ habit: h.habit.name })), true;
     await kit.store.put("phabits", h.id, { ...h.habit, hour } as unknown as Json);
-    return kit.react("👍"), true;
+    return kit.react(SAVED), true;
   }
   const dm = text.match(/^days?\s+(.+)$/i);
   if (dm) {
@@ -353,19 +353,19 @@ async function habitCommands(kit: Kit, pact: string, sender: Sender, text: strin
       if (parsed === undefined) continue;
       const h = find(list, words.slice(0, k).join(" "));
       if (!h) return missing(words.slice(0, k).join(" ")), true;
-      if (!may(h.habit, sender)) return notYours(h, "change its days"), true;
+      if (!may(h.habit, sender)) return kit.send(copy.notYoursDays({ habit: h.habit.name, owner: first(kit.person.name) })), true;
       await kit.store.put("phabits", h.id, { ...h.habit, days: parsed } as unknown as Json);
-      return kit.react("👍"), true;
+      return kit.react(SAVED), true;
     }
-    return kit.send("Tell me the habit and the days, like _days gym mon wed fri_."), true;
+    return kit.send(copy.tellDaysHere()), true;
   }
   m = text.match(/^(?:add|new|start|track|habit)\s*:?\s+(.+)$/i);
   if (m) {
     const { name: raw, hour, days } = tools.splitAdd(m[1]);
     const name = cleanName(raw);
-    if (!name) return kit.send("Name the habit, like _add gym_."), true;
+    if (!name) return kit.send(copy.nameTheHabitHere()), true;
     const problem = await addHabit(kit, pact, sender, name, hour, days);
-    return problem ? kit.send(problem) : kit.react("👍"), true;
+    return problem ? kit.send(problem) : kit.react(SAVED), true;
   }
   return false;
 }
@@ -381,16 +381,15 @@ export async function pactMessage(event: MessageEvent, kit: Kit, tools: Tools): 
   if (!p || p.closed || !sender) return;
   const text = event.text.trim();
   const lower = text.toLowerCase().replace(/[!.]+$/, "");
-  if (STANDINGS.test(lower)) return kit.send(await summary(kit, pact, p.name, tools));
+  if (STANDINGS.test(lower)) return kit.send(await summary(kit, pact, p.name));
   if (SET_UP.test(lower)) return setUp(kit, sender);
   // A group of one's own is made from one's own telcurio, which means logging in first.
-  if (!sender.owner && OWN_GROUP.test(lower)) return kit.send(OWN_GROUP_REPLY);
+  if (!sender.owner && OWN_GROUP.test(lower)) return kit.send(copy.ownGroup());
   if (await habitCommands(kit, pact, sender, text, tools)) return;
-  kit.unsure("I didn't get that. Tell me a habit to add here, or send _habits_ to see how it's going.");
+  kit.unsure(copy.unsureInGroup());
 }
 
 const OWN_GROUP = /^(?:(?:can i |i want to |i'?d like to )?(?:new|make|create|start|get|have)\s+(?:a\s+|my\s+|my own\s+|an?\s+own\s+)?(?:pact|group|habits?)(?:\s+of my own|\s+for me|\s+for myself)?|my own (?:group|pact|habits?))\b/;
-const OWN_GROUP_REPLY = "To have a group of your own, log in at app.whatodo.today and add Habits there. It takes a minute, and then I'll make it for you.";
 
 /** The main Habits group's key among the extra-habit records: habits friends added there. */
 export const MAIN = "";
@@ -405,7 +404,7 @@ export async function friendMessage(event: MessageEvent, kit: Kit, tools: Tools,
   const lower = text.toLowerCase().replace(/[!.]+$/, "");
   if (STANDINGS.test(lower)) return kit.send(await summary());
   if (SET_UP.test(lower)) return setUp(kit, sender);
-  if (OWN_GROUP.test(lower)) return kit.send(OWN_GROUP_REPLY);
+  if (OWN_GROUP.test(lower)) return kit.send(copy.ownGroup());
   const pick = (which: string) => {
     const w = which.toLowerCase();
     return list.find((h) => h.name.toLowerCase() === w) ?? list.find((h) => h.name.toLowerCase().startsWith(w)) ?? list.find((h) => h.name.toLowerCase().includes(w));
@@ -416,19 +415,19 @@ export async function friendMessage(event: MessageEvent, kit: Kit, tools: Tools,
   if (m && h) {
     await involve(kit, null, h.id, sender, kit.today);
     await setDay(kit, h.id, sender.id, kit.today, "done");
-    return kit.react("✅");
+    return kit.react(LOGGED);
   }
   m = text.match(/^(?:undo|undone|not done)\s+(.+)$/i);
   h = m ? pick(m[1].trim()) : undefined;
   if (m && h) {
     await setDay(kit, h.id, sender.id, kit.today, null);
-    return kit.react("👍");
+    return kit.react(SAVED);
   }
   m = text.match(/^(?:join|i'?m in(?: for| on)?|count me in(?: for| on)?)\s+(.+)$/i);
   h = m ? pick(m[1].trim()) : undefined;
   if (m && h) {
     await involve(kit, null, h.id, sender, kit.today);
-    return kit.react("👍");
+    return kit.react(SAVED);
   }
   m = text.match(/^(?:leave|i'?m out(?: of)?|drop out of|stop|remove|delete|drop|quit|end)\s+(?:habit\s+)?(.+)$/i);
   h = m ? pick(m[1].trim()) : undefined;
@@ -436,11 +435,11 @@ export async function friendMessage(event: MessageEvent, kit: Kit, tools: Tools,
     // It stops for them. It is the owner's habit, so it goes on for the owner.
     await kit.store.delete("pjoins", `${h.id}:${sender.id}`);
     await kit.store.delete("pwait", `${sender.id}:${h.id}`);
-    return kit.react("👍");
+    return kit.react(SAVED);
   }
   m = text.match(/^(?:time|check[- ]?in|reminder)\s+(.+?)\s+(?:at\s+)?(?:default|reset|\d.*)$/i);
   h = m ? pick(m[1].trim()) : undefined;
-  if (m && h) return kit.send(`*${h.name}* is ${first(kit.person.name) ? `${first(kit.person.name)}'s` : "someone else's"} habit, so only they can change when it's asked.`);
+  if (m && h) return kit.send(copy.ownersHabit({ habit: h.name, owner: first(kit.person.name) }));
   // Adding one that is already here means doing it too.
   m = text.match(/^(?:add|new|start|track|habit)\s*:?\s+(.+)$/i);
   if (m) {
@@ -448,12 +447,12 @@ export async function friendMessage(event: MessageEvent, kit: Kit, tools: Tools,
     const same = list.find((x) => x.name.toLowerCase() === name.toLowerCase());
     if (same) {
       await involve(kit, null, same.id, sender, kit.today);
-      return kit.react("👍");
+      return kit.react(SAVED);
     }
   }
   // Anything else about a habit: the ones friends added here, or a new one of their own.
   if (await habitCommands(kit, MAIN, sender, text, tools)) return;
-  kit.unsure("I didn't get that. Tell me a habit to add, answer a poll to take part in one, or send _habits_ to see how it's going.");
+  kit.unsure(copy.unsureFriend());
 }
 
 /** A plain sentence from a friend in someone's main Habits group. */
@@ -464,24 +463,24 @@ export async function friendIntent(event: IntentEvent, kit: Kit, tools: Tools, l
   const extra = (await habitsOf(kit, MAIN)).map((x) => ({ id: x.id, name: x.habit.name }));
   if (event.intent === "add_habit") {
     const name = tools.habitName(event.text);
-    if (!name) return kit.send("What should I call it? Like _add gym on mon wed fri_.");
+    if (!name) return kit.send(copy.whatToCallIt());
     const same = list.find((x) => x.name.toLowerCase() === name.toLowerCase());
     if (same) await involve(kit, null, same.id, sender, kit.today);
     else {
       const problem = await addHabit(kit, MAIN, sender, name, tools.scanHour(event.text) ?? null, scanDays(event.text));
       if (problem) return kit.send(problem);
     }
-    return kit.react("👍");
+    return kit.react(SAVED);
   }
   if (event.intent === "log_done" || event.intent === "missed" || event.intent === "undo_done") {
     const lower = event.text.toLowerCase();
     const all = [...list, ...extra];
     const named = all.filter((x) => lower.includes(x.name.toLowerCase()));
     const h = named.length === 1 ? named[0] : all.length === 1 ? all[0] : undefined;
-    if (!h) return kit.send("Which habit? Send _habits_ to see them.");
+    if (!h) return kit.send(copy.whichHabit());
     if (event.intent !== "undo_done") await involve(kit, null, h.id, sender, kit.today);
     await setDay(kit, h.id, sender.id, kit.today, event.intent === "log_done" ? "done" : event.intent === "missed" ? "missed" : null);
-    return kit.react(event.intent === "log_done" ? "✅" : "👍");
+    return kit.react(event.intent === "log_done" ? LOGGED : SAVED);
   }
   kit.send(await summary());
 }
@@ -502,18 +501,9 @@ export async function ownerOnExtra(event: MessageEvent, kit: Kit, tools: Tools, 
   return named ? habitCommands(kit, MAIN, sender, text, tools) : false;
 }
 
-/** The habits friends added in the main group, as lines for its summary. */
-export async function extraLines(kit: Kit, tools: Tools, from: number): Promise<string[]> {
-  const lines: string[] = [];
-  for (const [i, { id, habit }] of (await habitsOf(kit, MAIN)).entries()) {
-    const s = await standings(kit, id, habit.days);
-    const own = typeof habit.hour === "number" ? `  ⏰ ${tools.hourLabel(habit.hour)}` : "";
-    const when = habit.days?.length ? `  📅 ${daysLabel(habit.days)}` : "";
-    lines.push("", `${from + i + 1}. *${habit.name}*${s.people.length > 1 ? `  Together 🔥 ${s.together}` : ""}${own}${when}`);
-    if (!s.people.length) lines.push("_Nobody has answered yet._");
-    for (const x of s.people) lines.push(`${x.name ?? "Someone"}  🔥 ${x.streak}`);
-  }
-  return lines;
+/** The habits friends added in the main group, for its summary. */
+export async function extraHabits(kit: Kit): Promise<GroupHabit[]> {
+  return forSummary(kit, await habitsOf(kit, MAIN));
 }
 
 /** A friend's tap on one of the owner's private check-in polls: they are doing that habit too. */
@@ -528,16 +518,9 @@ export async function hasFriends(kit: Kit, habitId: string): Promise<boolean> {
   return (await kit.store.list("pjoins", { prefix: `${habitId}:`, limit: 1 })).length > 0;
 }
 
-/** The standings to add to a check-in's question, within the 255 characters a poll allows. */
-export function withStandings(question: string, s: { people: Standing[]; together: number }): string {
-  const bits = [...(s.people.length > 1 ? [`Together 🔥 ${s.together}`] : []), ...s.people.map((x) => `${first(x.name) ?? "Someone"} 🔥 ${x.streak}`)];
-  let out = question;
-  for (const [i, bit] of bits.entries()) {
-    const next = `${out}${i ? " · " : "  "}${bit}`;
-    if (next.length > 255) break;
-    out = next;
-  }
-  return out;
+/** The standings as a check-in's question shows them: everyone by their first name. */
+export function forPoll(s: { people: Standing[]; together: number }): { together: number; people: Streaker[] } {
+  return { together: s.together, people: s.people.map((x) => ({ name: first(x.name), streak: x.streak })) };
 }
 
 /**
@@ -585,21 +568,21 @@ export async function pactIntent(event: IntentEvent, kit: Kit, tools: Tools): Pr
   if (event.intent === "set_me_up") return setUp(kit, sender);
   if (event.intent === "add_habit") {
     const name = tools.habitName(event.text);
-    if (!name) return kit.send("What should I call it? Like _add gym on mon wed fri_.");
+    if (!name) return kit.send(copy.whatToCallIt());
     const problem = await addHabit(kit, pact, sender, name, tools.scanHour(event.text) ?? null, scanDays(event.text));
-    return problem ? kit.send(problem) : kit.react("👍");
+    return problem ? kit.send(problem) : kit.react(SAVED);
   }
   const lower = event.text.toLowerCase();
   const named = list.filter((x) => lower.includes(x.habit.name.toLowerCase()));
   const h = named.length === 1 ? named[0] : list.length === 1 ? list[0] : undefined;
   if (event.intent === "log_done" || event.intent === "missed" || event.intent === "undo_done") {
-    if (!h) return kit.send(list.length ? "Which habit? Send _habits_ to see them." : "There are no habits here yet. Add one, like _add gym_.");
+    if (!h) return kit.send(list.length ? copy.whichHabit() : copy.noHabitsHere());
     if (event.intent !== "undo_done") await involve(kit, pact, h.id, sender, kit.today);
     await setDay(kit, h.id, sender.id, kit.today, event.intent === "log_done" ? "done" : event.intent === "missed" ? "missed" : null);
-    return kit.react(event.intent === "log_done" ? "✅" : "👍");
+    return kit.react(event.intent === "log_done" ? LOGGED : SAVED);
   }
   // Everything else: show where the pact stands, which answers most questions asked here.
-  kit.send(await summary(kit, pact, p.name, tools));
+  kit.send(await summary(kit, pact, p.name));
 }
 
 /** An answer to one of a pact's polls: a check-in, or the profile offer. Nothing is posted back for a check-in. */
@@ -614,15 +597,15 @@ export async function pactAnswer(event: AnswerEvent, kit: Kit): Promise<void> {
       if (!them || them.told) return;
       await kit.store.put("people", ref.offer, { ...them, told: true } as unknown as Json);
       const name = first(them.name);
-      kit.send(name ? `I need consent from ${name} for this, so only ${name}'s vote counts here.` : "I need consent from the person I asked, so only their vote counts here.");
+      kit.send(copy.needsConsent({ name }));
       return;
     }
     if (event.choice === 0) {
       await accept(kit, sender);
-      kit.send(`${first(sender.name) ? `${first(sender.name)}, you're` : "You're"} set up. I'm keeping your streak from here on.`);
+      kit.send(copy.setUp({ name: first(sender.name) }));
     } else {
       await decline(kit, sender);
-      kit.send(`No problem${first(sender.name) ? `, ${first(sender.name)}` : ""}. Just ask me to set it up for you later if you change your mind.`);
+      kit.send(copy.notNow({ name: first(sender.name) }));
     }
     kit.close(ref as unknown as Json);
     return;
@@ -650,10 +633,10 @@ export async function pactCheckins(kit: Kit, hourNow: number, all: boolean): Pro
       if (last) kit.close({ pact: p.key, habitId: id, day: last });
       await kit.store.put("pasked", id, kit.today, kit.today);
       const s = await standings(kit, id, habit.days);
-      const question = withStandings(`🌱 Did you ${habit.name} today?`, s);
+      const question = copy.checkinTogether({ habit: habit.name, ...forPoll(s), limit: POLL_LIMIT });
       const ref: PactRef = { pact: p.key, habitId: id, day: kit.today };
       // Always kept: the poll is how everyone sees who did it.
-      kit.ask(question, CHECKIN, { ref: ref as unknown as Json, ...(p.key ? { group: p.key } : {}), keep: true });
+      kit.ask(question, CHECKIN_OPTIONS, { ref: ref as unknown as Json, ...(p.key ? { group: p.key } : {}), keep: true });
     }
   }
 }
@@ -661,15 +644,15 @@ export async function pactCheckins(kit: Kit, hourNow: number, all: boolean): Pro
 export async function createPact(kit: Kit, name: string): Promise<{ key: string; name: string } | { error: string }> {
   const clean = name.trim().replace(/\s+/g, " ").replace(/[.!?]+$/, "").slice(0, 22);
   const key = slug(clean);
-  if (!key) return { error: "Give the group a name, like _new group gym buddies_." };
+  if (!key) return { error: copy.nameTheGroup() };
   const old = await kit.store.get<Pact>("pacts", key);
-  if (old && !old.closed) return { error: `You already have a group called *${old.name}*.` };
+  if (old && !old.closed) return { error: copy.groupExists({ name: old.name }) };
   const open = (await kit.store.list<Pact>("pacts")).filter((x) => !x.data.closed);
-  if (!old && open.length >= MAX_PACTS) return { error: `That's the most habit groups I can keep (${MAX_PACTS}). Close one first.` };
+  if (!old && open.length >= MAX_PACTS) return { error: copy.tooManyGroups({ max: MAX_PACTS }) };
   const pact: Pact = { name: old?.name ?? clean, created: old?.created ?? kit.now };
   await kit.groups.open(key, {
-    name: `🌱 ${pact.name}`.slice(0, 25),
-    hello: `🌱 This is your habit group *${pact.name}*.\n\nTell me a habit here, like _add gym_, and every day I'll ask about it with a poll. It works on your own, and with other people: add anyone you like to this group and they can take part or add habits of their own.\n\nSend _habits_ here any time to see how it's going.`,
+    name: copy.newGroupName({ name: pact.name }).slice(0, 25),
+    hello: copy.newGroupHello({ name: pact.name }),
   });
   await kit.store.put("pacts", key, pact as unknown as Json, pact.created);
   return { key, name: pact.name };
@@ -686,12 +669,10 @@ export async function existingGroup(kit: Kit, kind: "joined" | "left", key: stri
     if (old && !old.closed) await kit.store.put("pacts", key, { ...old, closed: true } as unknown as Json, old.created);
     return;
   }
-  const clean = name.trim().replace(/\s+/g, " ").slice(0, 40) || "Habits";
+  const clean = name.trim().replace(/\s+/g, " ").slice(0, 40) || copy.groupWithoutName();
   const pact: Pact = { name: clean, created: old?.created ?? kit.now };
   await kit.store.put("pacts", key, pact as unknown as Json, pact.created);
-  kit.send(
-    "🌱 I'm keeping habits in this group now.\n\nTell me a habit here, like _add gym_, and every day I'll ask about it with a poll. Anyone here can take part or add habits of their own.\n\nSend _habits_ here any time to see how it's going.",
-  );
+  kit.send(copy.existingGroupHello());
 }
 
 /** A group's key from what the person called it: the key itself for groups made here, the name for ones they already had. */
@@ -716,26 +697,23 @@ export async function privatePact(kit: Kit, text: string, lower: string): Promis
   let m = text.match(new RegExp(`^(?:new|add|create|make|start)\\s+(?:a\\s+|another\\s+)?${GROUP}\\s+(?:(?:for|called|named|with)\\s+)?(.+)$`, "i"));
   if (m) {
     const made = await createPact(kit, m[1]);
-    kit.send("error" in made ? made.error : `🌱 I'm making a WhatsApp group called *${made.name}*. Once it appears, tell me a habit there. Add other people to it if you want company.`);
+    kit.send("error" in made ? made.error : copy.makingGroup({ name: made.name }));
     return true;
   }
   if (/^(groups|my groups|habit groups|pacts|my pacts)$/.test(lower)) {
     const open = (await kit.store.list<Pact>("pacts")).filter((x) => !x.data.closed);
-    if (!open.length) kit.send("You have one Habits group, this one. Send _new group gym buddies_ to make another, for a different set of habits or of people.");
+    if (!open.length) kit.send(copy.onlyThisGroup());
     else {
-      const lines = ["*Your habit groups*", "", "🌱 *Habits* (this one)"];
-      for (const p of open) {
-        const n = (await habitsOf(kit, p.key)).length;
-        lines.push(`🌱 *${p.data.name}*: ${n} habit${n === 1 ? "" : "s"}`);
-      }
-      kit.send(lines.join("\n"));
+      const groups = [];
+      for (const p of open) groups.push({ name: p.data.name, habits: (await habitsOf(kit, p.key)).length });
+      kit.send(copy.groupList({ groups }));
     }
     return true;
   }
   m = lower.match(new RegExp(`^(?:close|end|delete|remove)\\s+(?:the\\s+)?${GROUP}\\s+(.+)$`));
   if (m) {
     const closed = await closePact(kit, await keyFor(kit, m[1]));
-    kit.send(closed ? `*${closed.name}* is closed. What everyone logged is kept.` : `I don't have a group called "${m[1]}". Send _groups_ to see yours.`);
+    kit.send(closed ? copy.groupClosed({ name: closed.name }) : copy.noSuchGroup({ name: m[1] }));
     return true;
   }
   return false;
