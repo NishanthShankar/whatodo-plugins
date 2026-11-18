@@ -1,4 +1,4 @@
-/** Streaks, the 🟩⬜ grid and habit days. Days are "YYYY-MM-DD" in the person's zone. */
+/** Streaks, the grid of days and habit days. Days are "YYYY-MM-DD" in the person's zone. */
 
 export function shiftDay(day: string, n: number): string {
   const [y, m, d] = day.split("-").map(Number);
@@ -46,18 +46,20 @@ export function bestStreak(done: Set<string>, days?: Days, today?: string): numb
   return best;
 }
 
-/** Oldest to newest, ending today: 🟩 done, ⬜ due and not done, ▫️ not due. Days before `since` are left out. */
-export function grid(done: Set<string>, today: string, n = 7, since?: string, days?: Days): string {
-  const out: string[] = [];
+/** One day in the grid: done, due and not done, or not one of the habit's days. */
+export type Cell = "done" | "due" | "off";
+
+/** Oldest to newest, ending today. Days before `since` are left out. copy.ts draws them. */
+export function cells(done: Set<string>, today: string, n = 7, since?: string, days?: Days): Cell[] {
+  const out: Cell[] = [];
   for (let i = n - 1; i >= 0; i--) {
     const d = shiftDay(today, -i);
     if (since && d < since) continue;
-    out.push(done.has(d) ? "🟩" : isOn(days, d) ? "⬜" : "▫️");
+    out.push(done.has(d) ? "done" : isOn(days, d) ? "due" : "off");
   }
-  return out.join("");
+  return out;
 }
 
-const NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const WORDS: Record<string, number> = {
   sun: 0, sunday: 0, sundays: 0,
   mon: 1, monday: 1, mondays: 1,
@@ -102,15 +104,6 @@ export function scanDays(text: string): number[] | null | undefined {
   }
   if (!set.size) return undefined;
   return set.size === 7 ? null : [...set].sort((a, b) => a - b);
-}
-
-/** "every day", "weekdays", "weekends" or "Mon, Wed, Fri". */
-export function daysLabel(days: Days): string {
-  if (!days || !days.length || days.length === 7) return "every day";
-  const k = days.join(",");
-  if (k === "1,2,3,4,5") return "weekdays";
-  if (k === "0,6") return "weekends";
-  return days.map((d) => NAMES[d]).join(", ");
 }
 
 export function cleanName(name: string): string {

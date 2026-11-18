@@ -1,6 +1,7 @@
 import { definePlugin, type Kit } from "../../sdk";
-import { closePact, createPact, existingGroup, extraLines, ownerChange, ownerDay, ownerJoin, forFriend, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, standings, withStandings, type Tools } from "./pact";
-import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, scanDays, streak } from "./streaks";
+import { CHECKIN_OPTIONS, copy, LOGGED, SAVED, type OwnHabit } from "./copy";
+import { closePact, createPact, existingGroup, extraHabits, ownerChange, ownerDay, ownerJoin, forFriend, forPoll, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, POLL_LIMIT, privatePact, standings, type Tools } from "./pact";
+import { bestStreak, cells, cleanName, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
  * Habits: one poll per habit every day: tap Yes if you did it, No if you didn't. The poll stays
@@ -29,8 +30,8 @@ interface PromptRef {
   day: string;
 }
 
-/** The check-in poll's choices, in this order: 0 did it, 1 didn't. */
-const CHECKIN_OPTIONS = ["Yes", "No"];
+/** How many days the summary's grid goes back. */
+const SUMMARY_DAYS = 14;
 
 const DONE = new Set(["✅", "✔️", "☑️", "👍", "💪", "🔥"]);
 const MISSED = new Set(["❌", "✖️", "❎", "👎", "🚫"]);
@@ -69,10 +70,6 @@ function find(list: { id: string; habit: Habit }[], which: string) {
     list.find((h) => h.habit.name.toLowerCase().startsWith(w)) ??
     list.find((h) => h.habit.name.toLowerCase().includes(w))
   );
-}
-
-function hourLabel(h: number) {
-  return `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "am" : "pm"}`;
 }
 
 function to24(h: number, ampm?: string): number | null {
@@ -189,57 +186,31 @@ async function addHabit(kit: Kit, list: { id: string; habit: Habit }[], name: st
 async function summary(kit: Kit): Promise<string> {
   const list = await active(kit);
   // Habits friends added in this group come after the owner's own.
-  const extra = await extraLines(kit, TOOLS, list.length);
-  if (!list.length && !extra.length) return "No habits yet. Add one: _add meditate_";
-  const lines = [list.length ? "*Your habits* (last 14 days)" : "*Habits*"];
-  for (const [i, { id, habit }] of list.entries()) {
+  const extra = await extraHabits(kit);
+  if (!list.length && !extra.length) return copy.noHabits();
+  const habits: OwnHabit[] = [];
+  for (const { id, habit } of list) {
     const done = await doneDays(kit, id);
-    const s = streak(done, kit.today, habit.days);
-    const own = typeof habit.hour === "number" ? `  ⏰ ${hourLabel(habit.hour)}` : "";
-    const when = habit.days?.length ? `  📅 ${daysLabel(habit.days)}` : "";
-    lines.push("", `${i + 1}. *${habit.name}*${s ? `  🔥 ${s}` : ""}${own}${when}`, grid(done, kit.today, 14, habit.createdDay, habit.days));
     // Friends taking part in it: everyone's streak, and the days all of them did it.
-    if (await hasFriends(kit, id)) {
-      const st = await standings(kit, id, habit.days, { name: kit.person.name, since: habit.createdDay, done });
-      lines.push(`Together 🔥 ${st.together}`, ...st.people.filter((p) => p.id !== OWNER).map((p) => `${p.name ?? "Someone"}  🔥 ${p.streak}`));
-    }
+    const st = (await hasFriends(kit, id)) ? await standings(kit, id, habit.days, { name: kit.person.name, since: habit.createdDay, done }) : null;
+    habits.push({
+      name: habit.name,
+      streak: streak(done, kit.today, habit.days),
+      hour: typeof habit.hour === "number" ? habit.hour : null,
+      days: habit.days,
+      cells: cells(done, kit.today, SUMMARY_DAYS, habit.createdDay, habit.days),
+      friends: st && { together: st.together, people: st.people.filter((p) => p.id !== OWNER).map((p) => ({ name: p.name, streak: p.streak })) },
+    });
   }
-  lines.push(...extra);
   const hour = kit.settings.checkinHour;
-  lines.push(
-    "",
-    typeof hour === "number"
-      ? `_I check in at ${hourLabel(hour)} unless a habit has its own time (⏰)._`
-      : "_The default check-in is off; habits with their own time (⏰) still get one. Send time 9pm to turn it on._",
-  );
-  return lines.join("\n");
+  return copy.summary({ days: SUMMARY_DAYS, habits, extra, checkinHour: typeof hour === "number" ? hour : null });
 }
 
-const HELP = [
-  "*Habits*",
-  "",
-  "_add meditate_ starts a habit",
-  "_habits_ shows your streaks",
-  "_done meditate_ logs it for today, _undo meditate_ takes it back",
-  "_stop meditate_ stops tracking it",
-  "_time 10pm_ sets the default check-in time, _time off_ turns it off",
-  "_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back",
-  "_add read at 10pm_ adds a habit with its own time",
-  "_add gym on mon wed fri_ adds a habit for some days only",
-  "_days gym tue thu_ changes its days, _days gym every day_ puts it back",
-  "_simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off",
-  "_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it",
-  "",
-  "*More groups:* _new group gym buddies_ makes another Habits group, for a different set of habits or of people",
-  "_groups_ lists yours, _close group gym buddies_ ends one",
-  "",
-  "*With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks",
-  "",
-  "Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
-].join("\n");
+/** One help text for this run: the listing, the "help" command and the help intent all send it. */
+const HELP = copy.help();
 
 /** What pacts borrow from the parsing above (pact.ts can't import this file back). */
-const TOOLS: Tools = { splitAdd, parseHour, scanHour, hourLabel, habitName };
+const TOOLS: Tools = { splitAdd, parseHour, scanHour, habitName };
 
 /** Web input → sorted weekdays, or null for every day. */
 function checkDays(days: unknown): number[] | null {
@@ -259,7 +230,7 @@ export default definePlugin({
   tagline: "Build habits with a daily check-in and streaks.",
   description:
     "Add the habits you want to keep, every day or only on the days you pick. On each habit's days you get a poll at the time you pick; tap Yes or No. Your streaks show as green squares, and the web page shows the last month.",
-  groupName: "🌱 Habits",
+  groupName: copy.groupName(),
   price: 0,
   tier: 1,
   // Pacts: a habit kept with other people, each in its own group ("groups") that friends are
@@ -271,7 +242,7 @@ export default definePlugin({
       "Track habits on WhatsApp. Get a daily check-in, tap Yes or No and watch your streak grow. Free, in its own WhatsApp group. No app.",
     h1: "Habit tracker on WhatsApp",
   },
-  welcome: "🌱 You've installed *Habits*.\n\nTell me a habit you want to build, in your own words, or send _add meditate_. Every day I'll ask about each one with a poll: tap Yes if you did it, No if you didn't.\n\nSend _help_ any time.",
+  welcome: copy.welcome(),
   help: HELP,
   // quickLog ("simple messages"): the check-in is just the habit's name, and a message that is
   // only a habit's name logs it for today. Off unless turned on.
@@ -298,7 +269,7 @@ export default definePlugin({
       const no = /^(n|no|nope|nah|skip|skipped|missed|not today|❌|👎)[!. ]*$/i.test(lower);
       if (yes || no) {
         await setDay(kit, ref.habitId, ref.day, yes ? "done" : "missed");
-        kit.react(yes ? "✅" : "👍");
+        kit.react(yes ? LOGGED : SAVED);
         return;
       }
     }
@@ -319,32 +290,32 @@ export default definePlugin({
       if (h) {
         const word = own[2].toLowerCase();
         const hour = /^(default|reset)$/.test(word) ? null : /^(off|none)$/.test(word) ? null : parseHour(own[2]);
-        if (hour === null && !/^(default|reset|off|none)$/.test(word)) return kit.send("Give me a time like _time meditate 7am_.");
+        if (hour === null && !/^(default|reset|off|none)$/.test(word)) return kit.send(copy.giveHabitTime());
         await kit.store.put("habits", h.id, { ...h.habit, hour });
-        return kit.react("👍");
+        return kit.react(SAVED);
       }
     }
 
     const time = lower.match(/^(?:time|check[- ]?in|reminder)\s+(?:at\s+)?(off|none|stop|(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?)$/);
     if (time) {
       const hour = time[2] ? to24(+time[2], time[4]) : null;
-      if (time[2] && hour === null) return kit.send("Give me a time like _time 10pm_.");
+      if (time[2] && hour === null) return kit.send(copy.giveDefaultTime());
       await kit.setSettings({ checkinHour: hour });
-      return kit.react("👍");
+      return kit.react(SAVED);
     }
 
     // "delete polls on" / "delete polls off": whether an answered check-in poll is deleted
     const del = lower.replace(/[!.]+$/, "").match(/^delete (?:the )?polls?(?: after (?:voting|answering|i vote|i answer))?\s+(on|off)$/);
     if (del) {
       await kit.setSettings({ deletePolls: del[1] === "on" });
-      return kit.react("👍");
+      return kit.react(SAVED);
     }
 
     // "simple on" / "simple off" (also "quick log on/off", its first name)
     const quick = lower.replace(/[!.]+$/, "").match(/^(?:quick ?log(?:ging)?|simple(?: messages?)?)\s+(on|off)$/);
     if (quick) {
       await kit.setSettings({ quickLog: quick[1] === "on" });
-      return kit.react("👍");
+      return kit.react(SAVED);
     }
 
     // "days gym mon wed fri" / "days gym weekdays" / "days gym every day"
@@ -356,43 +327,43 @@ export default definePlugin({
         const parsed = parseDays(words.slice(k).join(" "));
         if (parsed === undefined) continue;
         const h = find(list0, words.slice(0, k).join(" "));
-        if (!h) return kit.send(`I can't find "${words.slice(0, k).join(" ")}". Send _habits_ to see them.`);
+        if (!h) return kit.send(copy.cantFind({ which: words.slice(0, k).join(" ") }));
         await kit.store.put("habits", h.id, { ...h.habit, days: parsed });
-        return kit.react("👍");
+        return kit.react(SAVED);
       }
-      return kit.send("Tell me the habit and the days, like _days gym mon wed fri_ or _days gym every day_.");
+      return kit.send(copy.tellDays());
     }
 
     const list = await active(kit);
     let m = text.match(/^(?:done|did|logged?|✅)\s+(.+)$/i);
     if (m) {
       const h = find(list, m[1].trim());
-      if (!h) return kit.send(`I can't find "${m[1].trim()}". Send _habits_ to see them.`);
+      if (!h) return kit.send(copy.cantFind({ which: m[1].trim() }));
       await setDone(kit, h.id, kit.today, true);
-      return kit.react("✅");
+      return kit.react(LOGGED);
     }
     m = text.match(/^(?:undo|undone|not done)\s+(.+)$/i);
     if (m) {
       const h = find(list, m[1].trim());
-      if (!h) return kit.send(`I can't find "${m[1].trim()}". Send _habits_ to see them.`);
+      if (!h) return kit.send(copy.cantFind({ which: m[1].trim() }));
       await setDone(kit, h.id, kit.today, false);
-      return kit.react("👍");
+      return kit.react(SAVED);
     }
     m = text.match(/^(?:stop|remove|delete|drop|quit|end)\s+(?:habit\s+)?(.+)$/i);
     if (m) {
       const h = find(list, m[1].trim());
-      if (!h) return kit.send(`I can't find "${m[1].trim()}". Send _habits_ to see them.`);
+      if (!h) return kit.send(copy.cantFind({ which: m[1].trim() }));
       await kit.store.put("habits", h.id, { ...h.habit, archived: true });
-      return kit.react("👍");
+      return kit.react(SAVED);
     }
     m = text.match(/^(?:add|new|start|track|habit)\s*:?\s+(.+)$/i);
     if (m) {
       // "add read at 10pm": its own check-in time; "add gym on mon wed fri": only those days
       const { name: raw, hour, days } = splitAdd(m[1]);
       const name = cleanName(raw);
-      if (!name) return kit.send("Name the habit, like _add meditate_.");
+      if (!name) return kit.send(copy.nameTheHabit());
       await addHabit(kit, list, name, hour, days);
-      return kit.react("👍");
+      return kit.react(SAVED);
     }
     // Quick log: the message is just a habit's name ("meditate", "Gym!").
     if (kit.settings.quickLog === true) {
@@ -400,11 +371,11 @@ export default definePlugin({
       const h = list.find((x) => x.habit.name.toLowerCase().replace(/\s+/g, " ") === said);
       if (h) {
         await setDone(kit, h.id, kit.today, true);
-        return kit.react("✅");
+        return kit.react(LOGGED);
       }
     }
     // Not a command: telcurio works out what was meant and calls onIntent below.
-    kit.unsure("I didn't get that. Send _help_ to see what I can do.");
+    kit.unsure(copy.unsure());
   },
 
   understand: {
@@ -434,54 +405,54 @@ export default definePlugin({
     const { text, intent, target } = event;
     const list = await active(kit);
     // Only someone in a pact needs setting up; here it is the owner, who already is.
-    if (intent === "set_me_up") return kit.react("👍");
+    if (intent === "set_me_up") return kit.react(SAVED);
     if (intent === "help") return kit.send(HELP);
     if (intent === "list") return kit.send(await summary(kit));
     if (intent === "add_habit") {
       const name = habitName(text);
-      if (!name) return kit.send("What should I call it? Like _add gym on mon wed fri_.");
+      if (!name) return kit.send(copy.whatToCallIt());
       await addHabit(kit, list, name, scanHour(text) ?? null, scanDays(text));
-      return kit.react("👍");
+      return kit.react(SAVED);
     }
     if (intent === "default_time") {
       if (/\b(?:off|stop|no more|don'?t|pause)\b/i.test(text)) {
         await kit.setSettings({ checkinHour: null });
-        return kit.react("👍");
+        return kit.react(SAVED);
       }
       const hour = scanHour(text);
-      if (hour === undefined) return kit.send("What time? Like _time 9pm_, or _time off_.");
+      if (hour === undefined) return kit.send(copy.whatDefaultTime());
       await kit.setSettings({ checkinHour: hour });
-      return kit.react("👍");
+      return kit.react(SAVED);
     }
 
     // The rest are about one habit.
     const h = habitFor(list, target, text);
-    if (!h) return kit.send(list.length ? "Which habit? Send _habits_ to see them." : "You don't have any habits yet. Start with _add meditate_.");
+    if (!h) return kit.send(list.length ? copy.whichHabit() : copy.noHabitsToPick());
     switch (intent) {
       case "log_done":
         await setDay(kit, h.id, kit.today, "done");
-        return kit.react("✅");
+        return kit.react(LOGGED);
       case "missed":
         await setDay(kit, h.id, kit.today, "missed");
-        return kit.react("👍");
+        return kit.react(SAVED);
       case "undo_done":
         await setDay(kit, h.id, kit.today, null);
-        return kit.react("👍");
+        return kit.react(SAVED);
       case "remove_habit":
         await kit.store.put("habits", h.id, { ...h.habit, archived: true });
-        return kit.react("👍");
+        return kit.react(SAVED);
       case "set_days": {
         const days = scanDays(text);
-        if (days === undefined) return kit.send(`Which days? Like _days ${h.habit.name.toLowerCase()} mon wed fri_.`);
+        if (days === undefined) return kit.send(copy.whichDaysFor({ habit: h.habit.name }));
         await kit.store.put("habits", h.id, { ...h.habit, days });
-        return kit.react("👍");
+        return kit.react(SAVED);
       }
       case "set_time": {
         const back = /\b(?:default|usual|reset)\b/i.test(text);
         const hour = back ? null : scanHour(text);
-        if (hour === undefined) return kit.send(`What time? Like _time ${h.habit.name.toLowerCase()} 7am_.`);
+        if (hour === undefined) return kit.send(copy.whatTimeFor({ habit: h.habit.name }));
         await kit.store.put("habits", h.id, { ...h.habit, hour });
-        return kit.react("👍");
+        return kit.react(SAVED);
       }
     }
   },
@@ -502,7 +473,7 @@ export default definePlugin({
     // as not done, as before.
     await setDay(kit, ref.habitId, ref.day, e && DONE.has(e) ? "done" : e && MISSED.has(e) ? "missed" : null);
     // Acknowledge every reaction so the person knows it landed; take it back when theirs goes.
-    kit.react(e ? "👍" : "");
+    kit.react(e ? SAVED : "");
   },
 
   async onGroup(event, kit) {
@@ -524,7 +495,7 @@ export default definePlugin({
     await setDay(kit, ref.habitId, ref.day, event.choice === 0 ? "done" : "missed");
     // A 👍 on the poll says it landed. Once is enough, and a deleted poll has its own line.
     // With friends in the habit nothing is posted back: the poll shows who answered what.
-    if (!event.changed && kit.settings.deletePolls !== true && !(await hasFriends(kit, ref.habitId))) kit.react("👍");
+    if (!event.changed && kit.settings.deletePolls !== true && !(await hasFriends(kit, ref.habitId))) kit.react(SAVED);
   },
 
   async onSchedule(event, kit) {
@@ -545,17 +516,21 @@ export default definePlugin({
       await kit.store.put("asked", id, kit.today, kit.today);
       // The streak is on every check-in, a zero included. Simple messages: just the habit's
       // name and the streak.
-      const question = shared
-        ? withStandings(kit.settings.quickLog === true ? habit.name : `🌱 Did you ${habit.name} today?`, await standings(kit, id, habit.days, { name: kit.person.name, since: habit.createdDay, done }))
-        : kit.settings.quickLog === true
-          ? `${habit.name}  🔥 ${s}`
-          : `🌱 Did you ${habit.name} today?  🔥 ${s}`;
+      const simple = kit.settings.quickLog === true;
+      const together = shared ? { habit: habit.name, ...forPoll(await standings(kit, id, habit.days, { name: kit.person.name, since: habit.createdDay, done })), limit: POLL_LIMIT } : null;
+      const question = together
+        ? simple
+          ? copy.checkinTogetherSimple(together)
+          : copy.checkinTogether(together)
+        : simple
+          ? copy.checkinSimple({ habit: habit.name, streak: s })
+          : copy.checkin({ habit: habit.name, streak: s });
       kit.ask(question.slice(0, 255), CHECKIN_OPTIONS, {
         ref: { habitId: id, day: kit.today },
         // The poll stays so the answer can be corrected, unless they asked for it to be deleted.
         // With friends it always stays: the poll is how everyone sees who did it.
         keep: shared || kit.settings.deletePolls !== true,
-        confirm: `*${habit.name}*: {{option}}`,
+        confirm: copy.checkinConfirm({ habit: habit.name }),
       });
     }
     // Pacts: one poll per due habit, for the whole group.
