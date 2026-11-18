@@ -2,6 +2,22 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.0.0] - 2026-11-18
+
+### Added
+- Pacts: a habit you keep with other people. _new pact gym buddies_ makes a WhatsApp group for it. Add your people there, then tell me a habit in that group. _pacts_ lists yours and _close pact gym buddies_ ends one.
+- In a pact anyone can add a habit, and each habit gets one poll a day for the whole group. Everyone sees who tapped Yes and No on the poll itself, so nothing is posted for each answer.
+- Each person has their own streak, and each habit has a together streak: the days everyone doing it said Yes. Both are shown in the next day's poll and with _habits_ in the pact's group.
+- You take part in a habit by adding it, answering its poll or sending _join gym_. _leave gym_ steps out. Someone silent for a week stops counting toward the together streak.
+- A friend who has no telcurio profile is asked once, on their first answer, whether they want one so their streak can be kept. On Yes they are set up with nothing else to do. On Not now what they answered is forgotten and they aren't asked again; _track me_ changes their mind later.
+
+### Changed
+- New permissions: `groups` (a pact is its own WhatsApp group) and `members` (everyone in a pact's group is heard). This is why it is a major version. Your private Habits group still hears only you.
+
+### Data
+- New collections for pacts, apart from the private ones: `pacts`, `phabits`, `pjoins`, `plogs`, `pmissed`, `pwait`, `people`, `pasked`. Nothing existing changes shape.
+- A pact check-in's ref is `{ pact, habitId, day }`; the profile offer's is `{ offer: personId }`.
+
 ## [2.1.1] - 2026-11-18
 
 ### Changed
