@@ -147,7 +147,7 @@ async function removeSubmission(kit: Kit, id: string) {
 
 export default definePlugin({
   id: "forms",
-  version: "1.2.1",
+  version: "1.2.2",
   sdk: "1",
   name: "Forms",
   icon: "📬",

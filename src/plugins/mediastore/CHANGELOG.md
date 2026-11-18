@@ -1,5 +1,10 @@
 # Changelog: MediaStore
 
+## [1.4.1] - 2026-11-19
+
+### Changed
+- Nothing you see has changed. Every message this app sends now lives in one file (`copy.ts`), so wording can be changed without touching how the app works.
+
 ## [1.4.0] - 2026-11-18
 
 ### Added

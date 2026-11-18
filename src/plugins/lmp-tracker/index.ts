@@ -260,7 +260,7 @@ const STARTED = /^(yes|yeah|yep|y|ya|haan|today|it came today|started today|yes 
 
 export default definePlugin({
   id: "lmp-tracker",
-  version: "3.1.2",
+  version: "3.1.3",
   sdk: "1",
   name: "Period Tracker",
   icon: "🩸",
