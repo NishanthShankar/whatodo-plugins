@@ -1,7 +1,7 @@
 /** The SDK's own rules and the test kit's, for the parts no plugin exercises yet. */
 import { describe, expect, it } from "vitest";
 import { definePlugin, type PluginDef, type Sender } from "./sdk";
-import { createTestKit } from "./testing";
+import { createTestKit, link } from "./testing";
 
 const base: PluginDef = {
   id: "probe",
@@ -133,5 +133,46 @@ describe("questions", () => {
     expect(() => t.kit.ask("Q", ["a"])).toThrow(/2 to 100/);
     expect(() => t.kit.ask("Q", ["a", "A "])).toThrow(/the same/);
     expect(() => t.kit.ask("Q", ["a", "b".repeat(101)])).toThrow(/100/);
+  });
+});
+
+describe("links and marked messages", () => {
+  function make(permissions: PluginDef["permissions"]) {
+    const seen: unknown[] = [];
+    const plugin = definePlugin({
+      ...base,
+      permissions,
+      onMessage: async (e, kit) => {
+        seen.push(e.links ?? null);
+        if (e.links) kit.mark({ saved: e.links[0].canonical });
+      },
+    });
+    return { plugin, seen };
+  }
+
+  it("hands a plugin with the permission what was read from the links", async () => {
+    const { plugin, seen } = make(["links"]);
+    const t = createTestKit();
+    await t.message(plugin, "look https://youtu.be/abc", null, null, undefined, [link("https://youtu.be/abc", { canonical: "https://www.youtube.com/watch?v=abc", site: "YouTube", kind: "video", title: "A video" })]);
+    expect(seen).toEqual([[{ url: "https://youtu.be/abc", canonical: "https://www.youtube.com/watch?v=abc", site: "YouTube", kind: "video", found: true, title: "A video", description: null, author: null, image: null, seconds: null }]]);
+    expect(t.marks).toEqual([{ saved: "https://www.youtube.com/watch?v=abc" }]);
+  });
+
+  it("leaves links unset on a message without any", async () => {
+    const { plugin, seen } = make(["links"]);
+    const t = createTestKit();
+    await t.message(plugin, "hello");
+    expect(seen).toEqual([null]);
+    expect(t.marks).toEqual([]);
+  });
+
+  it("refuses link details for a plugin without the permission", async () => {
+    const { plugin } = make([]);
+    const t = createTestKit();
+    await expect(t.message(plugin, "https://a.test", null, null, undefined, [link("https://a.test")])).rejects.toThrow(/"links" permission/);
+  });
+
+  it("knows the permission by name", () => {
+    expect(() => definePlugin({ ...base, permissions: ["links"] })).not.toThrow();
   });
 });

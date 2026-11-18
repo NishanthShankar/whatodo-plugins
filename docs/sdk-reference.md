@@ -136,8 +136,37 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"replies"` | Be called back when someone replies. | Reserved: the name is fixed so plugins and people can plan for it; nothing is built yet. |
 | `"lock-members"` | Block adding members: its groups (the main one and any extra ones) are made with telcurio as the only admin and set so only admins can add people. For plugins whose group must stay between the person and telcurio. | Reserved (SDK 1.7.0): telcurio doesn't enforce it yet. |
 | `"members"` | Hear everyone in its groups, not only the person who added it. Each message, reaction and intent says who sent it in `event.sender`. Can't be combined with `"lock-members"`. | Built (SDK 1.8.0) |
+| `"links"` | Get the public details of links people send: `event.links`. telcurio opens the link, not the plugin. | Built (SDK 1.10.0) |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
+
+## Links
+
+A plugin can't reach the internet. With the `"links"` permission telcurio does it for one thing: when a message has a link, telcurio opens it and hands the plugin what the page says about itself. Since SDK 1.10.0.
+
+```ts
+async onMessage(event, kit) {
+  for (const l of event.links ?? []) {
+    // l.url, l.canonical, l.site, l.kind, l.found, l.title, l.description, l.author, l.image, l.seconds
+  }
+}
+```
+
+- `event.links` is set only when the message has a link: at most 3, in the order they appear. `event.text` is still the whole message, links included.
+- `canonical` is the link without tracking parts, and the same for every way of sharing one thing (`youtu.be/ID`, a shorts link and a watch link are one). Key on it to spot a repeat.
+- `site` is `"YouTube"`, `"Instagram"` or the site's own name. `kind` is `"video"`, `"short"`, `"reel"`, `"post"` or `"page"`.
+- `found: false` means the page couldn't be read (private, deleted, blocked, too slow). The other details are then null. Still do something useful with the bare link.
+- `description` is the description or caption (up to 5000 characters), `author` the channel or account, `seconds` the length when the site gives it.
+- `image` is an address, not a file. Instagram's stop working after some days; YouTube's don't.
+- Reading takes a second or two. Meanwhile telcurio shows a 🕐 on the person's message. Your `kit.react` replaces it; if you don't react, telcurio takes it off.
+- Only public pages are read, with no login. What is said or shown inside a video is not available.
+
+## Remembering the person's message
+
+`kit.send(text, { ref })` lets you recognise reactions and replies to your own message. `kit.mark(ref)` does the same for the person's message you are handling in `onMessage`: a reaction to it arrives in `onReaction` with that ref, and a reply to it carries it as `quotedRef`. Use it when their message is the record itself (the link they saved). Since SDK 1.10.0.
+
+- One ref per message; calling it again replaces the first.
+- `kit.react` inside `onReaction` is ignored for a marked message: their own reaction is already showing on it.
 
 ## Asking a question
 
