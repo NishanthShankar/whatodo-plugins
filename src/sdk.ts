@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.13.0";
+export const SDK_VERSION = "1.13.1";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
