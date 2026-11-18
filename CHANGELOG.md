@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.17.0] - 2026-11-18
+
+### Added
+- `onGroup(event, kit)`: a plugin that has it can be handed a WhatsApp group the person already had. `event.kind` is `"joined"` or `"left"`, `event.key` is telcurio's key for the group (it starts with `x-`) and `event.name` its WhatsApp name. After `"joined"` the group works like one made with `kit.groups.open`, except that `kit.groups.close` only stops listening there. Needs `"groups"`; `definePlugin` refuses it otherwise.
+- Test kit: `t.group(plugin, kind, key, name)`.
+
 ## [1.16.0] - 2026-11-18
 
 ### Added

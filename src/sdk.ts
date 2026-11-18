@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.16.0";
+export const SDK_VERSION = "1.17.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -324,6 +324,26 @@ export interface HookFile {
 }
 
 /** A request from outside telcurio to one of the install's hooks. Since SDK 1.5.0. */
+/**
+ * A WhatsApp group the person already had was handed to the plugin, or taken back. From then
+ * on it works like a group made with `kit.groups.open`: messages there arrive with
+ * `group: key`, and `kit.send(text, { group: key })` posts there. The differences: telcurio
+ * didn't make it, other people may already be in it, and `kit.groups.close(key)` only stops
+ * listening there (nobody is taken out and nothing is said). Since SDK 1.17.0.
+ */
+export interface GroupEvent {
+  /**
+   * "joined": the person chose this plugin for the group. `kit.send` in the handler posts in
+   * that group. "left": they chose something else for it; telcurio has already stopped
+   * listening there, so only tidy up your own records.
+   */
+  kind: "joined" | "left";
+  /** telcurio's key for the group. Never the same as a key the plugin picked itself: it starts with "x-". */
+  key: string;
+  /** The WhatsApp group's name. */
+  name: string;
+}
+
 export interface HookEvent {
   /** The key the hook was made with (`kit.hooks.url(key)`). */
   key: string;
@@ -470,6 +490,12 @@ export interface PluginDef {
    * store and `kit.send`); telcurio has already answered the sender. Since SDK 1.5.0.
    */
   onHook?(event: HookEvent, kit: Kit): Promise<void>;
+  /**
+   * Having this means the person can hand the plugin a WhatsApp group they already had (one
+   * telcurio didn't make): on the web, or when they add telcurio to a group. Needs the
+   * "groups" permission. Since SDK 1.17.0.
+   */
+  onGroup?(event: GroupEvent, kit: Kit): Promise<void>;
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
   /** Called with the intent telcurio found for an unclear message. Required with `understand`. */
@@ -520,6 +546,7 @@ export function definePlugin(def: PluginDef): PluginDef {
     throw new Error(`${def.id}: "members" and "lock-members" can't be used together`);
   }
   if (def.web?.loadFor && !def.permissions?.includes("members")) throw new Error(`${def.id}: web.loadFor needs the "members" permission`);
+  if (def.onGroup && !def.permissions?.includes("groups")) throw new Error(`${def.id}: onGroup needs the "groups" permission`);
   if (def.onHook && !def.permissions?.includes("hooks")) throw new Error(`${def.id}: onHook needs the "hooks" permission`);
   if (def.understand) {
     const ids = Object.keys(def.understand.intents ?? {});

@@ -368,6 +368,22 @@ export function createTestKit(opts: TestKitOptions = {}) {
       if (!plugin.onHook) throw new Error(`${plugin.id} has no onHook`);
       await plugin.onHook({ key, fields: { ...fields }, files: files.map((f) => ({ ...f })), origin }, kit);
     },
+    /**
+     * The person hands the plugin a WhatsApp group they already had (`"joined"`), or takes it
+     * back (`"left"`), as telcurio would. A joined group is listed in `groups` like any other.
+     */
+    async group(plugin: PluginDef, kind: "joined" | "left", key: string, name: string) {
+      withDefaults(plugin);
+      if (!plugin.onGroup) throw new Error(`${plugin.id} has no onGroup`);
+      if (kind === "joined") groups.set(key, { name, hello: null });
+      else groups.delete(key);
+      here = kind === "joined" ? key : null;
+      try {
+        await plugin.onGroup({ kind, key, name }, kit);
+      } finally {
+        here = null;
+      }
+    },
     async schedule(plugin: PluginDef, id: string) {
       withDefaults(plugin);
       await plugin.onSchedule?.({ id }, kit);

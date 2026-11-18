@@ -32,6 +32,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
 | `onAnswer` | `(event: AnswerEvent, kit) => Promise<void>` | no | Someone answered a question asked with `kit.ask`. See [Asking a question](#asking-a-question). Since SDK 1.9.0. |
 | `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
+| `onGroup` | `(event: GroupEvent, kit) => Promise<void>` | no | The person handed the plugin a WhatsApp group they already had, or took it back. Having it is what makes the plugin a choice for existing groups. Needs `"groups"`. Since SDK 1.17.0. |
 | `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`, `"lock-members"`, `"members"`. See [Permissions](#permissions). Since SDK 1.6.0. |
 | `unlisted` | boolean | no | Left out of the store and the public site; only people telcurio allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
 | `web` | `WebDef` | no | Data and actions for the plugin's web page. |
@@ -78,12 +79,14 @@ interface AnswerEvent   { ref: Json | null; choice: number; option: string; chan
 interface Sender        { id: string; name: string | null; owner: boolean }   // who sent it; since SDK 1.8.0
 interface HookEvent     { key: string; fields: Record<string, string>; files: HookFile[]; origin: string | null }
 interface HookFile      { id: string; field: string; name: string; type: string; size: number }
+interface GroupEvent    { kind: "joined" | "left"; key: string; name: string }   // since SDK 1.17.0
 ```
 
 - `text` is trimmed by telcurio; it is never empty.
 - `quotedRef` is the `ref` of **your** message the person replied to, or `null`. Replies to their own messages or to messages without a ref give `null`.
 - Only the installer's messages and reactions reach the plugin.
 - `group` is the key of the extra group (`kit.groups.open`) the event happened in, or `null` for the main group. Making a group takes a little while and can fail and be retried, so never wait for it: keep working in the main group until events start arriving with the key.
+- `GroupEvent` reaches `onGroup`. A plugin that has `onGroup` can be handed a WhatsApp group the person already had: they pick the plugin for it on the web, or in the chat with telcurio after adding telcurio to a group. On `"joined"`, record the group under `key` (it starts with `x-`) the way you record groups you opened yourself; `kit.send` in the handler posts in that group. From then on events there carry `group: key`. On `"left"` the person chose something else for the group: tidy your records, telcurio has already stopped listening. `kit.groups.close(key)` on such a group only stops listening; nobody is taken out. Other people are usually in these groups already, so think about what your plugin does with their messages (see [More than one person in the group](#more-than-one-person-in-the-group)).
 - `IntentEvent` reaches `onIntent` only after `onMessage` called `kit.unsure()`; see [Understanding unclear messages](#understanding-unclear-messages).
 
 ## Kit

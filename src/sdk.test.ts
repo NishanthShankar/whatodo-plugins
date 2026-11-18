@@ -243,6 +243,31 @@ describe("intents in an extra group", () => {
   });
 });
 
+describe("a group the person already had", () => {
+  it("is handed to the plugin, answered in, and taken back", async () => {
+    const seen: string[] = [];
+    const plugin = definePlugin({
+      ...base,
+      permissions: ["groups"],
+      onGroup: async (e, kit) => {
+        seen.push(`${e.kind} ${e.key} ${e.name}`);
+        if (e.kind === "joined") kit.send("hello");
+      },
+    });
+    const t = createTestKit();
+    await t.group(plugin, "joined", "x-1", "Family");
+    expect(t.groups.get("x-1")).toEqual({ name: "Family", hello: null });
+    expect(t.sent.map((s) => s.group)).toEqual(["x-1"]);
+    await t.group(plugin, "left", "x-1", "Family");
+    expect(t.groups.has("x-1")).toBe(false);
+    expect(seen).toEqual(["joined x-1 Family", "left x-1 Family"]);
+  });
+
+  it("needs the groups permission", () => {
+    expect(() => definePlugin({ ...base, onGroup: async () => {} })).toThrow(/groups/);
+  });
+});
+
 describe("profiles", () => {
   it("knows who has a profile, and records a yes", async () => {
     const seen: (boolean | undefined)[] = [];
