@@ -2,6 +2,15 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.10.0] - 2026-11-18
+
+### Added
+- Permission `"links"`: telcurio reads the public details of the links people send and hands them to the plugin. A plugin still can't reach the internet itself.
+- `MessageEvent.links`: for a plugin with `"links"`, a message with a link arrives with `links: Link[]` (at most 3, in order). `Link = { url, canonical, site, kind, found, title, description, author, image, seconds }`. `canonical` is the same however a link was shared; `found` is false when the page couldn't be read. YouTube and Instagram are read in full (title, caption, channel or account, picture, length); other sites give what their page says about itself.
+- While telcurio reads the links it shows a 🕐 on the person's message. The plugin's own reaction replaces it; with none, telcurio takes the clock off.
+- `kit.mark(ref)`: remember the person's message being handled, the way `ref` on `kit.send` remembers one of the plugin's. A reaction to it arrives in `onReaction` and a reply to it carries `quotedRef`, with that ref.
+- Test kit: `link(url, found?)` builds a `Link`, `t.message` takes `links` as its sixth argument (refused without `"links"`), and `t.marks` lists the refs given to `kit.mark`.
+
 ## [1.9.0] - 2026-11-18
 
 ### Added

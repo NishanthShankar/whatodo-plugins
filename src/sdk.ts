@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.9.0";
+export const SDK_VERSION = "1.10.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -37,10 +37,13 @@ export type Tier = 1 | 2 | 3;
  * - "members": hear everyone in its groups, not only the person who added it. Without it,
  *   messages and reactions from other people in the group never reach the plugin. Each event
  *   says who sent it (`event.sender`). Can't be combined with "lock-members". Since SDK 1.8.0.
+ * - "links": have telcurio read the public details of the links people send (title, caption,
+ *   who posted it, picture address). A plugin can't reach the internet itself; with this,
+ *   telcurio opens each link and hands over what it found in `event.links`. Since SDK 1.10.0.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -141,6 +144,13 @@ export interface Kit {
    */
   react(emoji: string): void;
   /**
+   * Remember the person's message being handled (onMessage only), the way `ref` on `kit.send`
+   * remembers one of yours: a reaction to it arrives in `onReaction` with this ref, and a
+   * reply to it carries it as `quotedRef`. For messages that are the record itself (a link
+   * they saved, a photo of a receipt). Since SDK 1.10.0.
+   */
+  mark(ref: Json): void;
+  /**
    * Say you couldn't read the message being handled (onMessage only). If the plugin declares
    * `understand`, telcurio asks its intent model which of your intents the message means and
    * calls `onIntent` with the answer; if the plugin doesn't, or the model isn't sure, telcurio
@@ -187,10 +197,47 @@ export interface Kit {
   };
 }
 
+/**
+ * What telcurio read from a link's public page, for plugins with the "links" permission.
+ * Anything it couldn't read is null; a private, deleted or unreachable link has `found: false`
+ * and only `url`, `canonical`, `site` and `kind`. Since SDK 1.10.0.
+ */
+export interface Link {
+  /** The link as it was sent. */
+  url: string;
+  /**
+   * The same link without tracking parts, and the same however it was shared (youtu.be, a
+   * shorts link and a watch link of one video are one `canonical`). Use it to spot a repeat.
+   */
+  canonical: string;
+  /** Where it is: "YouTube", "Instagram", or the site's own name ("example.com" when it gives none). */
+  site: string;
+  /** "video", "short" (YouTube), "reel", "post" (Instagram) or "page" (anything else). */
+  kind: "video" | "short" | "reel" | "post" | "page";
+  /** False when telcurio couldn't read the page. */
+  found: boolean;
+  title: string | null;
+  /** The description or caption, up to 5000 characters. */
+  description: string | null;
+  /** The channel or account that posted it. */
+  author: string | null;
+  /** The address of its picture. Some sites' addresses stop working after a while. */
+  image: string | null;
+  /** Length in seconds, when the site says. */
+  seconds: number | null;
+}
+
 export interface MessageEvent {
   text: string;
-  /** The ref of the plugin message this one replies to, if any. */
+  /** The ref of the message this one replies to (one of the plugin's, or one marked with `kit.mark`), if any. */
   quotedRef: Json | null;
+  /**
+   * The links in the message with what telcurio read from each, in the order they appear (at
+   * most 3). Only with the "links" permission, and only when the message has a link. While
+   * telcurio reads them it shows a clock on the message; the plugin's reaction replaces it.
+   * Since SDK 1.10.0.
+   */
+  links?: Link[];
   /** The key of the extra group it was sent in; null or unset for the main group. Since SDK 1.6.0. */
   group?: string | null;
   /** Who sent it. telcurio always sets it since SDK 1.8.0. */
@@ -200,7 +247,7 @@ export interface MessageEvent {
 export interface ReactionEvent {
   /** null when the reaction was removed. */
   emoji: string | null;
-  /** The ref of the plugin message reacted to. */
+  /** The ref of the message reacted to: one the plugin sent with a ref, or one of the person's it marked with `kit.mark`. */
   ref: Json;
   /** The key of the extra group the message is in; null or unset for the main group. Since SDK 1.6.0. */
   group?: string | null;

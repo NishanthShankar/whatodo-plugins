@@ -7,11 +7,12 @@ People trust telcurio with their WhatsApp. A plugin borrows that trust, so it ge
 | Source | What arrives | What never arrives |
 |---|---|---|
 | Messages | Text the **installer** sends in the plugin's own group | Other chats, other groups, other members, telcurio's private chat, media files |
-| Replies | `quotedRef`: the ref of the plugin's own message being replied to | The text of other messages |
-| Reactions | Emoji on the plugin's own messages (with refs) | Reactions elsewhere |
+| Replies | `quotedRef`: the ref of the message being replied to (the plugin's own, or one of the person's it marked with `kit.mark`) | The text of other messages |
+| Reactions | Emoji on the plugin's own messages (with refs) and on the person's messages it marked | Reactions elsewhere |
 | Person | Time zone; name as set in telcurio | Phone number, contacts, other plugins installed |
 | Storage | Its own rows for this install | Other installs, other plugins, telcurio's tables (todos, lists, users) |
 | Network | Nothing | Any network access |
+| Links | With `"links"`: the public details of each link in a message (title, caption, who posted it, picture address, length), read by telcurio | The page itself; anything behind a login; what is said or shown in a video |
 | Hooks | With a hook open: the text fields and the file names, types and sizes of each request sent to it | The files' bytes; the sender's IP address |
 | Intent model | With `understand`: an intent id, a target id and a confidence for a message the plugin was unsure about | The model's own text; anything about other messages |
 
@@ -25,7 +26,9 @@ Plugins in this repo are first-party code bundled into telcurio; the boundary to
 
 When a plugin calls `kit.unsure()` and declares `understand`, telcurio (not the plugin) sends that one message's text, the plugin's intent descriptions and its target labels to its intent model (jev, by TypeSafe, through OpenRouter) to be classified. telcurio keeps only the model's answer, token counts and cost, never the text.
 
-Anything beyond a plugin's own group and data is a permission it must list (`permissions`: `hooks`, `groups`, `replies`, `lock-members`, `members`), shown to the person before they add it. See [sdk-reference.md](sdk-reference.md#permissions).
+Anything beyond a plugin's own group and data is a permission it must list (`permissions`: `hooks`, `groups`, `replies`, `lock-members`, `members`, `links`), shown to the person before they add it. See [sdk-reference.md](sdk-reference.md#permissions).
+
+With `"links"`, telcurio's servers open each link a person sends in the plugin's group, as a link preview would. The site sees a request from telcurio, not from the person or their phone. telcurio keeps nothing from the page; what the plugin stores is the plugin's choice and belongs in its README.
 
 Known gap: `kit.person.name` is available to every plugin. It will move behind a permission shown at install.
 

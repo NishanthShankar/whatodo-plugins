@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import { checkAsk, type HookFile, type Json, type Kit, type PluginDef, type Sender, type StoredItem } from "./sdk";
+import { checkAsk, type HookFile, type Json, type Kit, type Link, type PluginDef, type Sender, type StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -46,6 +46,14 @@ function shiftDay(day: string, n: number): string {
 
 const MAX_TEXT = 4000;
 
+/**
+ * A link as telcurio would hand it over, for `t.message(..., links)`. Give the address and
+ * whatever the page says; the rest is filled in as a page that was read with nothing on it.
+ */
+export function link(url: string, found: Partial<Omit<Link, "url">> = {}): Link {
+  return { url, canonical: url, site: "example.com", kind: "page", found: true, title: null, description: null, author: null, image: null, seconds: null, ...found };
+}
+
 export function createTestKit(opts: TestKitOptions = {}) {
   const rows = new Map<string, { data: Json; sort: string | number | null }>();
   const sent: Sent[] = [];
@@ -54,6 +62,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   /** Who answered what, per question. */
   const answers = new Map<Asked, Map<string, number>>();
   const reactions: string[] = [];
+  /** Refs given to kit.mark(), in order: the person's messages the plugin asked to remember. */
+  const marks: Json[] = [];
   /** Fallback texts from kit.unsure(), in order. In telcurio these trigger intent understanding. */
   const unsures: string[] = [];
   /** Hooks that are open, by key. */
@@ -142,6 +152,10 @@ export function createTestKit(opts: TestKitOptions = {}) {
     react(emoji) {
       reactions.push(emoji);
     },
+    mark(ref) {
+      if (ref === undefined) throw new Error("kit.mark: give a ref");
+      marks.push(clone(ref));
+    },
     unsure(fallback) {
       if (typeof fallback !== "string" || !fallback.trim()) throw new Error("kit.unsure: give a fallback message");
       unsures.push(fallback);
@@ -209,6 +223,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     sent,
     asked,
     reactions,
+    marks,
     unsures,
     /** Keys of the hooks that are open. */
     hooks,
@@ -234,14 +249,17 @@ export function createTestKit(opts: TestKitOptions = {}) {
      * `group`: the key of the extra group the message was sent in (null: the main group).
      * `from`: who sent it. Leave out for the person who added the plugin; a name ("Asha") for
      * another member of the group, which needs the "members" permission.
+     * `links`: what telcurio read from the links in the message (build each with `link()`),
+     * which needs the "links" permission.
      */
-    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null, from?: string | Partial<Sender>) {
+    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null, from?: string | Partial<Sender>, links?: Link[]) {
       withDefaults(plugin);
       const sender = senderOf(plugin, from);
+      if (links && !plugin.permissions?.includes("links")) throw new Error(`${plugin.id}: link details need the "links" permission (telcurio wouldn't read them)`);
       here = group;
       try {
         if (/^(help|\?|menu|commands)$/i.test(text.trim())) return kit.send(plugin.help);
-        await plugin.onMessage?.({ text, quotedRef, group, sender }, kit);
+        await plugin.onMessage?.({ text, quotedRef, group, sender, ...(links ? { links: links.map((l) => ({ ...l })) } : {}) }, kit);
       } finally {
         here = null;
       }

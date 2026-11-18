@@ -33,7 +33,7 @@ it("logs a glass and reacts", async () => {
 | Call | Does what telcurio does when… |
 |---|---|
 | `await t.install(plugin)` | the plugin is installed (`onInstall`) |
-| `await t.message(plugin, text, quotedRef?, group?, from?)` | the person sends `text` (as a reply to a message with `quotedRef`). `help`/`?`/`menu`/`commands` post `plugin.help`, as telcurio does. |
+| `await t.message(plugin, text, quotedRef?, group?, from?, links?)` | the person sends `text` (as a reply to a message with `quotedRef`). `help`/`?`/`menu`/`commands` post `plugin.help`, as telcurio does. `links`: what telcurio read from the links in it, each built with `link(url, { site, kind, title, ... })` from the test kit; needs the `"links"` permission. |
 | `await t.react(plugin, emoji \| null, ref, group?, from?)` | the person reacts to (null: un-reacts) a message sent with `ref` |
 | `from` on the three calls above and below | who sent it. Left out: the person who added the plugin. A name like `"Asha"`: another member of the group (her `sender.id` is `"asha"`). The plugin needs the `"members"` permission, or the kit throws as telcurio would not have delivered it. |
 | `await t.answer(plugin, ref, choice, from?)` | someone answers the open question asked with `ref` (`kit.ask`); `choice` counts from 0. Settles it and posts its `confirm` line for a one-person plugin; with `"members"` it stays open and a second answer from the same person has `changed: true`. Throws when no such question is open. |
@@ -50,6 +50,7 @@ it("logs a glass and reacts", async () => {
 |---|---|
 | `t.sent` | `{ text, ref }[]` in order: everything posted in the group |
 | `t.reactions` | emojis reacted, in order |
+| `t.marks` | refs given to `kit.mark`, in order |
 | `t.asked` | questions asked with `kit.ask`, in order: `{ question, options, ref, group, confirm, open }` |
 | `t.unsures` | fallback texts from `kit.unsure()`, in order (in telcurio these trigger intent understanding) |
 | `t.dump()` | `{ "collection/key": data }` of everything stored |
