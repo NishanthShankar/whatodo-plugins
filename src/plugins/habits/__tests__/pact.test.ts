@@ -155,6 +155,7 @@ describe("a friend without a profile", () => {
     await t.schedule(habits, "checkin");
     await t.answer(habits, checkin(t).ref, 0, asha);
     await t.answer(habits, offer(t, "asha")!.ref, 1, asha);
+    expect(t.sent.at(-1)!.text).toBe("No problem, Asha. Just ask me to set it up for you later if you change your mind.");
     expect(Object.keys(t.dump()).filter((k) => k.includes("asha") && !k.startsWith("people/"))).toEqual([]);
     t.setToday("2026-11-11");
     await t.schedule(habits, "checkin");
@@ -162,8 +163,22 @@ describe("a friend without a profile", () => {
     expect(t.asked.filter((a) => (a.ref as { offer?: string })?.offer === "asha")).toHaveLength(1);
     expect(Object.keys(t.dump()).filter((k) => k.startsWith("plogs/") && k.includes("asha"))).toEqual([]);
     expect(t.signedUp).toEqual([]);
-    // They can still ask to be counted later.
+    // "track me" is no longer a way in.
     await t.message(habits, "track me", null, P, asha);
+    expect(t.signedUp).toEqual([]);
+    // They can ask to be set up later, in a few words or their own.
+    await t.message(habits, "Hook me up!", null, P, asha);
+    expect(t.signedUp).toEqual(["asha"]);
+    expect(t.sent.at(-1)!.text).toBe("Asha, you're set up. I'm keeping your streak from here on.");
+  });
+
+  it("understands being asked to set someone up in their own words", async () => {
+    const t = createTestKit({ hour: 21 });
+    await pact(t);
+    await t.intent(habits, "ok can you set it up for me now", "set_me_up", null, 1, asha, P);
+    expect(t.signedUp).toEqual(["asha"]);
+    // The owner asking in their private group changes nothing.
+    await t.intent(habits, "set me up", "set_me_up");
     expect(t.signedUp).toEqual(["asha"]);
   });
 

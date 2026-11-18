@@ -244,7 +244,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "3.0.0",
+  version: "3.1.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -405,6 +405,7 @@ export default definePlugin({
       set_time: "Change the time of day one habit's check-in message is sent",
       default_time: "Change the usual check-in time for all habits, or stop the check-ins",
       list: "See their habits, streaks or progress",
+      set_me_up: "In a shared pact group: ask to be set up or hooked up with their own profile so their streak is kept, often after saying not now earlier",
       help: "Ask how this works or what they can say",
     },
     async targets(kit) {
@@ -417,6 +418,8 @@ export default definePlugin({
     if (event.sender && !event.sender.owner) return;
     const { text, intent, target } = event;
     const list = await active(kit);
+    // Only someone in a pact needs setting up; here it is the owner, who already is.
+    if (intent === "set_me_up") return kit.react("👍");
     if (intent === "help") return kit.send(HELP);
     if (intent === "list") return kit.send(await summary(kit));
     if (intent === "add_habit") {

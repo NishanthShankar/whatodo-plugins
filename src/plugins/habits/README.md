@@ -21,7 +21,7 @@ Send these in the Habits group.
 | `delete polls on` / `delete polls off` | Whether a check-in poll is deleted once you answer it (with a line saying what you chose) or stays so you can change it. Off by default. 👍 |
 | `help` | This list. |
 
-Anything else goes to telcurio's intent model, so plain sentences work too: "I want to start going to the gym on mondays and thursdays", "finished my workout", "skipped reading today", "move gym to tuesdays", "check in with me at 8pm instead". Intents: `add_habit`, `log_done`, `missed`, `undo_done`, `remove_habit`, `set_days`, `set_time`, `default_time`, `list`, `help`; targets are the active habits (id to name). If the text doesn't say which habit, days or time, it asks.
+Anything else goes to telcurio's intent model, so plain sentences work too: "I want to start going to the gym on mondays and thursdays", "finished my workout", "skipped reading today", "move gym to tuesdays", "check in with me at 8pm instead". Intents: `add_habit`, `log_done`, `missed`, `undo_done`, `remove_habit`, `set_days`, `set_time`, `default_time`, `list`, `set_me_up`, `help`; targets are the active habits (id to name). If the text doesn't say which habit, days or time, it asks.
 
 Check-ins: at each habit's hour (its own, else the default), on its days, the plugin asks with one poll per habit not yet done that day: "🌱 Did you Read today?  🔥 5" with Yes and No (with simple messages on: "Read  🔥 5"; the streak is always there, 🔥 0 included) (`kit.ask` with `keep`). Streaks skip days a habit isn't due on. Yes logs it; No says you didn't (counts like no answer, but closes the day so it isn't asked again). The first answer gets a 👍 on the poll.
 
@@ -55,14 +55,14 @@ In a pact's group, from anyone there:
 | `join gym` / `leave gym` | Start or stop doing a habit someone else added. 👍 |
 | `done gym` / `undo gym` | Log or un-log your own today. ✅ / 👍 |
 | `stop gym`, `time gym 7am`, `days gym mon wed` | Only the person who added the habit or who made the pact. 👍 |
-| `track me` | Keep my streak (for someone who said Not now to a profile). |
+| `set me up` / `hook me up` | Set up my profile and keep my streak (for someone who said Not now). |
 
 How a pact behaves (the owner's decisions, 2026-11-18):
 - One poll a day per habit for the whole group, always kept, so the poll shows who did it. Answers can change until that habit's next check-in. Nothing is posted or reacted for an answer.
 - The question carries the standings: "🤝 Did you Gym today?  Together 🔥 4 · Asha 🔥 12 · Ravi 🔥 4".
 - Each person has their own streak. The together streak counts days everyone doing the habit said Yes; a No or no answer from one person breaks it. A person counts from the day they joined, and stops counting after a week of silence.
 - You are doing a habit once you add it, answer its poll or send `join`. So people can watch without taking part.
-- Whose answers are kept: the pact's owner and anyone with a telcurio profile. Someone without one gets one poll, on their first answer: "Asha, you've started forming a habit. Want your own telcurio profile, so I can track your streak too? Tap Yes and I'll set you up. Nothing else to do." with Yes and Not now. Yes records their agreement (`kit.signUp`) and counts what they answered. Not now deletes it, and they are never asked again. Only the person named can answer their offer.
+- Whose answers are kept: the pact's owner and anyone with a telcurio profile. Someone without one gets one poll, on their first answer: "Asha, you've started forming a habit. Want your own telcurio profile, so I can track your streak too? Tap Yes and I'll set you up. Nothing else to do." with Yes and Not now. Yes records their agreement (`kit.signUp`) and counts what they answered. Not now deletes it, answers "No problem. Just ask me to set it up for you later if you change your mind.", and they are never asked again; `set me up` or `hook me up` brings it back. Only the person named can answer their offer.
 - Pact habits are apart from the private ones: they don't show in your private list.
 - Limits: 10 pacts, 12 habits in a pact.
 

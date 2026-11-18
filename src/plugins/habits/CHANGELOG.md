@@ -2,6 +2,15 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.1.0] - 2026-11-18
+
+### Changed
+- In a pact, the way back after "Not now" is _set me up_ or _hook me up_ (also in your own words, like "can you set it up for me now"). _track me_ is gone.
+- Saying Not now to the profile offer gets an answer: "No problem. Just ask me to set it up for you later if you change your mind."
+
+### Added
+- Intent `set_me_up`, so the request is understood however it is said.
+
 ## [3.0.0] - 2026-11-18
 
 ### Added

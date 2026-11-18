@@ -10,7 +10,7 @@ import { cleanName, daysLabel, isOn, parseDays, scanDays, streak } from "./strea
  * Whose answers are kept: the person who made the pact, and anyone with a telcurio profile.
  * Someone without one is offered a profile on their first answer ("you've started forming a
  * habit..."); on their yes their streak is kept from that day, on "not now" what they
- * answered is forgotten and they are not asked again.
+ * answered is forgotten and they are not asked again ("set me up" brings it back).
  *
  * Storage (all per install, apart from the private habits' collections)
  *   pacts    key = group key                      data = Pact         sort = created (ms)
@@ -255,6 +255,14 @@ async function addHabit(kit: Kit, pact: string, sender: Sender, name: string, ho
   return null;
 }
 
+/** "Set me up": someone who said not now, or was never asked, wants their streak kept after all. */
+async function setUp(kit: Kit, sender: Sender): Promise<void> {
+  if (await tracked(kit, sender)) return kit.react("👍");
+  await accept(kit, sender);
+  kit.close({ offer: sender.id });
+  kit.send(`${first(sender.name) ? `${first(sender.name)}, you're` : "You're"} set up. I'm keeping your streak from here on.`);
+}
+
 /** A message in a pact's group. Anyone there can add a habit, log it and see how everyone stands. */
 export async function pactMessage(event: MessageEvent, kit: Kit, tools: Tools): Promise<void> {
   const pact = event.group!;
@@ -266,12 +274,7 @@ export async function pactMessage(event: MessageEvent, kit: Kit, tools: Tools): 
 
   if (/^(habits|list|streaks?|show|status|pact|score|scores|standings)$/.test(lower)) return kit.send(await summary(kit, pact, p.name, tools));
 
-  if (/^(track me|set me up|sign me up|count me in|my profile|profile)$/.test(lower)) {
-    if (await tracked(kit, sender)) return kit.react("👍");
-    await accept(kit, sender);
-    kit.close({ offer: sender.id });
-    return kit.send(`${first(sender.name) ? `${first(sender.name)}, you're` : "You're"} set up. I'm keeping your streak from here on.`);
-  }
+  if (/^(?:(?:please\s+)?(?:hook|set|sign) me up|count me in|set (?:it|my profile) up(?: for me)?|set up my profile)$/.test(lower)) return setUp(kit, sender);
 
   const list = await habitsOf(kit, pact);
   const missing = (which: string) => kit.send(`I can't find "${which}" in this pact. Send _habits_ to see them.`);
@@ -356,6 +359,7 @@ export async function pactIntent(event: IntentEvent, kit: Kit, tools: Tools): Pr
   const sender = event.sender;
   if (!p || p.closed || !sender) return;
   const list = await habitsOf(kit, pact);
+  if (event.intent === "set_me_up") return setUp(kit, sender);
   if (event.intent === "add_habit") {
     const name = tools.habitName(event.text);
     if (!name) return kit.send("What should I call it? Like _add gym on mon wed fri_.");
@@ -386,7 +390,10 @@ export async function pactAnswer(event: AnswerEvent, kit: Kit): Promise<void> {
     if (event.choice === 0) {
       await accept(kit, sender);
       kit.send(`${first(sender.name) ? `${first(sender.name)}, you're` : "You're"} set up. I'm keeping your streak from here on.`);
-    } else await decline(kit, sender);
+    } else {
+      await decline(kit, sender);
+      kit.send(`No problem${first(sender.name) ? `, ${first(sender.name)}` : ""}. Just ask me to set it up for you later if you change your mind.`);
+    }
     kit.close(ref as unknown as Json);
     return;
   }
