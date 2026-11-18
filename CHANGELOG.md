@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.12.0] - 2026-11-18
+
+### Added
+- `IntentEvent.group`: the key of the extra group an unclear message was sent in. While `onIntent` handles it, `kit.send` answers in that group, as it does in `onMessage`. Before this, an intent from an extra group was answered in the main group.
+- Test kit: a `group` argument on `t.intent` (the seventh).
+
 ## [1.11.0] - 2026-11-18
 
 ### Added

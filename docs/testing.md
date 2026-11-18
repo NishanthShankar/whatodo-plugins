@@ -38,7 +38,7 @@ it("logs a glass and reacts", async () => {
 | `from` on the three calls above and below | who sent it. Left out: the person who added the plugin. A name like `"Asha"`: another member of the group (her `sender.id` is `"asha"`). The plugin needs the `"members"` permission, or the kit throws as telcurio would not have delivered it. |
 | `await t.answer(plugin, ref, choice, from?)` | someone answers the open question asked with `ref` (`kit.ask`); `choice` counts from 0. Settles it and posts its `confirm` line for a one-person plugin; with `"members"` it stays open and a second answer from the same person has `changed: true`. Throws when no such question is open. |
 | `await t.schedule(plugin, id)` | schedule `id` fires |
-| `await t.intent(plugin, text, intent, target?, confidence?, from?)` | telcurio's intent model read an unclear message as `intent` (about `target`). Checks both were declared, then calls `onIntent`. |
+| `await t.intent(plugin, text, intent, target?, confidence?, from?, group?)` | telcurio's intent model read an unclear message as `intent` (about `target`). Checks both were declared, then calls `onIntent`. |
 | `await t.targets(plugin)` | returns what `understand.targets` gives right now |
 | `await t.upgrade(plugin, fromVersion)` | a new version meets an install made with `fromVersion` |
 | `await t.load(plugin, args?)` | the web page loads |

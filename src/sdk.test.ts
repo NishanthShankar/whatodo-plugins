@@ -199,3 +199,23 @@ describe("questions that stay", () => {
     await expect(t.answer(plugin, "q", 1)).rejects.toThrow(/no open question/);
   });
 });
+
+describe("intents in an extra group", () => {
+  it("tells the plugin which group, and answers there", async () => {
+    const seen: (string | null | undefined)[] = [];
+    const plugin = definePlugin({
+      ...base,
+      permissions: ["groups"],
+      understand: { intents: { one: "First thing", two: "Second thing" } },
+      onIntent: async (e, kit) => {
+        seen.push(e.group);
+        kit.send("here");
+      },
+    });
+    const t = createTestKit();
+    await t.intent(plugin, "something", "one", null, 1, undefined, "recipes");
+    await t.intent(plugin, "something", "one");
+    expect(seen).toEqual(["recipes", null]);
+    expect(t.sent.map((s) => s.group)).toEqual(["recipes", null]);
+  });
+});
