@@ -46,6 +46,8 @@ In your main Habits group:
 | `groups` | Lists your Habits groups. |
 | `close group gym buddies` | Ends a group and closes its chat. What was logged is kept. |
 
+A group you already have can be a Habits group too: add telcurio to it, then pick Habits for it in your chat with telcurio or on the web. It keeps its name and its people. `close group <its name>` stops Habits there without closing the chat.
+
 In any Habits group, from anyone in it:
 
 | Message | What happens |

@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.6.0] - 2026-11-18
+
+### Added
+- A WhatsApp group you already have can become a Habits group. Add telcurio to it and pick Habits for it, in the chat with telcurio or on the web. It keeps its name and its people, and works like any other Habits group. Choosing something else for it later stops the check-ins there; what everyone logged is kept.
+
 ## [3.5.3] - 2026-11-18
 
 ### Added
