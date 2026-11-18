@@ -1,5 +1,5 @@
 import { definePlugin, type Kit } from "../../sdk";
-import { closePact, createPact, extraLines, forFriend, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, standings, withStandings, type Tools } from "./pact";
+import { closePact, createPact, extraLines, ownerChange, ownerDay, ownerJoin, forFriend, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, standings, withStandings, type Tools } from "./pact";
 import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
@@ -252,7 +252,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "3.3.0",
+  version: "3.4.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -566,7 +566,10 @@ export default definePlugin({
       for (const { id, habit } of await active(kit)) {
         const all = await doneDays(kit, id);
         const from = kit.time.shiftDay(kit.today, -(days - 1));
+        // Friends taking part in it: everyone side by side, the owner included, to compare.
+        const st = (await hasFriends(kit, id)) ? await standings(kit, id, habit.days, { name: kit.person.name, since: habit.createdDay, done: all }) : null;
         out.push({
+          ...(st ? { together: st.together, people: st.people.map((x) => ({ id: x.id, name: x.name, me: x.id === OWNER, streak: x.streak, total: x.total, doneDays: [...x.done].filter((d) => d >= from).sort() })) } : {}),
           id,
           name: habit.name,
           hour: typeof habit.hour === "number" ? habit.hour : null,
@@ -636,6 +639,26 @@ export default definePlugin({
       /** Turn quick log on or off: a message that is only a habit's name logs it. */
       async setQuickLog(kit, { on }) {
         await kit.setSettings({ quickLog: on === true });
+      },
+      /** The owner's own day on a habit in a group (theirs to mark or fix; nobody else's is). */
+      async groupDay(kit, { id, day, done }) {
+        await ownerDay(kit, String(id), String(day), !!done);
+      },
+      /** Take part in a group habit, or step out of it. */
+      async groupJoin(kit, { id, on }) {
+        await ownerJoin(kit, String(id), on !== false);
+      },
+      async groupRename(kit, { id, name }) {
+        await ownerChange(kit, String(id), { name: String(name ?? "") });
+      },
+      async groupHour(kit, { id, hour }) {
+        await ownerChange(kit, String(id), { hour: hour === null || hour === undefined ? null : Number(hour) });
+      },
+      async groupDays(kit, { id, days }) {
+        await ownerChange(kit, String(id), { days: checkDays(days) });
+      },
+      async groupStop(kit, { id }) {
+        await ownerChange(kit, String(id), { archived: true });
       },
       /** Make another Habits group: for a different set of habits, or to keep some with other people. */
       async createPact(kit, { name }) {

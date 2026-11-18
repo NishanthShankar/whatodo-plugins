@@ -2,6 +2,16 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.4.0] - 2026-11-18
+
+### Added
+- On the web, a habit other people take part in now has your own card: mark today done, fix an earlier day, and see your longer run of days. Below it everyone is listed side by side, you included, to compare. Other people's days are theirs and can't be changed.
+- From the page you can take up a habit someone else added, step out of it, and rename, reschedule or stop a habit in your groups (`groupDay`, `groupJoin`, `groupRename`, `groupHour`, `groupDays`, `groupStop`).
+- One of your own habits that a friend takes part in shows everyone below your card too.
+
+### Data
+- `load`: each group habit gains `createdDay`, `mine: { joined, streak, best, total, doneDays }` and `me` on each person; an own habit with friends gains `together` and `people`. Nothing stored changes shape.
+
 ## [3.3.0] - 2026-11-18
 
 ### Changed

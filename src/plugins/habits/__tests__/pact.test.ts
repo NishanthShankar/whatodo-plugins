@@ -375,3 +375,56 @@ describe("a friend in the private Habits group", () => {
     expect(((await t.loadFor(habits, asha)) as unknown as { groups: unknown[] }).groups).toEqual([]);
   });
 });
+
+describe("the owner's own side of a group habit, on the web", () => {
+  type Page = { groups: { key: string | null; habits: { id: string; name: string; hour: number | null; mine: { joined: boolean; streak: number; best: number; total: number; doneDays: string[] }; people: { id: string; me: boolean; streak: number }[] }[] }[] };
+  const page = async (t: T) => (await t.load(habits)) as unknown as Page;
+
+  it("shows their own card data, and marks them among everyone", async () => {
+    const t = createTestKit({ today: "2026-11-15" });
+    await pact(t);
+    await t.message(habits, "done gym", null, P, ravi);
+    let gym = (await page(t)).groups[0].habits[0];
+    expect(gym.mine).toEqual({ joined: true, streak: 0, best: 0, total: 0, doneDays: [] });
+    await t.act(habits, "groupDay", { id: gym.id, day: "2026-11-15", done: true });
+    await t.act(habits, "groupDay", { id: gym.id, day: "2026-11-14", done: true });
+    gym = (await page(t)).groups[0].habits[0];
+    expect(gym.mine).toMatchObject({ streak: 2, best: 2, total: 2, doneDays: ["2026-11-14", "2026-11-15"] });
+    expect(gym.people.map((p) => [p.id, p.me])).toEqual([["owner", true], ["ravi", false]]);
+    await t.act(habits, "groupDay", { id: gym.id, day: "2026-11-15", done: false });
+    expect((await page(t)).groups[0].habits[0].mine.streak).toBe(1);
+    await expect(t.act(habits, "groupDay", { id: gym.id, day: "2026-11-16", done: true })).rejects.toThrow(/up to today/);
+    await expect(t.act(habits, "groupDay", { id: "nope", day: "2026-11-15", done: true })).rejects.toThrow(/No such habit/);
+  });
+
+  it("lets them take up a habit a friend added, step out, and change or stop it", async () => {
+    const t = createTestKit();
+    await pact(t);
+    await t.message(habits, "add study", null, P, ravi);
+    const study = (await page(t)).groups[0].habits.find((h) => h.name === "Study")!;
+    expect(study.mine.joined).toBe(false);
+    await t.act(habits, "groupJoin", { id: study.id, on: true });
+    expect((await page(t)).groups[0].habits.find((h) => h.name === "Study")!.mine.joined).toBe(true);
+    await t.act(habits, "groupJoin", { id: study.id, on: false });
+    expect((await page(t)).groups[0].habits.find((h) => h.name === "Study")!.mine.joined).toBe(false);
+    await t.act(habits, "groupRename", { id: study.id, name: "study maths" });
+    await t.act(habits, "groupHour", { id: study.id, hour: 6 });
+    await t.act(habits, "groupDays", { id: study.id, days: [1, 3] });
+    expect((await page(t)).groups[0].habits.find((h) => h.id === study.id)).toMatchObject({ name: "Study maths", hour: 6 });
+    await expect(t.act(habits, "groupHour", { id: study.id, hour: 30 })).rejects.toThrow(/Pick an hour/);
+    await t.act(habits, "groupStop", { id: study.id });
+    expect((await page(t)).groups[0].habits.map((h) => h.name)).toEqual(["Gym"]);
+  });
+
+  it("shows everyone on one of the owner's own habits once a friend takes part", async () => {
+    const t = createTestKit();
+    await t.message(habits, "add read");
+    type Own = { habits: { people?: { id: string; me: boolean; streak: number }[]; together?: number }[] };
+    expect(((await t.load(habits)) as unknown as Own).habits[0].people).toBeUndefined();
+    await t.message(habits, "done read", null, null, ravi);
+    await t.message(habits, "done read");
+    const own = ((await t.load(habits)) as unknown as Own).habits[0];
+    expect(own.together).toBe(1);
+    expect(own.people!.map((p) => [p.me, p.streak])).toEqual([[false, 1], [true, 1]]);
+  });
+});
