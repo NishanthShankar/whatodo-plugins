@@ -52,19 +52,20 @@ In any Habits group, from anyone in it:
 |---|---|
 | `add gym` (also `at 7am`, `on mon wed fri`) | Adds a habit there. You are doing it. 👍 |
 | `habits` | Every habit there with everyone's streak, and the together streak. |
-| `join gym` / `leave gym` | Start or stop doing a habit someone else added. 👍 |
+| `join gym` | Start doing a habit someone else added. 👍 |
+| `leave gym` / `stop gym` | Stop doing it yourself. It goes on for the others, and is stopped altogether once nobody does it. 👍 |
 | `done gym` / `undo gym` | Log or un-log your own today. ✅ / 👍 |
-| `stop gym`, `time gym 7am`, `days gym mon wed` | For whoever added the habit, or the person whose group it is. 👍 |
+| `time gym 7am`, `days gym mon wed` | For whoever added the habit, or the person whose group it is. 👍 |
 | `set me up` / `hook me up` | Set up my profile and keep my streak (for someone who said Not now). |
 
 How groups behave (the owner's decisions, 2026-11-18):
 - No group is special. Any of them can be kept to yourself or shared: add whoever you like, with no step in between. Everyone in a WhatsApp group already sees everything in it, so nothing is explained or hidden.
-- Anyone can add a habit. Only its adder, or the person whose group it is, can stop it or change when it is asked.
+- Anyone can add a habit. Only its adder, or the person whose group it is, can change when it is asked. Stopping is each person's own: it stops for whoever says it, and the habit ends only when the last person doing it steps out.
 - People are optional doers. You do a habit once you add it, answer its poll or send `join`; nobody has to do every habit in a group.
 - One poll a day per habit, kept so it shows who did it. Answers can change until that habit's next check-in. Nothing is posted or reacted for an answer once other people take part.
 - The question carries the standings: "🌱 Did you Gym today?  Together 🔥 4 · Asha 🔥 12 · Ravi 🔥 4". The together streak counts days everyone doing the habit said Yes; a person counts from the day they joined and stops counting after a week of silence.
 - In the main group your own habits keep everything they had (reactions on old check-ins, simple messages, delete polls when you are alone in a habit). Habits friends add there are listed after yours.
-- Whose answers are kept: the person whose install it is, and anyone with a telcurio profile. Someone without one gets one poll on their first answer: "Asha, you've started forming a habit. Want your own telcurio profile, so I can track your streak too? Tap Yes and I'll set you up. Nothing else to do." Yes records their agreement and counts what they answered. Not now deletes it, answers "No problem. Just ask me to set it up for you later if you change your mind.", and they are never asked again. Without a profile no streak is kept for them; their tap still shows on that day's poll.
+- Everyone who takes part gets a streak, profile or not, shown in the group and on the web. Someone without a telcurio profile gets one poll on their first answer: "Asha, you've started forming a habit. Want your own telcurio profile, so you can see your streak on the web too? Tap Yes and I'll set you up. Nothing else to do." Yes records their agreement and lets them log in. Not now makes no profile, answers "No problem. Just ask me to set it up for you later if you change your mind.", and they are never asked again.
 - A friend who asks for a group of their own is told to log in at app.whatodo.today and add Habits.
 - A friend who logs in sees the habits they take part in on the web (`web.loadFor`): their own days and streak, the together streak and everyone's streaks. Nothing else of the owner's.
 - Limits: 10 extra groups, 12 habits added per group.

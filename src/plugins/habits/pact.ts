@@ -149,26 +149,23 @@ async function join(kit: Kit, habitId: string, sender: Pick<Sender, "id" | "name
  * goes out the first time.
  */
 async function involve(kit: Kit, pact: string | null, habitId: string, sender: Sender, day: string) {
-  if (await tracked(kit, sender)) return await join(kit, habitId, sender, day);
+  // Everyone who takes part is counted, profile or not: their streak shows with everyone else's.
+  await join(kit, habitId, sender, day);
+  if (await tracked(kit, sender)) return;
   const person = (await kit.store.get<Person>("people", sender.id)) ?? { name: sender.name };
-  if (person.profile === false) return; // said not now: nothing of theirs is kept
-  await kit.store.put("pwait", `${sender.id}:${habitId}`, 1);
   if (person.asked) return;
   await kit.store.put("people", sender.id, { ...person, name: sender.name, asked: kit.today } as unknown as Json);
   const who = first(sender.name);
   const ref: OfferRef = { offer: sender.id };
   kit.ask(
-    `${who ? `${who}, you've` : "You've"} started forming a habit. Want your own telcurio profile, so I can track your streak too? Tap Yes and I'll set you up. Nothing else to do.`,
+    `${who ? `${who}, you've` : "You've"} started forming a habit. Want your own telcurio profile, so you can see your streak on the web too? Tap Yes and I'll set you up. Nothing else to do.`,
     OFFER,
     { ref: ref as unknown as Json, ...(pact ? { group: pact } : {}), confirm: false },
   );
 }
 
-/** They said yes to a profile: everything they answered while deciding now counts. */
-async function accept(kit: Kit, sender: Sender) {
-  await kit.signUp(sender.id);
-  const person = (await kit.store.get<Person>("people", sender.id)) ?? { name: sender.name };
-  await kit.store.put("people", sender.id, { ...person, name: sender.name, profile: true } as unknown as Json);
+/** What someone answered before 3.5.0 while deciding on a profile now simply counts. */
+async function settleWaiting(kit: Kit, sender: Sender) {
   const prefix = `${sender.id}:`;
   for (const w of await kit.store.list("pwait", { prefix })) {
     const habitId = w.key.slice(prefix.length);
@@ -179,16 +176,33 @@ async function accept(kit: Kit, sender: Sender) {
   }
 }
 
-/** They said not now: forget what they answered, and don't ask again. */
+/** They said yes to a profile of their own: telcurio records it, and they can log in and see their streak. */
+async function accept(kit: Kit, sender: Sender) {
+  await kit.signUp(sender.id);
+  const person = (await kit.store.get<Person>("people", sender.id)) ?? { name: sender.name };
+  await kit.store.put("people", sender.id, { ...person, name: sender.name, profile: true } as unknown as Json);
+  await settleWaiting(kit, sender);
+}
+
+/** They said not now: no profile, and they aren't asked again. Their streak is kept all the same. */
 async function decline(kit: Kit, sender: Sender) {
   const person = (await kit.store.get<Person>("people", sender.id)) ?? { name: sender.name };
   await kit.store.put("people", sender.id, { ...person, name: sender.name, profile: false } as unknown as Json);
-  const prefix = `${sender.id}:`;
-  for (const w of await kit.store.list("pwait", { prefix })) {
-    const mine = `${w.key.slice(prefix.length)}:${sender.id}:`;
-    for (const c of ["plogs", "pmissed"]) for (const l of await kit.store.list(c, { prefix: mine })) await kit.store.delete(c, l.key);
-    await kit.store.delete("pwait", w.key);
-  }
+  await settleWaiting(kit, sender);
+}
+
+/** Does anyone still do this habit? One nobody does is stopped: there is no one left to ask. */
+async function stopIfEmpty(kit: Kit, id: string) {
+  if ((await kit.store.list("pjoins", { prefix: `${id}:`, limit: 1 })).length) return;
+  const habit = await kit.store.get<PactHabit>("phabits", id);
+  if (habit && !habit.archived) await kit.store.put("phabits", id, { ...habit, archived: true } as unknown as Json);
+}
+
+/** Step out of a habit. "Stop" means this too: it stops for the one who says it, not for everyone. */
+async function leave(kit: Kit, id: string, personId: string) {
+  await kit.store.delete("pjoins", `${id}:${personId}`);
+  await kit.store.delete("pwait", `${personId}:${id}`);
+  await stopIfEmpty(kit, id);
 }
 
 export interface Standing {
@@ -285,7 +299,7 @@ async function setUp(kit: Kit, sender: Sender): Promise<void> {
 async function habitCommands(kit: Kit, pact: string, sender: Sender, text: string, tools: Tools): Promise<boolean> {
   const list = await habitsOf(kit, pact);
   const missing = (which: string) => kit.send(`I can't find "${which}" here. Send _habits_ to see them.`);
-  const notYours = (h: Row, what: string) => kit.send(`*${h.habit.name}* was added by someone else, so only they or ${first(kit.person.name) ?? "the person whose group this is"} can ${what}.${what === "stop it" ? ` To step out yourself, send _leave ${h.habit.name.toLowerCase()}_.` : ""}`);
+  const notYours = (h: Row, what: string) => kit.send(`*${h.habit.name}* was added by someone else, so only they or ${first(kit.person.name) ?? "the person whose group this is"} can ${what}.`);
 
   let m = text.match(/^(?:done|did|logged?|✅)\s+(.+)$/i);
   if (m) {
@@ -309,20 +323,13 @@ async function habitCommands(kit: Kit, pact: string, sender: Sender, text: strin
     await involve(kit, pact, h.id, sender, kit.today);
     return kit.react("👍"), true;
   }
-  m = text.match(/^(?:leave|i'?m out(?: of)?|drop out of)\s+(.+)$/i);
+  // "leave gym" and "stop gym" are the same: the habit stops for whoever says it. It goes on
+  // for the others, and is stopped altogether only when nobody does it any more.
+  m = text.match(/^(?:leave|i'?m out(?: of)?|drop out of|stop|remove|delete|drop|quit|end)\s+(?:habit\s+)?(.+)$/i);
   if (m) {
     const h = find(list, m[1].trim());
     if (!h) return missing(m[1].trim()), true;
-    await kit.store.delete("pjoins", `${h.id}:${sender.id}`);
-    await kit.store.delete("pwait", `${sender.id}:${h.id}`);
-    return kit.react("👍"), true;
-  }
-  m = text.match(/^(?:stop|remove|delete|drop|quit|end)\s+(?:habit\s+)?(.+)$/i);
-  if (m) {
-    const h = find(list, m[1].trim());
-    if (!h) return missing(m[1].trim()), true;
-    if (!may(h.habit, sender)) return notYours(h, "stop it"), true;
-    await kit.store.put("phabits", h.id, { ...h.habit, archived: true } as unknown as Json);
+    await leave(kit, h.id, sender.id);
     return kit.react("👍"), true;
   }
   const tm = text.match(/^(?:time|check[- ]?in|reminder)\s+(.+?)\s+(?:at\s+)?(default|reset|\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)$/i);
@@ -420,16 +427,17 @@ export async function friendMessage(event: MessageEvent, kit: Kit, tools: Tools,
     await involve(kit, null, h.id, sender, kit.today);
     return kit.react("👍");
   }
-  m = text.match(/^(?:leave|i'?m out(?: of)?|drop out of)\s+(.+)$/i);
+  m = text.match(/^(?:leave|i'?m out(?: of)?|drop out of|stop|remove|delete|drop|quit|end)\s+(?:habit\s+)?(.+)$/i);
   h = m ? pick(m[1].trim()) : undefined;
   if (m && h) {
+    // It stops for them. It is the owner's habit, so it goes on for the owner.
     await kit.store.delete("pjoins", `${h.id}:${sender.id}`);
     await kit.store.delete("pwait", `${sender.id}:${h.id}`);
     return kit.react("👍");
   }
-  m = text.match(/^(?:stop|remove|delete|drop|quit|end)\s+(?:habit\s+)?(.+)$/i) ?? text.match(/^(?:time|check[- ]?in|reminder)\s+(.+?)\s+(?:at\s+)?(?:default|reset|\d.*)$/i);
+  m = text.match(/^(?:time|check[- ]?in|reminder)\s+(.+?)\s+(?:at\s+)?(?:default|reset|\d.*)$/i);
   h = m ? pick(m[1].trim()) : undefined;
-  if (m && h) return kit.send(`*${h.name}* is ${first(kit.person.name) ? `${first(kit.person.name)}'s` : "someone else's"} habit, so only they can change it. To step out yourself, send _leave ${h.name.toLowerCase()}_.`);
+  if (m && h) return kit.send(`*${h.name}* is ${first(kit.person.name) ? `${first(kit.person.name)}'s` : "someone else's"} habit, so only they can change when it's asked.`);
   // Adding one that is already here means doing it too.
   m = text.match(/^(?:add|new|start|track|habit)\s*:?\s+(.+)$/i);
   if (m) {
@@ -509,7 +517,6 @@ export async function extraLines(kit: Kit, tools: Tools, from: number): Promise<
 export async function friendAnswer(event: AnswerEvent, kit: Kit, habitId: string, day: string): Promise<void> {
   const sender = event.sender!;
   await involve(kit, null, habitId, sender, day);
-  if ((await kit.store.get<Person>("people", sender.id))?.profile === false) return;
   await setDay(kit, habitId, sender.id, day, event.choice === 0 ? "done" : "missed");
 }
 
@@ -614,7 +621,6 @@ export async function pactAnswer(event: AnswerEvent, kit: Kit): Promise<void> {
   const habit = await kit.store.get<PactHabit>("phabits", ref.habitId);
   if (!habit || habit.archived || habit.pact !== ref.pact) return;
   await involve(kit, ref.pact, ref.habitId, sender, ref.day);
-  if ((await kit.store.get<Person>("people", sender.id))?.profile === false) return;
   await setDay(kit, ref.habitId, sender.id, ref.day, event.choice === 0 ? "done" : "missed");
 }
 
@@ -764,7 +770,7 @@ export async function ownerJoin(kit: Kit, id: string, on: boolean): Promise<void
   await groupHabit(kit, id);
   const who = me(kit);
   if (on) await join(kit, id, who, kit.today);
-  else await kit.store.delete("pjoins", `${id}:${who.id}`);
+  else await leave(kit, id, who.id);
 }
 
 /** Rename, reschedule or stop a group habit. On the page that is the owner, who may change any habit in their groups. */
