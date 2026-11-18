@@ -1,5 +1,17 @@
 # Changelog: MediaStore
 
+## [1.2.0] - 2026-11-18
+
+### Added
+- A MediaStore group can be shared. People you add to the group can send links, search, mark and remove, and each link remembers who sent it. The web page shows it as "Shared by".
+- `load({ link: id })` returns one link in full, with its whole caption, for the page's detail view.
+
+### Changed
+- New permission `members` (hear everyone in its groups). Everyone in a group can read what the plugin posts there.
+
+### Data
+- `links` rows gain `by: { id, name, owner }`: who sent the link. Links saved before this have none, and nothing is shown for them.
+
 ## [1.1.0] - 2026-11-18
 
 ### Added

@@ -1,4 +1,4 @@
-import { definePlugin, type Json, type Kit, type Link } from "../../sdk";
+import { definePlugin, type Json, type Kit, type Link, type Sender } from "../../sdk";
 import { rank, type Searchable } from "./search";
 
 /**
@@ -34,6 +34,8 @@ export interface Item {
   important?: boolean;
   /** The mark their reaction on the message set, so taking the reaction off clears that one. */
   reacted?: "liked" | "important" | null;
+  /** Who sent it to the group. Unset on links saved before 1.2.0. */
+  by?: { id: string; name: string | null; owner: boolean };
 }
 
 interface Category {
@@ -231,7 +233,8 @@ async function groupsText(kit: Kit): Promise<string> {
 }
 
 /** Keep the links of one message. Returns the ids, in order. */
-async function keep(kit: Kit, links: Link[], note: string | null, group: string | null): Promise<string[] | "full"> {
+async function keep(kit: Kit, links: Link[], note: string | null, group: string | null, sender: Sender | undefined): Promise<string[] | "full"> {
+  const by = sender ? { id: sender.id, name: sender.name, owner: sender.owner } : undefined;
   const ids: string[] = [];
   let count = -1;
   for (const l of links) {
@@ -264,6 +267,7 @@ async function keep(kit: Kit, links: Link[], note: string | null, group: string 
       note,
       group,
       at: kit.now + ids.length,
+      ...(by ? { by } : {}),
     };
     await save(kit, id, item);
     await kit.store.put("urls", key, id);
@@ -373,7 +377,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string) {
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.1.0",
+  version: "1.2.0",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
@@ -384,7 +388,8 @@ export default definePlugin({
   price: 0,
   tier: 2,
   unlisted: true,
-  permissions: ["links", "groups"],
+  // "members": a group can be shared, and each link remembers who sent it.
+  permissions: ["links", "groups", "members"],
   listing: {
     title: "Save Reels and Videos on WhatsApp, Find Later | telcurio",
     description: "Forward Instagram reels and YouTube videos to a WhatsApp chat. Their titles and captions are kept, so you can find any of them later with a few words.",
@@ -401,7 +406,7 @@ export default definePlugin({
 
     // A message with links: keep them. Anything else they wrote in it is their note.
     if (event.links?.length) {
-      const ids = await keep(kit, event.links, ownWords(event.text), here);
+      const ids = await keep(kit, event.links, ownWords(event.text), here, event.sender);
       if (ids === "full") return kit.send(`That's the most links I can keep (${MAX_LINKS}). Delete some on app.whatodo.today first.`);
       const ref: LinkRef = { kind: "link", ids };
       kit.mark(ref as unknown as Json);
@@ -487,6 +492,11 @@ export default definePlugin({
   web: {
     lockable: true,
     async load(kit, args) {
+      // One link in full (its whole caption), for its detail view.
+      if (typeof args.link === "string") {
+        const item = await kit.store.get<Item>("links", args.link);
+        return { link: item ? { id: args.link, ...item, liked: !!item.liked, important: !!item.important, by: item.by ?? null } : null } as unknown as Json;
+      }
       const limit = Math.min(Math.max(Number(args.limit ?? 600) || 600, 1), 1000);
       const rows = (await all(kit)).reverse();
       const groups = await kit.store.list<Category>("groups");
@@ -509,6 +519,7 @@ export default definePlugin({
           at: r.item.at,
           liked: !!r.item.liked,
           important: !!r.item.important,
+          by: r.item.by ?? null,
         })),
         groups: groups.map((g) => ({ key: g.key, name: g.data.name, closed: !!g.data.closed, count: rows.filter((r) => r.item.group === g.key).length })),
       } as unknown as Json;
