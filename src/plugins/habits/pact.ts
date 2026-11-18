@@ -1,5 +1,5 @@
 import type { AnswerEvent, IntentEvent, Json, Kit, MessageEvent, Sender } from "../../sdk";
-import { cleanName, daysLabel, isOn, parseDays, scanDays, streak } from "./streaks";
+import { bestStreak, cleanName, daysLabel, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
  * Pacts: a habit kept together. A pact is its own WhatsApp group (one of the install's extra
@@ -707,13 +707,24 @@ export async function pactsForWeb(kit: Kit, days: number): Promise<Json> {
     const habits = [];
     for (const { id, habit } of await habitsOf(kit, p.key)) {
       const s = await standings(kit, id, habit.days);
+      // The owner's own side of it, for their card on the page: there even before they take part.
+      const me = kit.person.id ?? "";
+      const mine = s.people.find((x) => x.id === me);
       habits.push({
         id,
         name: habit.name,
+        createdDay: habit.createdDay,
         hour: typeof habit.hour === "number" ? habit.hour : null,
         days: habit.days?.length ? habit.days : null,
         together: s.together,
-        people: s.people.map((x) => ({ id: x.id, name: x.name, streak: x.streak, total: x.total, doneDays: [...x.done].filter((d) => d >= from).sort() })),
+        mine: {
+          joined: !!mine,
+          streak: mine?.streak ?? 0,
+          best: mine ? bestStreak(mine.done, habit.days, kit.today) : 0,
+          total: mine?.total ?? 0,
+          doneDays: mine ? [...mine.done].filter((d) => d >= from).sort() : [],
+        },
+        people: s.people.map((x) => ({ id: x.id, name: x.name, me: x.id === me, streak: x.streak, total: x.total, doneDays: [...x.done].filter((d) => d >= from).sort() })),
       });
     }
     // The main group is listed only when friends added habits to it (the owner's own are elsewhere on the page).
@@ -721,4 +732,55 @@ export async function pactsForWeb(kit: Kit, days: number): Promise<Json> {
     out.push({ key: p.key || null, name: p.name, closed: p.closed, habits });
   }
   return out as unknown as Json;
+}
+
+// ── The owner's own side of a group habit, from the web page ──
+
+async function groupHabit(kit: Kit, id: string): Promise<PactHabit> {
+  const habit = await kit.store.get<PactHabit>("phabits", id);
+  if (!habit || habit.archived) throw new Error("No such habit.");
+  return habit;
+}
+
+function me(kit: Kit): { id: string; name: string | null } {
+  if (!kit.person.id) throw new Error("That isn't available yet.");
+  return { id: kit.person.id, name: kit.person.name };
+}
+
+/** Mark one of the owner's own days on a group habit. Doing so means they take part in it. */
+export async function ownerDay(kit: Kit, id: string, day: string, done: boolean): Promise<void> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > kit.today) throw new Error("Pick a day up to today.");
+  await groupHabit(kit, id);
+  const who = me(kit);
+  const key = `${id}:${who.id}`;
+  const old = await kit.store.get<Join>("pjoins", key);
+  // Joining through an earlier day counts from that day.
+  const next: Join = old ? { ...old, name: who.name ?? old.name, since: day < old.since ? day : old.since, last: old.last && old.last > day ? old.last : day } : { name: who.name, since: day, last: day };
+  await kit.store.put("pjoins", key, next as unknown as Json);
+  await setDay(kit, id, who.id, day, done ? "done" : null);
+}
+
+export async function ownerJoin(kit: Kit, id: string, on: boolean): Promise<void> {
+  await groupHabit(kit, id);
+  const who = me(kit);
+  if (on) await join(kit, id, who, kit.today);
+  else await kit.store.delete("pjoins", `${id}:${who.id}`);
+}
+
+/** Rename, reschedule or stop a group habit. On the page that is the owner, who may change any habit in their groups. */
+export async function ownerChange(kit: Kit, id: string, patch: { name?: string; hour?: number | null; days?: number[] | null; archived?: boolean }): Promise<void> {
+  const habit = await groupHabit(kit, id);
+  const next = { ...habit };
+  if (patch.name !== undefined) {
+    const clean = cleanName(patch.name);
+    if (!clean) throw new Error("Name the habit.");
+    next.name = clean;
+  }
+  if (patch.hour !== undefined) {
+    if (patch.hour !== null && (!Number.isInteger(patch.hour) || patch.hour < 0 || patch.hour > 23)) throw new Error("Pick an hour.");
+    next.hour = patch.hour;
+  }
+  if (patch.days !== undefined) next.days = patch.days;
+  if (patch.archived) next.archived = true;
+  await kit.store.put("phabits", id, next as unknown as Json);
 }
