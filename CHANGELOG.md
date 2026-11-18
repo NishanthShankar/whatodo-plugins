@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.11.0] - 2026-11-18
+
+### Added
+- `kit.ask(..., { keep: true })`: a question whose poll stays after it is answered. No confirm line is posted, the person can change their answer as often as they like while it is open, and each change arrives as `onAnswer` with `changed: true`. It closes with `kit.close(ref)` or when the same ref is asked again; the poll is left in the chat and a later change on it is refused. For answers people correct, like a daily check-in.
+- telcurio now sends a poll as a real poll to a chat that hasn't written in 24 hours, when the person who added the plugin has saved telcurio's number. Everyone else still gets the numbered list. Nothing changes in the SDK for this.
+- Test kit: `keep` on each entry of `t.asked`; `t.answer` leaves a kept question open and posts no confirm line.
+
 ## [1.10.0] - 2026-11-18
 
 ### Added
