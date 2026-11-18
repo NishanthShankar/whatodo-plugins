@@ -2,6 +2,12 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.1.1] - 2026-11-18
+
+### Changed
+- The welcome message says you can name a habit in your own words; _add meditate_ is the quick way, not the only one.
+- The description shown in the store and on the site no longer speaks as "I". Messages in WhatsApp still do.
+
 ## [2.1.0] - 2026-11-18
 
 ### Changed

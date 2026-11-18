@@ -8,6 +8,10 @@ A plugin's page on app.whatodo.today is built in the `whatodo` repo (telcurio), 
 
 What this repo decides for the page is its data: `web.load` and `web.actions`. Every setting the page can change should also have a WhatsApp message that does the same.
 
+## Voice
+
+Read `docs/voice.md` in the `whatodo` repo (telcurio) before writing any text a person reads. In short: one voice. Everything a plugin sends in WhatsApp says "I" and is telcurio speaking, not the plugin. No thanks, please, sorry or feelings. A plugin's `tagline` and `description` show in the store and on the site, so they have no "I" and no "we". Tell people to say it in their own words before showing a ready-made message.
+
 ## Questions
 
 Whenever a plugin needs a structured answer, a yes or no included, it asks with `kit.ask` (see "Asking a question" in `docs/sdk-reference.md`). Never write your own "reply A, B or C".

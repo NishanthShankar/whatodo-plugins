@@ -235,13 +235,13 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "2.1.0",
+  version: "2.1.1",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
   tagline: "Build habits with a daily check-in and streaks.",
   description:
-    "Add the habits you want to keep, every day or only on the days you pick. On each habit's days I ask you at the time you pick with a poll; tap Yes or No. Your streaks show as green squares, and the web page shows the last month.",
+    "Add the habits you want to keep, every day or only on the days you pick. On each habit's days you get a poll at the time you pick; tap Yes or No. Your streaks show as green squares, and the web page shows the last month.",
   groupName: "🌱 Habits",
   price: 0,
   tier: 1,
@@ -251,7 +251,7 @@ export default definePlugin({
       "Track habits on WhatsApp. Get a daily check-in, tap Yes or No and watch your streak grow. Free, in its own WhatsApp group. No app.",
     h1: "Habit tracker on WhatsApp",
   },
-  welcome: "🌱 You've installed *Habits*.\n\nStart with _add meditate_ (or any habit). Every day I'll ask about each one with a poll: tap Yes if you did it, No if you didn't.\n\nSend _help_ any time.",
+  welcome: "🌱 You've installed *Habits*.\n\nTell me a habit you want to build, in your own words, or send _add meditate_. Every day I'll ask about each one with a poll: tap Yes if you did it, No if you didn't.\n\nSend _help_ any time.",
   help: HELP,
   // quickLog ("simple messages"): the check-in is just the habit's name, and a message that is
   // only a habit's name logs it for today. Off unless turned on.
