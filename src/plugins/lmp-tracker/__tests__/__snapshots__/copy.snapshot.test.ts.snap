@@ -1,0 +1,949 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`lmp-tracker copy: asking for the last period > a cycle learned from her own dates, and the history that goes with it 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 19 Oct* (today).
+Next one is due around *Mon 23 Nov* (your periods come about every 35 days).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your periods* (most recent last)
+
+• Mon 10 Aug  ·  35 days to the next
+• Mon 14 Sep  ·  35 days to the next
+• Mon 19 Oct
+
+Your periods usually come about every 35 days.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your periods* (most recent last)
+
+• Mon 10 Aug  ·  35 days to the next
+• Mon 14 Sep  ·  35 days to the next
+• Mon 19 Oct
+
+Your periods usually come about every 35 days.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: asking for the last period > a history of one, and of two 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your periods* (most recent last)
+
+• Mon 12 Oct",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your periods* (most recent last)
+
+• Mon 12 Oct  ·  28 days to the next
+• Mon 9 Nov",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: asking for the last period > a usual cycle that isn't whole weeks 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 9 Nov* (7 days ago).
+Next one is due around *Wed 9 Dec* (30 days).",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: asking for the last period > today, yesterday and days ago; due later, due today and overdue 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 16 Nov* (today).
+Next one is due around *Mon 14 Dec* (4 weeks).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 16 Nov* (yesterday).
+Next one is due around *Mon 14 Dec* (4 weeks).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 16 Nov* (9 days ago).
+Next one is due around *Mon 14 Dec* (4 weeks).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 16 Nov* (28 days ago).
+Next one is due around *today* (4 weeks).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 16 Nov* (30 days ago).
+Next one was due around *Mon 14 Dec* (4 weeks).",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: asking for the last period > with none 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a period date from you yet. Send _period_ when your period starts. If it started another day, send the date, like _9 nov_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "No periods recorded yet. Send _period_ when your period starts. If it started another day, send the date, like _9 nov_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing to undo.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a period date from you yet. Send _period_ when your period starts. If it started another day, send the date, like _9 nov_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "No periods recorded yet. Send _period_ when your period starts. If it started another day, send the date, like _9 nov_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing to undo.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: corrections > undo and delete 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "I couldn't read that date. Try _delete 12 nov_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "There's no period recorded on Sun 1 Nov. Send _history_ to see them.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing to undo.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing to undo.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: pregnancy mode > a bare period word asks: see it, or record a new one 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-12-20",
+        "kind": "lmp-ask",
+      },
+      "text": "🩸 Do you want to see your last period, or record a new one?
+
+Reply _1_ to see your last period
+Reply _2_ to record today as the start of a new one",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Sat 3 Oct* (78 days ago).
+You're about *11 weeks 1 day* along, due around *Sat 10 Jul 2027*.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-12-20",
+        "kind": "lmp-ask",
+      },
+      "text": "🩸 Do you want to see your last period, or record a new one?
+
+Reply _1_ to see your last period
+Reply _2_ to record today as the start of a new one",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Got it: your period started *Sun 20 Dec*. I've turned pregnancy mode off and will remind you when the next one is due.
+
+If that isn't right, send _undo_ and then _pregnant_.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: pregnancy mode > off again in words, and through the intent model 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Noted. I've stopped the period reminders.
+
+Your last period started *Sat 3 Oct*. You're about *6 weeks 2 days* along, due around *Sat 10 Jul 2027*.
+
+When your periods are back, send the date one started and I'll carry on from there.
+
+_Estimates from your dates, not medical advice._",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "OK. Send _period_ when your period starts. If it started another day, send the date, like _9 nov_.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: pregnancy mode > on at weeks and days, with 🌙 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🌙 Noted. I've stopped the period reminders.
+
+Your last period started *Sat 3 Oct*. You're about *6 weeks 2 days* along, due around *Sat 10 Jul 2027*.
+
+When your periods are back, send the date one started and I'll carry on from there.
+
+_Estimates from your dates, not medical advice._",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: pregnancy mode > on at whole weeks, asked about along the way, and past its end 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Noted. I've stopped the period reminders.
+
+Your last period started *Mon 5 Oct*. You're about *6 weeks* along, due around *Mon 12 Jul 2027*.
+
+When your periods are back, send the date one started and I'll carry on from there.
+
+_Estimates from your dates, not medical advice._",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 5 Oct* (42 days ago).
+You're about *6 weeks* along, due around *Mon 12 Jul 2027*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 5 Oct* (8 days ago).
+You're about *1 week 1 day* along, due around *Mon 12 Jul 2027*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 5 Oct* (68 days ago).
+You're about *9 weeks 5 days* along, due around *Mon 12 Jul 2027*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 5 Oct 2026* (300 days ago).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Mon 5 Oct 2026* (300 days ago).
+Next one was due around *Mon 2 Nov 2026* (4 weeks).",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: pregnancy mode > said before there is a period, and with one that is too old 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a period date from you yet. Send the first day of your last period, like _3 oct_, then tell me again.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a period date from you yet. Send the first day of your last period, like _3 oct_, then tell me again.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Got it: your period started *Mon 1 Dec 2025*. From next time you'll just get a 👍.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-11-16",
+        "kind": "lmp-symbol",
+      },
+      "text": "Are you OK seeing 🩸 in my messages? Reply _no_ and I'll use 🌙 instead. If you don't reply, I'll keep it.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "The last period I have started Mon 1 Dec 2025, more than 42 weeks ago. Send your latest one, like _3 oct_, then tell me again.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: reminders > answers to the due reminder: yes, not yet, a tick 1`] = `
+{
+  "notYet": {
+    "asked": [],
+    "groups": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "OK. Send _period_ when your period starts. If it started another day, send the date, like _9 nov_.",
+      },
+    ],
+    "unsures": [],
+  },
+  "tick": {
+    "asked": [],
+    "groups": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "unsures": [],
+  },
+  "yes": {
+    "asked": [],
+    "groups": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "unsures": [],
+  },
+}
+`;
+
+exports[`lmp-tracker copy: reminders > answers to the test nudge: yes and no 1`] = `
+{
+  "no": {
+    "asked": [],
+    "groups": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "OK. Send _period_ when your period starts. If it started another day, send the date, like _9 nov_.",
+      },
+    ],
+    "unsures": [],
+  },
+  "yes": {
+    "asked": [],
+    "groups": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🩸 Noted. I've stopped the period reminders.
+
+Your last period started *Sat 3 Oct*. You're about *6 weeks* along, due around *Sat 10 Jul 2027*.
+
+When your periods are back, send the date one started and I'll carry on from there.
+
+_Estimates from your dates, not medical advice._",
+      },
+    ],
+    "unsures": [],
+  },
+}
+`;
+
+exports[`lmp-tracker copy: reminders > due, a week later, and the test nudge 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-10-19",
+        "kind": "lmp-due",
+      },
+      "text": "🩸 Your period is due around now. Your last one started *Mon 19 Oct*, 4 weeks ago.
+
+When it starts, send _period_ (or react ✅ to this message).",
+    },
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-10-19",
+        "kind": "lmp-due",
+      },
+      "text": "🩸 Has your period come? It's been 5 weeks since your last one (*Mon 19 Oct*).
+
+Send the day it started, like _20 nov_, or react ✅ if it started today.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-10-19",
+        "kind": "lmp-upt",
+      },
+      "text": "🩸 It's been 6 weeks since your last period (*Mon 19 Oct*). You might be pregnant.
+
+A home pregnancy test can tell you. If it's positive, reply _yes_. If your period has come, send the day it started.
+
+_Estimates from your dates, not medical advice._",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: reminders > the same three on days that aren't whole weeks, with 🌙 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-10-19",
+        "kind": "lmp-due",
+      },
+      "text": "🌙 Your period is due around now. Your last one started *Mon 19 Oct*, 29 days ago.
+
+When it starts, send _period_ (or react ✅ to this message).",
+    },
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-10-19",
+        "kind": "lmp-due",
+      },
+      "text": "🌙 Has your period come? It's been 36 days since your last one (*Mon 19 Oct*).
+
+Send the day it started, like _20 nov_, or react ✅ if it started today.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-10-19",
+        "kind": "lmp-upt",
+      },
+      "text": "🌙 It's been 43 days since your last period (*Mon 19 Oct*). You might be pregnant.
+
+A home pregnancy test can tell you. If it's positive, reply _yes_. If your period has come, send the day it started.
+
+_Estimates from your dates, not medical advice._",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: reminders > turning them off and on, and choosing the hour 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Reminders will come at 8am.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Reminders will come at 12pm.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Reminders will come at 12am.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Reminders will come at 3pm.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Reminders will come at 8pm.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Give me a time like _reminder time 8am_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Give me a time like _reminder time 8am_.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: sending a period > a date that can't be used, the end of a period, and something else entirely 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "That's in the future. Send the day your period started, like _yesterday_ or _9 nov_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I couldn't read that date. Try _today_, _yesterday_ or _9 nov_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "No need to send the end. I only need the day your period starts.",
+    },
+  ],
+  "unsures": [
+    "I didn't get that. When your period starts, send _period_. Send _help_ for more.",
+  ],
+}
+`;
+
+exports[`lmp-tracker copy: sending a period > dates in another year are written with the year 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Recorded *Mon 30 Nov 2026*. Your latest period is still the one that started Mon 28 Dec 2026.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Changed: your last period started *Sat 2 Jan* (it was Mon 28 Dec 2026).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Your last period started *Sat 2 Jan* (3 days ago).
+Next one is due around *Sat 30 Jan* (4 weeks).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your periods* (most recent last)
+
+• Mon 30 Nov 2026  ·  33 days to the next
+• Sat 2 Jan",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: sending a period > the first one for someone who already chose 🌙 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🌙 Got it: your period started *Sun 15 Nov*. From next time you'll just get a 👍.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: sending a period > the first one, then the question about 🩸 answered yes 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Got it: your period started *Mon 12 Oct*. From next time you'll just get a 👍.",
+    },
+    {
+      "group": null,
+      "ref": {
+        "date": "2026-10-19",
+        "kind": "lmp-symbol",
+      },
+      "text": "Are you OK seeing 🩸 in my messages? Reply _no_ and I'll use 🌙 instead. If you don't reply, I'll keep it.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: sending a period > the ones after: a thumbs up, a correction, an older date 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Changed: your last period started *Mon 16 Nov* (it was Mon 9 Nov).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Recorded *Mon 14 Sep*. Your latest period is still the one that started Mon 16 Nov.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Changed: your last period started *Sun 15 Nov* (it was Mon 16 Nov).",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Changed: your last period started *Mon 16 Nov* (it was Sun 15 Nov).",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`lmp-tracker copy: sending a period > the question about 🩸 answered no, typed and quoted 1`] = `
+{
+  "quoted": {
+    "asked": [],
+    "groups": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🩸 Got it: your period started *Mon 16 Nov*. From next time you'll just get a 👍.",
+      },
+      {
+        "group": null,
+        "ref": {
+          "date": "2026-11-16",
+          "kind": "lmp-symbol",
+        },
+        "text": "Are you OK seeing 🩸 in my messages? Reply _no_ and I'll use 🌙 instead. If you don't reply, I'll keep it.",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌙 Done. I'll use 🌙 from now on. Send _blood_ to switch back.",
+      },
+    ],
+    "unsures": [],
+  },
+  "typed": {
+    "asked": [],
+    "groups": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🩸 Got it: your period started *Mon 16 Nov*. From next time you'll just get a 👍.",
+      },
+      {
+        "group": null,
+        "ref": {
+          "date": "2026-11-16",
+          "kind": "lmp-symbol",
+        },
+        "text": "Are you OK seeing 🩸 in my messages? Reply _no_ and I'll use 🌙 instead. If you don't reply, I'll keep it.",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "🌙 Done. I'll use 🌙 from now on. Send _blood_ to switch back.",
+      },
+    ],
+    "unsures": [],
+  },
+}
+`;
+
+exports[`lmp-tracker copy: what the plugin says about itself > help, asked for in words and through the intent model, with 🩸 and with 🌙 1`] = `
+{
+  "blood": {
+    "asked": [],
+    "groups": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Period Tracker*
+
+When your period starts, send _period_ or _today_. That's all. If it started another day, send the date: _yesterday_, _9 nov_. (_LMP_ works too.)
+If the next one hasn't come when it usually does, I'll remind you.
+
+_last period_ shows your last one and when the next is due
+_history_ lists your past periods, _undo_ removes the last one
+_pregnant_ stops the reminders, _not pregnant_ brings them back
+_reminders off_, _reminder time 8am_
+_moon_ swaps the 🩸 in my messages for 🌙, _blood_ swaps it back
+
+_Estimates from your dates, not medical advice._",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Period Tracker*
+
+When your period starts, send _period_ or _today_. That's all. If it started another day, send the date: _yesterday_, _9 nov_. (_LMP_ works too.)
+If the next one hasn't come when it usually does, I'll remind you.
+
+_last period_ shows your last one and when the next is due
+_history_ lists your past periods, _undo_ removes the last one
+_pregnant_ stops the reminders, _not pregnant_ brings them back
+_reminders off_, _reminder time 8am_
+_moon_ swaps the 🩸 in my messages for 🌙, _blood_ swaps it back
+
+_Estimates from your dates, not medical advice._",
+      },
+    ],
+    "unsures": [],
+  },
+  "moon": {
+    "asked": [],
+    "groups": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Period Tracker*
+
+When your period starts, send _period_ or _today_. That's all. If it started another day, send the date: _yesterday_, _9 nov_. (_LMP_ works too.)
+If the next one hasn't come when it usually does, I'll remind you.
+
+_last period_ shows your last one and when the next is due
+_history_ lists your past periods, _undo_ removes the last one
+_pregnant_ stops the reminders, _not pregnant_ brings them back
+_reminders off_, _reminder time 8am_
+_moon_ swaps the 🌙 in my messages for 🌙, _blood_ swaps it back
+
+_Estimates from your dates, not medical advice._",
+      },
+    ],
+    "unsures": [],
+  },
+}
+`;
+
+exports[`lmp-tracker copy: what the plugin says about itself > welcome, help and group name 1`] = `
+{
+  "groupName": "🌙 Period Tracker",
+  "help": "*Period Tracker*
+
+When your period starts, send _period_ or _today_. That's all. If it started another day, send the date: _yesterday_, _9 nov_. (_LMP_ works too.)
+If the next one hasn't come when it usually does, I'll remind you.
+
+_last period_ shows your last one and when the next is due
+_history_ lists your past periods, _undo_ removes the last one
+_pregnant_ stops the reminders, _not pregnant_ brings them back
+_reminders off_, _reminder time 8am_
+_moon_ swaps the 🩸 in my messages for 🌙, _blood_ swaps it back
+
+_Estimates from your dates, not medical advice._",
+  "welcome": "🩸 You've installed *Period Tracker*.
+
+When your period starts, just send _period_ or _today_. For your last one, send its date, like _9 nov_.
+
+I'll remind you when the next one is due, and you can ask _last period_ any time. Send _help_ for more. _Estimates from your dates, not medical advice._",
+}
+`;
+
+exports[`lmp-tracker copy: 🩸 or 🌙 > switching in words 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "🌙 Done. I'll use 🌙 from now on. Send _blood_ to switch back.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a period date from you yet. Send _period_ when your period starts. If it started another day, send the date, like _9 nov_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Done. I'll use 🩸 from now on. Send _moon_ to switch back.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🌙 Done. I'll use 🌙 from now on. Send _blood_ to switch back.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🩸 Done. I'll use 🩸 from now on. Send _moon_ to switch back.",
+    },
+  ],
+  "unsures": [],
+}
+`;
