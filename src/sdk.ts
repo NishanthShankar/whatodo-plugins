@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.18.0";
+export const SDK_VERSION = "1.19.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -40,10 +40,14 @@ export type Tier = 1 | 2 | 3;
  * - "links": have telcurio read the public details of the links people send (title, caption,
  *   who posted it, picture address). A plugin can't reach the internet itself; with this,
  *   telcurio opens each link and hands over what it found in `event.links`. Since SDK 1.10.0.
+ * - "api": let the person's own other systems read this install's data and be told when
+ *   something happens (`api` on the plugin, `kit.emit`). Nothing is open until the person
+ *   makes a key on the plugin's page; telcurio checks the key, limits how often it is used
+ *   and signs every callback. Since SDK 1.19.0.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -191,6 +195,13 @@ export interface Kit {
    * the "members" permission. Since SDK 1.13.0.
    */
   signUp(senderId: string): Promise<void>;
+  /**
+   * Tell the person's other systems that something happened: telcurio sends `data` to the
+   * address they set up for callbacks, if they did and asked for this event. `event` must be
+   * one of the plugin's `api.events`. Send only what `api.get` would also show. Needs the
+   * "api" permission. Not on page loads. Since SDK 1.19.0.
+   */
+  emit(event: string, data: Json): Promise<void>;
   /** A short random id for new records. */
   id(): string;
   /**
@@ -406,6 +417,33 @@ export interface ScheduleDef {
   hour: number | { setting: string } | "hourly";
 }
 
+/**
+ * What a plugin opens to the person's own other systems (their scripts, their backend), once
+ * they make a key on the plugin's page. Since SDK 1.19.0.
+ *
+ * telcurio does the plumbing: it checks the key, counts the calls, and turns `GET
+ * /api/v1/<plugin id>/<name>?a=b` into `get[name](kit, { a: "b" })`. The kit is read-only, as
+ * on a page load. Whatever the handler returns is sent back as JSON, so return only what the
+ * person themselves may see, keep it small, and take `limit` and `after` for long lists.
+ */
+export interface ApiDef {
+  /** Read endpoints by name (lowercase letters, digits and dashes). Query values arrive as strings. */
+  get: Record<string, ApiEndpoint>;
+  /**
+   * The events the plugin emits with `kit.emit`, by name ("link.added"), each with one line
+   * saying when it happens. The person picks which ones their address is called for.
+   */
+  events?: Record<string, string>;
+}
+
+export interface ApiEndpoint {
+  /** One line for the person's page: what it returns. */
+  about: string;
+  /** The query parameters it reads, each with one line. */
+  params?: Record<string, string>;
+  run(kit: Kit, params: Record<string, string>): Promise<Json>;
+}
+
 export interface WebDef {
   /** Whether the person can put this plugin's page behind their telcurio PIN. */
   lockable?: boolean;
@@ -490,6 +528,8 @@ export interface PluginDef {
    * store and `kit.send`); telcurio has already answered the sender. Since SDK 1.5.0.
    */
   onHook?(event: HookEvent, kit: Kit): Promise<void>;
+  /** Read endpoints and events for the person's other systems. Needs the "api" permission. Since SDK 1.19.0. */
+  api?: ApiDef;
   /**
    * Having this means the person can hand the plugin a WhatsApp group they already had (one
    * telcurio didn't make): on the web, or when they add telcurio to a group. Needs the
@@ -547,6 +587,19 @@ export function definePlugin(def: PluginDef): PluginDef {
   }
   if (def.web?.loadFor && !def.permissions?.includes("members")) throw new Error(`${def.id}: web.loadFor needs the "members" permission`);
   if (def.onGroup && !def.permissions?.includes("groups")) throw new Error(`${def.id}: onGroup needs the "groups" permission`);
+  if (def.api) {
+    if (!def.permissions?.includes("api")) throw new Error(`${def.id}: api needs the "api" permission`);
+    const names = Object.keys(def.api.get ?? {});
+    if (!names.length) throw new Error(`${def.id}: api.get needs at least one endpoint`);
+    for (const n of names) {
+      if (!/^[a-z][a-z0-9-]{0,39}$/.test(n)) throw new Error(`${def.id}: api endpoint "${n}" must be lowercase letters, digits and dashes`);
+      if (!def.api.get[n].about?.trim()) throw new Error(`${def.id}: api endpoint "${n}" needs an about line`);
+    }
+    for (const [e, about] of Object.entries(def.api.events ?? {})) {
+      if (!/^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*){0,3}$/.test(e)) throw new Error(`${def.id}: api event "${e}" must look like "link.added"`);
+      if (!about?.trim()) throw new Error(`${def.id}: api event "${e}" needs a line saying when it happens`);
+    }
+  }
   if (def.onHook && !def.permissions?.includes("hooks")) throw new Error(`${def.id}: onHook needs the "hooks" permission`);
   if (def.understand) {
     const ids = Object.keys(def.understand.intents ?? {});

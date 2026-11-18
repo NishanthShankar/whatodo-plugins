@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.19.0] - 2026-11-19
+
+### Added
+- Permission `"api"`, and `api` on a plugin: read endpoints (`api.get`) the person's own other systems can call with a key they make on the plugin's page, and events (`api.events`) telcurio calls their address for. telcurio checks keys, limits calls and signs callbacks; the plugin only says what to return.
+- `kit.emit(event, data)`: something happened that the person's systems may want to hear about. The event must be listed in `api.events`.
+- Test kit: `t.api(plugin, name, params?)` calls an endpoint, and `t.emitted` lists what was emitted.
+
 ## [1.18.0] - 2026-11-19
 
 ### Added
