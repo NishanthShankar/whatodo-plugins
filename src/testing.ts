@@ -318,7 +318,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
      * Deliver an intent as telcurio would after kit.unsure(): checks the intent and target are
      * ones the plugin declared, then calls onIntent.
      */
-    async intent(plugin: PluginDef, text: string, intent: string, target: string | null = null, confidence = 1, from?: string | Partial<Sender>) {
+    async intent(plugin: PluginDef, text: string, intent: string, target: string | null = null, confidence = 1, from?: string | Partial<Sender>, group: string | null = null) {
       withDefaults(plugin);
       if (!plugin.understand || !plugin.onIntent) throw new Error(`${plugin.id} doesn't declare understand/onIntent`);
       if (!(intent in plugin.understand.intents)) throw new Error(`${plugin.id} has no intent "${intent}"`);
@@ -326,7 +326,12 @@ export function createTestKit(opts: TestKitOptions = {}) {
         const targets = (await plugin.understand.targets?.(kit)) ?? {};
         if (!(target in targets)) throw new Error(`${plugin.id}: "${target}" isn't one of its targets`);
       }
-      await plugin.onIntent({ text, intent, target, confidence, sender: senderOf(plugin, from) }, kit);
+      here = group;
+      try {
+        await plugin.onIntent({ text, intent, target, confidence, sender: senderOf(plugin, from), group }, kit);
+      } finally {
+        here = null;
+      }
     },
     /**
      * Deliver a request to a hook as telcurio would. Throws when the hook isn't open (telcurio

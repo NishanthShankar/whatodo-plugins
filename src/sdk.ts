@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.11.0";
+export const SDK_VERSION = "1.12.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -320,6 +320,11 @@ export interface IntentEvent {
   confidence: number;
   /** Who sent the message. telcurio always sets it since SDK 1.8.0. */
   sender?: Sender;
+  /**
+   * The key of the extra group the message was sent in; null or unset for the main group.
+   * While handling it, `kit.send` answers in that group. Since SDK 1.12.0.
+   */
+  group?: string | null;
 }
 
 /**
