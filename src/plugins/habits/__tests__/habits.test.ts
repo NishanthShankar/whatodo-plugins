@@ -27,9 +27,8 @@ describe("habits", () => {
     await t.message(habits, "add Read");
     await t.message(habits, "simple on");
     expect(t.kit.settings.quickLog).toBe(true);
-    t.sent.length = 0;
     await t.schedule(habits, "checkin");
-    expect(t.sent[0].text).toBe("Read");
+    expect(t.asked[0].question).toBe("Read");
     await t.message(habits, "simple off");
     expect(t.kit.settings.quickLog).toBe(false);
   });
@@ -64,11 +63,11 @@ describe("habits", () => {
     const t = createTestKit({ hour: 21 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
-    expect(t.sent).toHaveLength(1);
-    expect(t.sent[0].text).toContain("Did you *Read* today?");
-    await t.react(habits, "👍", t.sent[0].ref);
+    expect(t.asked).toHaveLength(1);
+    expect(t.asked[0]).toMatchObject({ question: "🌱 Did you Read today?", options: ["Yes", "No"], keep: true });
+    await t.react(habits, "👍", t.asked[0].ref);
     expect(((await t.load(habits)) as { habits: { streak: number }[] }).habits[0].streak).toBe(1);
-    await t.react(habits, null, t.sent[0].ref);
+    await t.react(habits, null, t.asked[0].ref);
     expect(((await t.load(habits)) as { habits: { streak: number }[] }).habits[0].streak).toBe(0);
   });
 
@@ -76,10 +75,10 @@ describe("habits", () => {
     const t = createTestKit({ hour: 21 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
-    await t.react(habits, "✅", t.sent[0].ref);
-    await t.react(habits, "❌", t.sent[0].ref);
-    await t.react(habits, "😅", t.sent[0].ref);
-    await t.react(habits, null, t.sent[0].ref);
+    await t.react(habits, "✅", t.asked[0].ref);
+    await t.react(habits, "❌", t.asked[0].ref);
+    await t.react(habits, "😅", t.asked[0].ref);
+    await t.react(habits, null, t.asked[0].ref);
     expect(t.reactions).toEqual(["👍", "👍", "👍", "👍", ""]);
   });
 
@@ -87,21 +86,21 @@ describe("habits", () => {
     const t = createTestKit({ hour: 21 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
-    await t.react(habits, "✅", t.sent[0].ref);
-    await t.react(habits, "❌", t.sent[0].ref);
+    await t.react(habits, "✅", t.asked[0].ref);
+    await t.react(habits, "❌", t.asked[0].ref);
     const load = async () => ((await t.load(habits)) as { habits: { streak: number; total: number }[] }).habits[0];
     expect(await load()).toMatchObject({ streak: 0, total: 0 });
-    const ref = t.sent[0].ref as { habitId: string; day: string };
+    const ref = t.asked[0].ref as { habitId: string; day: string };
     expect(t.dump()).toHaveProperty([`missed/${ref.habitId}:${ref.day}`]);
     // Not asked again that day, even if its check-in time comes round again.
     await t.schedule(habits, "checkin");
-    expect(t.sent).toHaveLength(1);
+    expect(t.asked).toHaveLength(1);
     // Removing the ❌ reopens the day.
-    await t.react(habits, null, t.sent[0].ref);
+    await t.react(habits, null, t.asked[0].ref);
     await t.schedule(habits, "checkin");
-    expect(t.sent).toHaveLength(2);
+    expect(t.asked).toHaveLength(2);
     // Logging it later still counts.
-    await t.react(habits, "❌", t.sent[1].ref);
+    await t.react(habits, "❌", t.asked[1].ref);
     await t.message(habits, "done read");
     expect(await load()).toMatchObject({ streak: 1, total: 1 });
   });
@@ -110,9 +109,9 @@ describe("habits", () => {
     const t = createTestKit({ hour: 21 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
-    await t.message(habits, "no", t.sent[0].ref);
+    await t.message(habits, "no", t.asked[0].ref);
     await t.schedule(habits, "checkin");
-    expect(t.sent).toHaveLength(1);
+    expect(t.asked).toHaveLength(1);
   });
 
   it("adds a habit for some days only and asks only on those days", async () => {
@@ -123,10 +122,10 @@ describe("habits", () => {
     await t.message(habits, `add gym on ${names[(wd + 1) % 7]} and ${names[(wd + 3) % 7]} at 9pm`);
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
-    expect(t.sent.map((x) => x.text.match(/\*(.+?)\*/)![1])).toEqual(["Read"]);
+    expect(t.asked.map((x) => x.question.match(/Did you (.+?) today/)![1])).toEqual(["Read"]);
     await t.message(habits, `days gym ${names[wd]}`);
     await t.schedule(habits, "checkin");
-    expect(t.sent.at(-1)!.text).toContain("*Gym*");
+    expect(t.asked.at(-1)!.question).toContain("Gym");
     await t.message(habits, "habits");
     expect(t.sent.at(-1)!.text).toMatch(/\*Gym\*.*⏰ 9pm  📅 (Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/m);
   });
@@ -174,16 +173,16 @@ describe("habits", () => {
     await t.message(habits, "add read");
     await t.message(habits, "done read");
     await t.schedule(habits, "checkin");
-    expect(t.sent).toHaveLength(0);
+    expect(t.asked).toHaveLength(0);
   });
 
   it("logs from a yes/no reply to a check-in", async () => {
     const t = createTestKit({ hour: 21 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
-    await t.message(habits, "yes", t.sent[0].ref);
+    await t.message(habits, "yes", t.asked[0].ref);
     expect(t.reactions.at(-1)).toBe("✅");
-    await t.message(habits, "no", t.sent[0].ref);
+    await t.message(habits, "no", t.asked[0].ref);
     expect(((await t.load(habits)) as { habits: { streak: number }[] }).habits[0].streak).toBe(0);
   });
 
@@ -191,7 +190,7 @@ describe("habits", () => {
     const t = createTestKit();
     await t.message(habits, "add meditate at 7am");
     await t.message(habits, "add read");
-    const asked = () => t.sent.map((s) => s.text.match(/\*(.+?)\*/)![1]);
+    const asked = () => t.asked.map((s) => s.question.match(/Did you (.+?) today/)![1]);
     t.setHour(7);
     await t.schedule(habits, "checkin");
     expect(asked()).toEqual(["Meditate"]);
@@ -215,7 +214,7 @@ describe("habits", () => {
     await t.message(habits, "add read");
     t.setHour(21);
     await t.schedule(habits, "checkin");
-    expect(t.sent).toHaveLength(0);
+    expect(t.asked).toHaveLength(0);
   });
 
   it("web actions: create, setDay, rename, archive, refuses future days", async () => {
@@ -246,7 +245,7 @@ describe("habits", () => {
     await t.kit.store.put("habits", "old1", { name: "Stretch", createdDay: "2026-11-01", archived: false }, 1);
     await t.upgrade(habits, "1.0.0");
     await t.schedule(habits, "checkin");
-    expect(t.sent[0].text).toContain("*Stretch*");
+    expect(t.asked[0].question).toContain("Stretch");
   });
 });
 
@@ -335,5 +334,79 @@ describe("habits: unclear messages", () => {
     expect(t.sent.at(-1)!.text).toContain("No habits yet");
     await t.intent(habits, "what can you do", "help");
     expect(t.sent.at(-1)!.text).toContain("*Habits*");
+  });
+});
+
+describe("check-in polls", () => {
+  const streakOf = async (t: ReturnType<typeof createTestKit>) => ((await t.load(habits)) as { habits: { streak: number }[] }).habits[0].streak;
+
+  it("logs Yes and No from the poll, and the answer can be changed while it stays", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add read");
+    t.reactions.length = 0;
+    await t.schedule(habits, "checkin");
+    const ref = t.asked[0].ref as { habitId: string; day: string };
+    await t.answer(habits, ref, 0);
+    expect(await streakOf(t)).toBe(1);
+    expect(t.reactions).toEqual(["👍"]);
+    await t.answer(habits, ref, 1);
+    expect(await streakOf(t)).toBe(0);
+    expect(t.dump()).toHaveProperty([`missed/${ref.habitId}:${ref.day}`]);
+    await t.answer(habits, ref, 0);
+    expect(await streakOf(t)).toBe(1);
+    // One 👍 for the first answer; changes are quiet. No confirm line: the poll shows it.
+    expect(t.reactions).toEqual(["👍"]);
+    expect(t.sent).toEqual([]);
+    expect(t.asked[0].open).toBe(true);
+  });
+
+  it("shows the streak in the question", async () => {
+    const t = createTestKit({ today: "2026-11-14", hour: 21 });
+    await t.message(habits, "add read");
+    await t.message(habits, "done read");
+    t.setToday("2026-11-15");
+    await t.schedule(habits, "checkin");
+    expect(t.asked[0].question).toBe("🌱 Did you Read today?  🔥 1");
+  });
+
+  it("closes a habit's earlier check-in when its next one goes out", async () => {
+    const t = createTestKit({ today: "2026-11-14", hour: 21 });
+    await t.message(habits, "add read");
+    await t.schedule(habits, "checkin");
+    const first = t.asked[0].ref;
+    t.setToday("2026-11-15");
+    await t.schedule(habits, "checkin");
+    expect(t.asked.map((a) => a.open)).toEqual([false, true]);
+    await expect(t.answer(habits, first, 0)).rejects.toThrow(/no open question/);
+    await t.answer(habits, t.asked[1].ref, 0);
+    expect(Object.keys(t.dump()).filter((k) => k.startsWith("logs/"))).toEqual([`logs/${(first as { habitId: string }).habitId}:2026-11-15`]);
+  });
+
+  it("with delete polls on, the answer settles it and a line says what was chosen", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add read");
+    await t.message(habits, "delete polls on");
+    expect(t.kit.settings.deletePolls).toBe(true);
+    expect(((await t.load(habits)) as { deletePolls: boolean }).deletePolls).toBe(true);
+    t.reactions.length = 0;
+    await t.schedule(habits, "checkin");
+    expect(t.asked[0].keep).toBe(false);
+    await t.answer(habits, t.asked[0].ref, 0);
+    expect(t.sent.at(-1)!.text).toBe("*Read*: Yes");
+    expect(t.asked[0].open).toBe(false);
+    expect(t.reactions).toEqual([]);
+    expect(await streakOf(t)).toBe(1);
+    await t.message(habits, "delete polls off");
+    expect(t.kit.settings.deletePolls).toBe(false);
+    await t.act(habits, "setDeletePolls", { on: true });
+    expect(t.kit.settings.deletePolls).toBe(true);
+  });
+
+  it("ignores an answer whose ref isn't a check-in's", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add read");
+    t.kit.ask("Other?", ["Yes", "No"], { ref: { other: 1 } });
+    await t.answer(habits, { other: 1 }, 0);
+    expect(await streakOf(t)).toBe(0);
   });
 });

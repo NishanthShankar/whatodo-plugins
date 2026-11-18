@@ -2,6 +2,24 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-11-18
+
+### Changed
+- The daily check-in is now a poll: one per habit, with Yes and No. Tap Yes if you did it, No if you didn't (No closes the day, as ❌ did). This replaces the message you reacted to. It is a major version because the check-in you answer has changed shape.
+- The poll stays in the chat and you can change your answer as often as you like, until that habit's next check-in goes out. After that the earlier poll is closed and a change on it is refused.
+- Your first answer gets a 👍 on the poll.
+- The question shows your streak (🔥 5). The row of squares is no longer in the check-in; send _habits_ to see it.
+- With simple messages on, the poll's question is just the habit's name.
+
+### Added
+- _delete polls on_ deletes each check-in poll once you answer it and posts a line with what you chose (`*Read*: Yes`), so it can't be changed. _delete polls off_ (the default) keeps the poll. Also a switch on the web page (`setDeletePolls`).
+- Typing _yes_ or _no_ as a reply to the poll, or the number of the option, answers it too.
+
+### Data
+- New setting `deletePolls` (default `false`).
+- New collection `asked`: per habit, the day of its latest check-in, used to close the one before.
+- Check-in messages sent before this version keep working: reacting ✅ or ❌ to them, or replying yes or no, still logs that day.
+
 ## [1.6.1] - 2026-11-17
 
 ### Fixed
