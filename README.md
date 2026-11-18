@@ -31,7 +31,7 @@ The goal is a marketplace where developers publish plugins and **earn from them*
 |---|---|---|---|
 | 🌱 [Habits](src/plugins/habits) | 2.1.0 | 1 | A daily poll per habit: tap Yes or No. Streaks as 🟩⬜. |
 | 🌸 [Period Tracker](src/plugins/lmp-tracker) | 2.0.0 | 1 | Period and pregnancy tracker: next period, fertile window, due date, weekly updates. |
-| 🎬 [MediaStore](src/plugins/mediastore) | 1.2.1 | 2 | Forward reels and videos; they are kept with title and caption and found again with a few words. Unlisted. |
+| 🎬 [MediaStore](src/plugins/mediastore) | 1.2.2 | 2 | Forward reels and videos; they are kept with title and caption and found again with a few words. Unlisted. |
 
 ## How a plugin works
 

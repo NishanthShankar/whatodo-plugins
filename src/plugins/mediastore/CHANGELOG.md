@@ -1,5 +1,10 @@
 # Changelog: MediaStore
 
+## [1.2.2] - 2026-11-18
+
+### Changed
+- No 🕐 on your link while it is read. You just get the 👍 when it's saved.
+
 ## [1.2.1] - 2026-11-18
 
 ### Fixed

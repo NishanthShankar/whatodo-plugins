@@ -377,7 +377,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string) {
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.2.1",
+  version: "1.2.2",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
