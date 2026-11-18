@@ -14,6 +14,7 @@ import {
   type Plan,
   type Stage,
 } from "./calc";
+import { BLOOD_SIGN, copy, DONE, MOON_SIGN, type Along, type Next } from "./copy";
 import { findDay, parseDay } from "./dates";
 
 /**
@@ -73,27 +74,8 @@ const MAX_PREGNANCY_DAYS = 294;
  * any time) switches to 🌙 (the `symbol` setting), and no answer means yes. The group itself is named with 🌙 so it gives nothing away.
  */
 function say(kit: Kit, text: string, opts?: { ref?: never }) {
-  kit.send(kit.settings.symbol === "moon" ? text.replace(/🩸/g, "🌙") : text, opts);
+  kit.send(kit.settings.symbol === "moon" ? text.replaceAll(BLOOD_SIGN, MOON_SIGN) : text, opts);
 }
-
-const NOTE = "_Estimates from your dates, not medical advice._";
-
-const HELP = [
-  "*Period Tracker*",
-  "",
-  "When your period starts, send _period_ or _today_. That's all. If it started another day, send the date: _yesterday_, _9 nov_. (_LMP_ works too.)",
-  "If the next one hasn't come when it usually does, I'll remind you.",
-  "",
-  "_last period_ shows your last one and when the next is due",
-  "_history_ lists your past periods, _undo_ removes the last one",
-  "_pregnant_ stops the reminders, _not pregnant_ brings them back",
-  "_reminders off_, _reminder time 8am_",
-  "_moon_ swaps the 🩸 in my messages for 🌙, _blood_ swaps it back",
-  "",
-  NOTE,
-].join("\n");
-
-const SEND_LMP = "Send _period_ when your period starts. If it started another day, send the date, like _9 nov_.";
 
 async function lmps(kit: Kit): Promise<string[]> {
   return (await kit.store.list<Period>("periods")).map((p) => p.data.start);
@@ -140,11 +122,6 @@ function to24(h: number, ampm?: string): number | null {
   return ampm.startsWith("p") ? (h % 12) + 12 : h % 12;
 }
 
-function ago(day: string, today: string): string {
-  const d = daysBetween(day, today);
-  return d === 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`;
-}
-
 /** Save an LMP; one within SAME_PERIOD_DAYS of a saved one replaces it (a correction). */
 async function saveLmp(kit: Kit, day: string) {
   for (const start of await lmps(kit)) {
@@ -157,108 +134,100 @@ async function saveLmp(kit: Kit, day: string) {
   await kit.store.put("periods", day, { start: day }, day);
 }
 
-/** "Next one is due around Mon 7 Dec (4 weeks)." */
-function nextLine(p: Plan, list: string[], today: string): string {
-  const why = cycles(list).length >= 2 ? `your periods come about every ${p.cycle} days` : span(p.cycle);
-  if (today < p.due) return `Next one is due around *${pretty(p.due, today)}* (${why}).`;
-  if (today === p.due) return `Next one is due around *today* (${why}).`;
-  return `Next one was due around *${pretty(p.due, today)}* (${why}).`;
-}
-
-/** "You're about 6 weeks 2 days along, due around Sat 10 Jul 2027." */
-function alongLine(lmp: string, today: string): string {
-  const s = pregnancy(lmp, today);
-  return `You're about *${weeksLabel(s)}* along, due around *${pretty(s.dueDate, today)}*.`;
-}
-
 /**
  * Record an LMP the person sent. The first one ever is confirmed in words; after that a clear
  * LMP only gets a 👍. Words come back only when something needs saying: the date changed an
  * LMP already recorded, it's older than the current one, or it ended pregnancy mode.
  */
 async function logLmp(kit: Kit, day: string) {
-  if (day > kit.today) return say(kit, "That's in the future. Send the day your period started, like _yesterday_ or _9 nov_.");
+  if (day > kit.today) return say(kit, copy.inFuture());
   const before = await lmps(kit);
   const prev = before.at(-1) ?? null;
   const moved = before.find((s) => s !== day && Math.abs(daysBetween(s, day)) < SAME_PERIOD_DAYS) ?? null;
   await saveLmp(kit, day);
-  const date = `*${pretty(day, kit.today)}*`;
+  const date = pretty(day, kit.today);
 
   const first = !before.length && !(await kit.store.get("sent", "first-lmp"));
   await kit.store.put("sent", "first-lmp", 1);
   if (first) {
-    say(kit, `🩸 Got it: your period started ${date}. From next time you'll just get a 👍.`);
+    say(kit, copy.firstPeriod({ date }));
     // Asked here, on the first reply she is sure to read, not in the welcome. No answer means yes.
     if (kit.settings.symbol !== "moon") {
       await kit.store.put("pending", "symbol", { day: kit.today });
       const ref: LmpRef = { kind: "lmp-symbol", date: kit.today };
-      say(kit, "Are you OK seeing 🩸 in my messages? Reply _no_ and I'll use 🌙 instead. If you don't reply, I'll keep it.", { ref: ref as never });
+      say(kit, copy.symbolQuestion(), { ref: ref as never });
     }
     return;
   }
 
-  kit.react("👍");
+  kit.react(DONE);
   const latest = (await lastLmp(kit))!;
-  if (latest !== day) return say(kit, `🩸 Recorded ${date}. Your latest period is still the one that started ${pretty(latest, kit.today)}.`);
+  if (latest !== day) return say(kit, copy.recordedOlder({ date, latest: pretty(latest, kit.today) }));
   if ((await isPregnant(kit)) && prev && daysBetween(prev, day) >= SAME_PERIOD_DAYS) {
     // A new period after the pregnancy: forget pregnancy mode and carry on tracking.
     await kit.store.delete("pregnancy", "current");
-    return say(kit, `🩸 Got it: your period started ${date}. I've turned pregnancy mode off and will remind you when the next one is due.\n\nIf that isn't right, send _undo_ and then _pregnant_.`);
+    return say(kit, copy.pregnancyOff({ date }));
   }
-  if (moved) return say(kit, `🩸 Changed: your last period started ${date} (it was ${pretty(moved, kit.today)}).`);
+  if (moved) return say(kit, copy.changed({ date, was: pretty(moved, kit.today) }));
+}
+
+/** Her usual cycle once her own dates have shown it; null while it is still the standard one. */
+function learned(list: string[], p: Plan): number | null {
+  return cycles(list).length >= 2 ? p.cycle : null;
+}
+
+/** When the next period is expected, for the message that says so. */
+function next(p: Plan, list: string[], today: string): Next {
+  return { due: pretty(p.due, today), when: today < p.due ? "ahead" : today === p.due ? "today" : "past", usual: learned(list, p), gap: span(p.cycle) };
+}
+
+/** How far along she is, counted from her LMP. */
+function along(lmp: string, today: string): Along {
+  const s = pregnancy(lmp, today);
+  return { along: weeksLabel(s), due: pretty(s.dueDate, today) };
 }
 
 /** "When was my last LMP?" */
 async function lastLmpText(kit: Kit): Promise<string> {
   const list = await lmps(kit);
   const p = await currentPlan(kit, list);
-  if (!p) return `I don't have a period date from you yet. ${SEND_LMP}`;
-  const lines = [`🩸 Your last period started *${pretty(p.lmp, kit.today)}* (${ago(p.lmp, kit.today)}).`];
-  if (!(await isPregnant(kit))) lines.push(nextLine(p, list, kit.today));
-  else if (daysBetween(p.lmp, kit.today) <= MAX_PREGNANCY_DAYS) lines.push(alongLine(p.lmp, kit.today));
-  return lines.join("\n");
+  if (!p) return copy.noPeriodYet();
+  const pregnant = await isPregnant(kit);
+  return copy.lastPeriod({
+    started: pretty(p.lmp, kit.today),
+    daysAgo: daysBetween(p.lmp, kit.today),
+    next: pregnant ? null : next(p, list, kit.today),
+    along: pregnant && daysBetween(p.lmp, kit.today) <= MAX_PREGNANCY_DAYS ? along(p.lmp, kit.today) : null,
+  });
 }
 
 async function history(kit: Kit): Promise<string> {
   const all = await lmps(kit);
   const list = all.slice(-12);
-  if (!list.length) return `No periods recorded yet. ${SEND_LMP}`;
-  const lines = ["*Your periods* (most recent last)", ""];
-  list.forEach((d, i) => {
-    const next = list[i + 1];
-    lines.push(`• ${pretty(d, kit.today)}${next ? `  ·  ${daysBetween(d, next)} days to the next` : ""}`);
-  });
+  if (!list.length) return copy.noHistory();
   const p = (await currentPlan(kit, all))!;
-  if (cycles(all).length >= 2) lines.push("", `Your periods usually come about every ${p.cycle} days.`);
-  return lines.join("\n");
+  return copy.history({
+    periods: list.map((d, i) => ({ date: pretty(d, kit.today), toNext: list[i + 1] ? daysBetween(d, list[i + 1]) : null })),
+    usual: learned(all, p),
+  });
 }
 
 async function undoLast(kit: Kit) {
   const last = await lastLmp(kit);
-  if (!last) return say(kit, "Nothing to undo.");
+  if (!last) return say(kit, copy.nothingToUndo());
   await kit.store.delete("periods", last);
-  kit.react("👍");
+  kit.react(DONE);
 }
 
 /** She says she's pregnant: pregnancy mode on, period reminders stop. Her LMP is the one she already sent. */
 async function startPregnancy(kit: Kit) {
   const lmp = await lastLmp(kit);
-  if (!lmp) return say(kit, "I don't have a period date from you yet. Send the first day of your last period, like _3 oct_, then tell me again.");
+  if (!lmp) return say(kit, copy.noPeriodForPregnancy());
   if (daysBetween(lmp, kit.today) > MAX_PREGNANCY_DAYS) {
-    return say(kit, `The last period I have started ${pretty(lmp, kit.today)}, more than 42 weeks ago. Send your latest one, like _3 oct_, then tell me again.`);
+    return say(kit, copy.periodTooOld({ date: pretty(lmp, kit.today) }));
   }
   await kit.store.put("pregnancy", "current", { since: kit.today });
-  say(kit, 
-    [
-      "🩸 Noted. I've stopped the period reminders.",
-      "",
-      `Your last period started *${pretty(lmp, kit.today)}*. ${alongLine(lmp, kit.today)}`,
-      "",
-      "When your periods are back, send the date one started and I'll carry on from there.",
-      "",
-      NOTE,
-    ].join("\n"),
-  );
+  say(kit, copy.pregnancyOn({ started: pretty(lmp, kit.today), ...along(lmp, kit.today) }));
 }
 
 /**
@@ -269,20 +238,20 @@ async function startPregnancy(kit: Kit) {
 async function askSeeOrRecord(kit: Kit) {
   await kit.store.put("pending", "ask", { day: kit.today });
   const ref: LmpRef = { kind: "lmp-ask", date: kit.today };
-  say(kit, "🩸 Do you want to see your last period, or record a new one?\n\nReply _1_ to see your last period\nReply _2_ to record today as the start of a new one", { ref: ref as never });
+  say(kit, copy.seeOrRecord(), { ref: ref as never });
 }
 
 async function stopPregnancy(kit: Kit) {
   await kit.store.delete("pregnancy", "current");
-  kit.react("👍");
+  kit.react(DONE);
 }
 
 function reminderText(stage: Stage, p: Plan, today: string): string {
   const since = span(daysBetween(p.lmp, today));
   const last = pretty(p.lmp, today);
-  if (stage === "due") return `🩸 Your period is due around now. Your last one started *${last}*, ${since} ago.\n\nWhen it starts, send _period_ (or react ✅ to this message).`;
-  if (stage === "again") return `🩸 Has your period come? It's been ${since} since your last one (*${last}*).\n\nSend the day it started, like _20 nov_, or react ✅ if it started today.`;
-  return `🩸 It's been ${since} since your last period (*${last}*). You might be pregnant.\n\nA home pregnancy test can tell you. If it's positive, reply _yes_. If your period has come, send the day it started.\n\n${NOTE}`;
+  if (stage === "due") return copy.dueReminder({ last, since });
+  if (stage === "again") return copy.againReminder({ last, since });
+  return copy.testReminder({ last, since });
 }
 
 const YES = /^(yes|yeah|yep|y|ya|haan|positive|it'?s positive|test (?:is|was|came) positive)$/;
@@ -298,7 +267,7 @@ export default definePlugin({
   tagline: "Send the day your period starts. Get a reminder when the next one is due.",
   description:
     "Keeps track of your periods on WhatsApp. The day your period starts, send period or today. If it started another day, send the date. If the next one is late you get a reminder, and at two weeks late a suggestion to take a pregnancy test. The more dates you send, the better it knows when to expect yours.",
-  groupName: "🌙 Period Tracker",
+  groupName: copy.groupName(),
   price: 0,
   tier: 1,
   listing: {
@@ -307,10 +276,8 @@ export default definePlugin({
       "Tell telcurio on WhatsApp the day your period starts. Get a reminder when the next one is due, based on your own dates, and a nudge if it's late. Free.",
     h1: "Period tracker and reminder on WhatsApp",
   },
-  welcome:
-    "🩸 You've installed *Period Tracker*.\n\nWhen your period starts, just send _period_ or _today_. For your last one, send its date, like _9 nov_.\n\nI'll remind you when the next one is due, and you can ask _last period_ any time. Send _help_ for more. " +
-    NOTE,
-  help: HELP,
+  welcome: copy.welcome(),
+  help: copy.help(),
   settings: { reminderHour: 9, cycleLength: 28, periodReminders: true, symbol: "blood" },
   schedules: [{ id: "daily", hour: { setting: "reminderHour" } }],
 
@@ -341,10 +308,10 @@ export default definePlugin({
       const quoted = isRef(ref) && ref.kind === "lmp-symbol";
       if (quoted || (!isRef(ref) && sym && daysBetween(sym.day, kit.today) <= ASK_DAYS && !(await waitingOn(kit)))) {
         await kit.store.delete("pending", "symbol");
-        kit.react("👍");
+        kit.react(DONE);
         if (okYes) return;
         await kit.setSettings({ symbol: "moon" });
-        return say(kit, "🩸 Done. I'll use 🌙 from now on. Send _blood_ to switch back.");
+        return say(kit, copy.nowMoon());
       }
     }
 
@@ -354,8 +321,8 @@ export default definePlugin({
       if (about === "upt" && YES.test(plain)) return startPregnancy(kit);
       if (about === "due" && STARTED.test(plain)) return logLmp(kit, kit.today);
       if (about && NO.test(plain)) {
-        kit.react("👍");
-        return say(kit, `OK. ${SEND_LMP}`);
+        kit.react(DONE);
+        return say(kit, copy.okSendPeriod());
       }
     }
 
@@ -382,11 +349,11 @@ export default definePlugin({
     if (!m && bare && (await isPregnant(kit))) return askSeeOrRecord(kit);
     if (m || bare) {
       const day = parseDay(m?.[1] ?? "today", kit.today, "past");
-      if (!day) return say(kit, "I couldn't read that date. Try _today_, _yesterday_ or _9 nov_.");
+      if (!day) return say(kit, copy.badDate());
       return logLmp(kit, day);
     }
     if (/^(?:my\s+)?periods?\s+(?:ended|end|stopped|over|finished)\b/.test(plain)) {
-      return say(kit, "No need to send the end. I only need the day your period starts.");
+      return say(kit, copy.noEndNeeded());
     }
 
     // ── History and corrections ──
@@ -395,10 +362,10 @@ export default definePlugin({
     const del = plain.match(/^(?:delete|remove)\s+(.+)$/);
     if (del) {
       const day = parseDay(del[1].replace(/^lmp\s+/, ""), kit.today, "past");
-      if (!day) return say(kit, "I couldn't read that date. Try _delete 12 nov_.");
-      if (!(await kit.store.get("periods", day))) return say(kit, `There's no period recorded on ${pretty(day, kit.today)}. Send _history_ to see them.`);
+      if (!day) return say(kit, copy.badDeleteDate());
+      if (!(await kit.store.get("periods", day))) return say(kit, copy.noPeriodOn({ date: pretty(day, kit.today) }));
       await kit.store.delete("periods", day);
-      return kit.react("👍");
+      return kit.react(DONE);
     }
 
     // ── 🩸 or 🌙 in our messages ──
@@ -406,30 +373,30 @@ export default definePlugin({
     if (symbol) {
       const moon = symbol[1] !== "blood";
       await kit.setSettings({ symbol: moon ? "moon" : "blood" });
-      kit.react("👍");
-      return say(kit, moon ? "🩸 Done. I'll use 🌙 from now on. Send _blood_ to switch back." : "🩸 Done. I'll use 🩸 from now on. Send _moon_ to switch back.");
+      kit.react(DONE);
+      return say(kit, moon ? copy.nowMoon() : copy.nowBlood());
     }
 
     // ── Reminders ──
     const onOff = plain.match(/^reminders?\s+(on|off)$/);
     if (onOff) {
       await kit.setSettings({ periodReminders: onOff[1] === "on" });
-      return kit.react("👍");
+      return kit.react(DONE);
     }
     const at = plain.match(/^(?:reminder|reminders)\s+(?:time|at)\s+(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?$/);
     if (at) {
       const h = to24(+at[1], at[3]);
-      if (h === null) return say(kit, "Give me a time like _reminder time 8am_.");
+      if (h === null) return say(kit, copy.badTime());
       await kit.setSettings({ reminderHour: h });
-      kit.react("👍");
-      return say(kit, `Reminders will come at ${hourLabel(h)}.`);
+      kit.react(DONE);
+      return say(kit, copy.reminderTime({ time: hourLabel(h) }));
     }
 
     // Just a date ("9 nov", "yesterday", "3 days ago"), or "period 9 nov": the day it started.
     const alone = parseDay(plain.replace(/^(?:my\s+)?periods?\s+(?:on\s+)?/, ""), kit.today, "past");
     if (alone) return (await isPregnant(kit)) ? askSeeOrRecord(kit) : logLmp(kit, alone);
 
-    kit.unsure("I didn't get that. When your period starts, send _period_. Send _help_ for more.");
+    kit.unsure(copy.unsure());
   },
 
   understand: {
@@ -457,12 +424,12 @@ export default definePlugin({
         return startPregnancy(kit);
       case "not_pregnant":
         if (await isPregnant(kit)) return stopPregnancy(kit);
-        kit.react("👍");
-        return say(kit, `OK. ${SEND_LMP}`);
+        kit.react(DONE);
+        return say(kit, copy.okSendPeriod());
       case "undo":
         return undoLast(kit);
       default:
-        return say(kit, HELP);
+        return say(kit, copy.help());
     }
   },
 
@@ -472,7 +439,7 @@ export default definePlugin({
     if (event.emoji && LOG_EMOJI.has(event.emoji)) {
       if (await isPregnant(kit)) return;
       await saveLmp(kit, kit.today);
-      return kit.react("👍");
+      return kit.react(DONE);
     }
     if (!event.emoji && (await kit.store.get("periods", kit.today))) await kit.store.delete("periods", kit.today);
   },
