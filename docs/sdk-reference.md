@@ -135,6 +135,7 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | Permission | Lets the plugin | Status |
 |---|---|---|
 | `"hooks"` | Receive requests from outside telcurio: `kit.hooks`, `onHook`, and the files that come with them. | Built (SDK 1.5.0) |
+| `"api"` | Let the person's own other systems read the install's data with a key, and be called when something happens: `api`, `kit.emit`. | Built (SDK 1.19.0), private for now |
 | `"groups"` | Make extra WhatsApp groups for the install: `kit.groups`, `kit.send(text, { group })`. | Built (SDK 1.6.0) |
 | `"replies"` | Be called back when someone replies. | Reserved: the name is fixed so plugins and people can plan for it; nothing is built yet. |
 | `"lock-members"` | Block adding members: its groups (the main one and any extra ones) are made with telcurio as the only admin and set so only admins can add people. For plugins whose group must stay between the person and telcurio. | Reserved (SDK 1.7.0): telcurio doesn't enforce it yet. |
@@ -233,6 +234,24 @@ async onHook({ key, fields, files, origin }, kit) {
 - Files stay with telcurio. The plugin gets `{ id, field, name, type, size }` for each and stores the ids. Its web page shows a file by id through telcurio, which checks that the file belongs to the person looking. `kit.files.remove(id)` deletes one; removing the plugin's data should remove its files too.
 - A hook brings in other people's details (whoever filled in the form). Store only what the feature needs and give the person a way to delete it. See [data-and-privacy.md](data-and-privacy.md).
 - Every request can turn into a WhatsApp message. Keep `kit.send` to one short message per request, and bundle when many arrive.
+
+## An API for the person's other systems
+
+With the `"api"` permission a plugin can open read endpoints and events to the person's own scripts and backends. Nothing is reachable until the person makes a key on the plugin's page.
+
+```ts
+api: {
+  get: {
+    links: { about: "The saved links, newest first.", params: { limit: "How many, up to 100." }, run: async (kit, p) => list(kit, p) },
+  },
+  events: { "link.added": "A link was saved." },
+},
+```
+
+- `GET /api/v1/<plugin id>/<name>?limit=5` with `Authorization: Bearer <key>` runs `get[name].run(kit, { limit: "5" })` and sends back `{ ok: true, data }`. The kit is read-only, as on a page load.
+- `await kit.emit("link.added", data)` in any handler that can write. telcurio posts it to the address the person set up, signed, and tries again if it fails. The plugin never learns whether anyone is listening.
+- Return and emit only what the person may see themselves. In a group with other people that includes what those people sent, so think about what you put in.
+- telcurio does the keys, the limits, the signing and the retries. A plugin still can't reach the internet itself.
 
 ## Understanding unclear messages
 

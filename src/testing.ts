@@ -78,6 +78,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const hooks = new Set<string>();
   /** Ids passed to kit.files.remove(), in order. */
   const removedFiles: string[] = [];
+  /** What the plugin told the person's other systems with kit.emit(), in order. */
+  const emitted: { event: string; data: Json }[] = [];
   /** Extra groups that are open, by key. */
   const groups = new Map<string, { name: string; hello: string | null }>();
   /** The extra group the event being handled came from: kit.send defaults to it. */
@@ -179,6 +181,11 @@ export function createTestKit(opts: TestKitOptions = {}) {
       if (typeof senderId !== "string" || !senderId) throw new Error("kit.signUp: give the sender's id");
       if (!signedUp.includes(senderId)) signedUp.push(senderId);
     },
+    async emit(event, data) {
+      if (current && !current.permissions?.includes("api")) throw new Error(`${current.id}: kit.emit needs the "api" permission`);
+      if (current && !(event in (current.api?.events ?? {}))) throw new Error(`${current.id}: kit.emit("${event}") isn't in api.events`);
+      emitted.push({ event, data: clone(data) });
+    },
     id: () => `id${++counter}`,
     hooks: {
       async url(key) {
@@ -253,6 +260,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     /** Extra groups that are open: key -> { name, hello }. */
     groups,
     removedFiles,
+    emitted,
     /** Move the clock. */
     setToday(day: string) {
       state.today = day;
@@ -383,6 +391,13 @@ export function createTestKit(opts: TestKitOptions = {}) {
       } finally {
         here = null;
       }
+    },
+    /** One of the person's other systems calls a read endpoint, as telcurio would after checking its key. */
+    async api(plugin: PluginDef, name: string, params: Record<string, string> = {}) {
+      withDefaults(plugin);
+      const endpoint = plugin.api?.get[name];
+      if (!endpoint) throw new Error(`${plugin.id} has no api endpoint ${name}`);
+      return clone(await endpoint.run(kit, { ...params }));
     },
     async schedule(plugin: PluginDef, id: string) {
       withDefaults(plugin);

@@ -303,3 +303,24 @@ describe("a member's page", () => {
     expect(() => definePlugin({ ...base, web: { load: async () => ({}), loadFor: async () => ({}) } })).toThrow(/web.loadFor needs/);
   });
 });
+
+describe("an api for the person's other systems", () => {
+  const api = { get: { things: { about: "Every thing.", run: async (_kit: unknown, p: Record<string, string>) => ({ limit: p.limit ?? null }) } }, events: { "thing.added": "A thing was added." } };
+
+  it("answers a read endpoint and records what the plugin emits", async () => {
+    const plugin = definePlugin({ ...base, permissions: ["api"], api, onMessage: async (_e, kit) => kit.emit("thing.added", { id: "t1" }) });
+    const t = createTestKit();
+    expect(await t.api(plugin, "things", { limit: "5" })).toEqual({ limit: "5" });
+    await t.message(plugin, "add a thing");
+    expect(t.emitted).toEqual([{ event: "thing.added", data: { id: "t1" } }]);
+    await expect(t.api(plugin, "nope")).rejects.toThrow(/no api endpoint/);
+  });
+
+  it("needs the permission, well-formed names, and only emits what it listed", async () => {
+    expect(() => definePlugin({ ...base, api })).toThrow(/"api" permission/);
+    expect(() => definePlugin({ ...base, permissions: ["api"], api: { get: { "Bad Name": api.get.things } } })).toThrow(/lowercase/);
+    expect(() => definePlugin({ ...base, permissions: ["api"], api: { ...api, events: { added: "", } } })).toThrow(/saying when/);
+    const plugin = definePlugin({ ...base, permissions: ["api"], api, onMessage: async (_e, kit) => kit.emit("thing.exploded", {}) });
+    await expect(createTestKit().message(plugin, "x")).rejects.toThrow(/isn't in api.events/);
+  });
+});
