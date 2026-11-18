@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.12.0";
+export const SDK_VERSION = "1.12.1";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -240,8 +240,8 @@ export interface MessageEvent {
   quotedRef: Json | null;
   /**
    * The links in the message with what telcurio read from each, in the order they appear (at
-   * most 3). Only with the "links" permission, and only when the message has a link. While
-   * telcurio reads them it shows a clock on the message; the plugin's reaction replaces it.
+   * most 3). Only with the "links" permission, and only when the message has a link. Reading
+   * takes a second or two, so the message reaches the plugin that much later.
    * Since SDK 1.10.0.
    */
   links?: Link[];

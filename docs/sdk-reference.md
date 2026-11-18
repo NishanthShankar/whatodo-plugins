@@ -158,7 +158,7 @@ async onMessage(event, kit) {
 - `found: false` means the page couldn't be read (private, deleted, blocked, too slow). The other details are then null. Still do something useful with the bare link.
 - `description` is the description or caption (up to 5000 characters), `author` the channel or account, `seconds` the length when the site gives it.
 - `image` is an address, not a file. Instagram's stop working after some days; YouTube's don't.
-- Reading takes a second or two. Meanwhile telcurio shows a 🕐 on the person's message. Your `kit.react` replaces it; if you don't react, telcurio takes it off.
+- Reading takes a second or two, so the message reaches you that much later. telcurio shows nothing meanwhile; react when you have handled it.
 - Only public pages are read, with no login. What is said or shown inside a video is not available.
 
 ## Remembering the person's message
