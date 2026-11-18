@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.14.0] - 2026-11-18
+
+### Added
+- `web.loadFor(kit, sender, args)`: data for the page of someone else in the plugin's groups, a friend who takes part and has their own telcurio login. Return only what that person may see. Needs `"members"`; `definePlugin` refuses it otherwise.
+- Test kit: `t.loadFor(plugin, from, args?)`.
+
 ## [1.13.1] - 2026-11-18
 
 ### Fixed

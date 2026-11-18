@@ -42,6 +42,7 @@ it("logs a glass and reacts", async () => {
 | `await t.targets(plugin)` | returns what `understand.targets` gives right now |
 | `await t.upgrade(plugin, fromVersion)` | a new version meets an install made with `fromVersion` |
 | `await t.load(plugin, args?)` | the web page loads |
+| `await t.loadFor(plugin, from, args?)` | the web page loads for someone else in the plugin's groups (`web.loadFor`) |
 | `await t.act(plugin, action, args?)` | the web page calls an action |
 
 ### Reading results

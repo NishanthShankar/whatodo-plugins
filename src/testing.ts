@@ -375,6 +375,12 @@ export function createTestKit(opts: TestKitOptions = {}) {
       if (!plugin.web) throw new Error(`${plugin.id} has no web page`);
       return plugin.web.load(kit, args);
     },
+    /** The web page loads for someone else in the plugin's groups (`web.loadFor`). */
+    async loadFor(plugin: PluginDef, from: string | Partial<Sender>, args: Record<string, Json> = {}) {
+      withDefaults(plugin);
+      if (!plugin.web?.loadFor) throw new Error(`${plugin.id} has no web.loadFor`);
+      return plugin.web.loadFor(kit, senderOf(plugin, from), args);
+    },
     async act(plugin: PluginDef, action: string, args: Record<string, Json> = {}) {
       withDefaults(plugin);
       const fn = plugin.web?.actions?.[action];

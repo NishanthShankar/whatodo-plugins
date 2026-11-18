@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.13.1";
+export const SDK_VERSION = "1.14.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -379,6 +379,14 @@ export interface WebDef {
   lockable?: boolean;
   /** Data for the plugin's web page. */
   load(kit: Kit, args: Record<string, Json>): Promise<Json>;
+  /**
+   * Data for the page of someone else in the plugin's groups: a friend who takes part in what
+   * the owner set up and has logged in to telcurio themselves. `sender` is that person. Return
+   * only what they may see (their own numbers, and what the group already shows everyone).
+   * Read-only, like `load`. Without it such a person sees nothing of this plugin. Needs the
+   * "members" permission. Since SDK 1.14.0.
+   */
+  loadFor?(kit: Kit, sender: Sender, args: Record<string, Json>): Promise<Json>;
   /** Changes the web page can ask for. */
   actions?: Record<string, (kit: Kit, args: Record<string, Json>) => Promise<Json | void>>;
 }
@@ -491,6 +499,7 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (def.permissions?.includes("members") && def.permissions.includes("lock-members")) {
     throw new Error(`${def.id}: "members" and "lock-members" can't be used together`);
   }
+  if (def.web?.loadFor && !def.permissions?.includes("members")) throw new Error(`${def.id}: web.loadFor needs the "members" permission`);
   if (def.onHook && !def.permissions?.includes("hooks")) throw new Error(`${def.id}: onHook needs the "hooks" permission`);
   if (def.understand) {
     const ids = Object.keys(def.understand.intents ?? {});
