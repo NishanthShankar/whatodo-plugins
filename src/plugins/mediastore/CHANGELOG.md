@@ -1,5 +1,18 @@
 # Changelog: MediaStore
 
+## [1.3.0] - 2026-11-18
+
+### Added
+- Move a link to another group from WhatsApp: reply to it with _move_ and pick the group from a poll. The poll lists your groups other than the one it is in, plus "Leave it here". _move to recipes_ still works when you know the name.
+- In a group with other people, the poll lists only the groups both you and whoever shared the link are part of. With none: "No groups in common. You can move it on app.whatodo.today, or forward it to your own group."
+- A link forwarded into another group now becomes a second copy there, tagged with who forwarded it and where the earlier copy is. Before, it was moved without a word.
+
+### Data
+- `links` rows gain `forwarded: { by: { id, name } | null, from, at }` on a forwarded copy.
+- `urls` now holds a list of link ids per address (one per group it is in). A single id from an earlier version is still read.
+- New collection `seen`: who has written in which group, used to work out the groups two people share.
+- The move question's ref is `{ move: ids, by: personId }`.
+
 ## [1.2.2] - 2026-11-18
 
 ### Changed

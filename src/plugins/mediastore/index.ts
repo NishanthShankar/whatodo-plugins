@@ -7,7 +7,8 @@ import { rank, type Searchable } from "./search";
  *
  * Storage
  *   links   key = id                   data = Item      sort = saved (ms)
- *   urls    key = hash of canonical    data = link id   (to spot a link sent twice)
+ *   urls    key = hash of canonical    data = link ids  (to spot a link sent twice; one id per group it is in)
+ *   seen    key = "<group>:<person>"   data = 1         (who has written in which group; "" is the main one)
  *   groups  key = group key            data = Category  sort = created (ms)
  *   state   key = "intro"              data = 1 once the first-save note was sent
  */
@@ -36,6 +37,12 @@ export interface Item {
   reacted?: "liked" | "important" | null;
   /** Who sent it to the group. Unset on links saved before 1.2.0. */
   by?: { id: string; name: string | null; owner: boolean };
+  /**
+   * This copy came from a link already saved in another group: who sent it here, and which
+   * group the earlier copy was in (null: the main one). For now a forward makes a second copy;
+   * the tag is kept so the two can be tied together later.
+   */
+  forwarded?: { by: { id: string; name: string | null } | null; from: string | null; at: number };
 }
 
 interface Category {
@@ -78,7 +85,7 @@ const HELP = [
   "_liked_ and _important_ show the ones you marked",
   "_undo_ removes the last link you saved",
   "",
-  "On a link you sent: react ❤️ to like it or ⭐ to mark it important. Reply to it with words to add a note, or with _delete_ to remove it.",
+  "On a link you sent: react ❤️ to like it or ⭐ to mark it important. Reply to it with words to add a note, with _move_ to put it in another group, or with _delete_ to remove it.",
   "",
   "_new group recipes_ makes a WhatsApp group just for one kind of link",
   "_groups_ lists them, _close group recipes_ stops one",
@@ -119,11 +126,21 @@ async function save(kit: Kit, id: string, item: Item) {
   await kit.store.put("links", id, item as unknown as Json, item.at);
 }
 
+/** The saved copies of one address: one id per group it is in. (Before 1.3.0 this was a single id.) */
+async function copies(kit: Kit, canonical: string): Promise<string[]> {
+  const v = await kit.store.get<string | string[]>("urls", hash(canonical));
+  return v === null ? [] : Array.isArray(v) ? v : [v];
+}
+
+async function setCopies(kit: Kit, canonical: string, ids: string[]) {
+  if (ids.length) await kit.store.put("urls", hash(canonical), ids);
+  else await kit.store.delete("urls", hash(canonical));
+}
+
 async function remove(kit: Kit, id: string) {
   const item = await kit.store.get<Item>("links", id);
   if (!item) return;
-  const key = hash(item.canonical);
-  if ((await kit.store.get<string>("urls", key)) === id) await kit.store.delete("urls", key);
+  await setCopies(kit, item.canonical, (await copies(kit, item.canonical)).filter((x) => x !== id));
   await kit.store.delete("links", id);
 }
 
@@ -238,18 +255,24 @@ async function keep(kit: Kit, links: Link[], note: string | null, group: string 
   const ids: string[] = [];
   let count = -1;
   for (const l of links) {
-    const key = hash(l.canonical);
-    const oldId = await kit.store.get<string>("urls", key);
-    const old = oldId ? await kit.store.get<Item>("links", oldId) : null;
-    if (oldId && old && old.canonical === l.canonical) {
-      // Sent again: one copy stays. A new note replaces the old, and fresh details replace stale ones.
+    // The copies of this address already saved, and the one in this group if there is one.
+    const known: { id: string; item: Item }[] = [];
+    for (const id of await copies(kit, l.canonical)) {
+      const item = await kit.store.get<Item>("links", id);
+      if (item && item.canonical === l.canonical) known.push({ id, item });
+    }
+    const same = known.find((k) => (k.item.group ?? null) === group);
+    if (same) {
+      // Sent again in the same group: one copy stays. A new note replaces the old, and fresh details replace stale ones.
       const fresh = l.found
         ? { found: true, title: l.title, description: clip(l.description, KEEP_CHARS), author: l.author, image: l.image, seconds: l.seconds, site: l.site, kind: l.kind }
         : {};
-      await save(kit, oldId, { ...old, ...fresh, note: note ?? old.note, group: group ?? old.group });
-      if (!ids.includes(oldId)) ids.push(oldId);
+      await save(kit, same.id, { ...same.item, ...fresh, note: note ?? same.item.note });
+      if (!ids.includes(same.id)) ids.push(same.id);
       continue;
     }
+    // Saved in another group already: this is a forward. It becomes a second copy here, tagged.
+    const forwarded = known.length ? { by: by ? { id: by.id, name: by.name } : null, from: known[0].item.group ?? null, at: kit.now } : undefined;
     if (count < 0) count = (await kit.store.list("links")).length;
     if (count >= MAX_LINKS) return "full";
     const id = `${kit.now.toString(36)}${kit.id().slice(0, 4)}`;
@@ -268,9 +291,10 @@ async function keep(kit: Kit, links: Link[], note: string | null, group: string 
       group,
       at: kit.now + ids.length,
       ...(by ? { by } : {}),
+      ...(forwarded ? { forwarded } : {}),
     };
     await save(kit, id, item);
-    await kit.store.put("urls", key, id);
+    await setCopies(kit, l.canonical, [...known.map((k) => k.id), id]);
     ids.push(id);
     count++;
   }
@@ -343,7 +367,55 @@ async function command(kit: Kit, text: string, lower: string, here: string | nul
 }
 
 /** A reply to a saved link: a word that changes it, or a note about it. */
-async function onReply(kit: Kit, ids: string[], text: string, lower: string) {
+/** "move", "move this", "shift it to another group": they want it elsewhere but haven't said where. */
+const MOVE = /^(?:(?:can you |please )?(?:move|shift|transfer|file)(?:\s+(?:it|this|that|this one))?(?:\s+(?:somewhere else|elsewhere|to (?:another|a different|some other|my) group))?|wrong group)$/;
+const STAY = "Leave it here";
+const MAIN_NAME = "MediaStore";
+
+interface MoveRef {
+  move: string[];
+  /** Only the person who asked decides. */
+  by: string;
+}
+const isMoveRef = (r: unknown): r is MoveRef => !!r && typeof r === "object" && Array.isArray((r as MoveRef).move) && typeof (r as MoveRef).by === "string";
+
+/** Note that this person has written in this group: it is how we know which groups two people share. */
+async function sawIn(kit: Kit, group: string | null, sender: Sender | undefined) {
+  if (!sender) return;
+  const key = `${group ?? ""}:${sender.id}`;
+  if (!(await kit.store.get("seen", key))) await kit.store.put("seen", key, 1);
+}
+
+/**
+ * The groups a link can be moved to by this person: open groups (and the main one) other than
+ * where it is now, that both they and whoever shared the link are part of. The person who
+ * added MediaStore is part of all of them; anyone else counts once they have written there.
+ */
+async function moveTargets(kit: Kit, rows: { id: string; item: Item }[], sender: Sender): Promise<{ key: string | null; name: string }[]> {
+  const now = rows[0].item.group ?? null;
+  const all: { key: string | null; name: string }[] = [{ key: null, name: MAIN_NAME }];
+  for (const g of await kit.store.list<Category>("groups")) if (!g.data.closed) all.push({ key: g.key, name: g.data.name });
+  const sharer = rows[0].item.by;
+  const inGroup = async (person: { id: string; owner: boolean }, key: string | null) => person.owner || !!(await kit.store.get("seen", `${key ?? ""}:${person.id}`));
+  const out = [];
+  for (const g of all) {
+    if (g.key === now) continue;
+    if (!(await inGroup(sender, g.key))) continue;
+    if (sharer && sharer.id !== sender.id && !(await inGroup(sharer, g.key))) continue;
+    out.push(g);
+  }
+  return out;
+}
+
+async function askMove(kit: Kit, rows: { id: string; item: Item }[], sender: Sender | undefined, here: string | null) {
+  if (!sender) return;
+  const targets = await moveTargets(kit, rows, sender);
+  if (!targets.length) return kit.send("No groups in common. You can move it on app.whatodo.today, or forward it to your own group.");
+  const ref: MoveRef = { move: rows.map((r) => r.id), by: sender.id };
+  kit.ask(`Move *${clip(heading(rows[0].item), 60)}* to which group?`.replace(/\*/g, ""), [...targets.map((t) => t.name), STAY], { ref: ref as unknown as Json, ...(here ? { group: here } : {}), confirm: false });
+}
+
+async function onReply(kit: Kit, ids: string[], text: string, lower: string, sender: Sender | undefined, here: string | null) {
   const rows: { id: string; item: Item }[] = [];
   for (const id of ids) {
     const item = await kit.store.get<Item>("links", id);
@@ -363,6 +435,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string) {
   if (/^(important|star|pin|mark important)$/.test(lower)) return each((i) => ({ ...i, important: true }));
   if (/^(not important|unimportant|unstar|unpin)$/.test(lower)) return each((i) => ({ ...i, important: false, reacted: i.reacted === "important" ? null : i.reacted }));
   if (/^(no note|remove note|clear note)$/.test(lower)) return each((i) => ({ ...i, note: null }));
+  if (MOVE.test(lower)) return askMove(kit, rows, sender, here);
   const move = lower.match(/^(?:move|put)(?:\s+(?:it|this))?\s+(?:to|in|into|under)\s+(.+)$/);
   if (move) {
     const main = /^(main|none|no group|mediastore)$/.test(move[1]);
@@ -377,7 +450,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string) {
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.2.2",
+  version: "1.3.0",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
@@ -404,6 +477,8 @@ export default definePlugin({
     const lower = text.toLowerCase().replace(/[!.?]+$/, "");
     const here = event.group ?? null;
 
+    await sawIn(kit, here, event.sender);
+
     // A message with links: keep them. Anything else they wrote in it is their note.
     if (event.links?.length) {
       const ids = await keep(kit, event.links, ownWords(event.text), here, event.sender);
@@ -428,10 +503,28 @@ export default definePlugin({
       return;
     }
 
-    if (isRef(event.quotedRef) && text) return onReply(kit, event.quotedRef.ids, text, lower);
+    if (isRef(event.quotedRef) && text) return onReply(kit, event.quotedRef.ids, text, lower, event.sender, here);
 
     if (await command(kit, text, lower, here)) return;
     kit.unsure("I didn't get that. Send a link to save it, or _find_ and a few words to look for one. Send _help_ for more.");
+  },
+
+  async onAnswer(event, kit) {
+    // The answer to "Move it to which group?". Only the person who asked decides.
+    const ref = event.ref;
+    if (!isMoveRef(ref) || !event.sender || event.sender.id !== ref.by) return;
+    kit.close(ref as unknown as Json);
+    if (event.option === STAY) return;
+    const key = event.option === MAIN_NAME ? null : ((await kit.store.list<Category>("groups")).find((g) => !g.data.closed && g.data.name === event.option)?.key ?? undefined);
+    if (key === undefined) return kit.send("That group isn't there any more.");
+    let moved = 0;
+    for (const id of ref.move) {
+      const item = await kit.store.get<Item>("links", id);
+      if (!item) continue;
+      await save(kit, id, { ...item, group: key });
+      moved++;
+    }
+    kit.send(moved ? `Moved to *${event.option}*.` : "That link isn't saved any more.");
   },
 
   async onReaction(event, kit) {
@@ -460,6 +553,7 @@ export default definePlugin({
       groups: "See the groups they made for different kinds of links",
       new_group: "Make a new group for one kind of link, like recipes or workouts",
       undo: "Remove the last link they saved",
+      move: "Move a saved link to a different group, without saying which",
       help: "Ask how this works or what they can say",
     },
   },
@@ -482,6 +576,8 @@ export default definePlugin({
         const made = await createGroup(kit, m[1].replace(/[.!?]+$/, ""));
         return kit.send("error" in made ? made.error : `🎬 I'm making a WhatsApp group for *${made.name}*. Send its links there once it appears.`);
       }
+      case "move":
+        return kit.send("Reply to the link you want to move and send _move_. I'll show you the groups it can go to.");
       case "undo": {
         await command(kit, "undo", "undo", here);
         return;
@@ -522,6 +618,7 @@ export default definePlugin({
           liked: !!r.item.liked,
           important: !!r.item.important,
           by: r.item.by ?? null,
+          forwarded: r.item.forwarded ?? null,
         })),
         groups: groups.map((g) => ({ key: g.key, name: g.data.name, closed: !!g.data.closed, count: rows.filter((r) => r.item.group === g.key).length })),
       } as unknown as Json;
