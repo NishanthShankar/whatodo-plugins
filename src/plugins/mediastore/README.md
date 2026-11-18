@@ -22,6 +22,8 @@ Send these in the MediaStore group.
 | `close group recipes` | Closes that group. Its links stay saved. |
 | `help` | The command list. |
 
+A group you already have can be a MediaStore group too: add telcurio to it, then pick MediaStore for it in your chat with telcurio or on the web. `close group <its name>` stops the saving there without closing the chat.
+
 On a link you sent (or on a single result the plugin posted):
 
 | You | What happens |

@@ -1,5 +1,10 @@
 # Changelog: MediaStore
 
+## [1.4.0] - 2026-11-18
+
+### Added
+- A WhatsApp group you already have can become a MediaStore group. Add telcurio to it and pick MediaStore for it, in the chat with telcurio or on the web. Links sent there by anyone are saved under the group's name. Choosing something else for it later stops the saving; its links stay.
+
 ## [1.3.0] - 2026-11-18
 
 ### Added

@@ -229,6 +229,30 @@ async function createGroup(kit: Kit, name: string): Promise<{ key: string; name:
   return { key, name: category.name };
 }
 
+/**
+ * A WhatsApp group the person already had becomes one more group for links (`joined`), or
+ * stops being one (`left`). telcurio made the key; the group keeps its own name and people.
+ */
+async function existingGroup(kit: Kit, kind: "joined" | "left", key: string, name: string): Promise<void> {
+  const old = await kit.store.get<Category>("groups", key);
+  if (kind === "left") {
+    // Its links stay saved under its name, as when a group is closed.
+    if (old && !old.closed) await kit.store.put("groups", key, { ...old, closed: true } as unknown as Json, old.created);
+    return;
+  }
+  const category: Category = { name: name.trim().replace(/\s+/g, " ").slice(0, 40) || "Links", created: old?.created ?? kit.now };
+  await kit.store.put("groups", key, category as unknown as Json, category.created);
+  kit.send(`🎬 I'm saving the links sent in this group now. Send or forward a YouTube video, a short or an Instagram reel here and I'll keep it under *${category.name}*.\n\n_find_ and a few words looks through this group's links.`);
+}
+
+/** A group's key from what the person called it: the key itself for groups made here, the name for ones they already had. */
+async function keyFor(kit: Kit, said: string): Promise<string> {
+  const key = slug(said);
+  if (await kit.store.get<Category>("groups", key)) return key;
+  const byName = (await kit.store.list<Category>("groups")).find((g) => !g.data.closed && slug(g.data.name) === key);
+  return byName?.key ?? key;
+}
+
 async function closeGroup(kit: Kit, key: string): Promise<Category | null> {
   const category = await kit.store.get<Category>("groups", key);
   if (!category || category.closed) return null;
@@ -341,7 +365,7 @@ async function command(kit: Kit, text: string, lower: string, here: string | nul
   }
   m = lower.match(/^(?:close|remove|delete|stop)\s+(?:the\s+)?(?:group|category|folder)(?:\s+(.+))?$/);
   if (m && (m[1] || here)) {
-    const key = m[1] ? slug(m[1]) : here!;
+    const key = m[1] ? await keyFor(kit, m[1]) : here!;
     const closed = await closeGroup(kit, key);
     kit.send(closed ? `*${closed.name}* is closed. Its links are still saved.` : `I don't have a group called "${m[1] ?? key}". Send _groups_ to see yours.`);
     return true;
@@ -439,7 +463,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
   const move = lower.match(/^(?:move|put)(?:\s+(?:it|this))?\s+(?:to|in|into|under)\s+(.+)$/);
   if (move) {
     const main = /^(main|none|no group|mediastore)$/.test(move[1]);
-    const key = main ? null : slug(move[1]);
+    const key = main ? null : await keyFor(kit, move[1]);
     const category = key ? await kit.store.get<Category>("groups", key) : null;
     if (key && !category) return kit.send(`I don't have a group called "${move[1]}". Send _new group ${move[1]}_ to make it.`);
     return each((i) => ({ ...i, group: key }));
@@ -450,7 +474,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.3.0",
+  version: "1.4.0",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
@@ -471,6 +495,10 @@ export default definePlugin({
   welcome:
     "🎬 You've added *MediaStore*.\n\nSend or forward a link here: a YouTube video, a short, an Instagram reel. I'll keep it so you can find it later.\n\nSend _help_ for more.",
   help: HELP,
+
+  async onGroup(event, kit) {
+    await existingGroup(kit, event.kind, event.key, event.name);
+  },
 
   async onMessage(event, kit) {
     const text = event.text.trim().replace(/\s+/g, " ");
