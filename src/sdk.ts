@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; telcurio refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.19.0";
+export const SDK_VERSION = "1.20.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -200,8 +200,13 @@ export interface Kit {
    * address they set up for callbacks, if they did and asked for this event. `event` must be
    * one of the plugin's `api.events`. Send only what `api.get` would also show. Needs the
    * "api" permission. Not on page loads. Since SDK 1.19.0.
+   *
+   * `opts.group`: which of the install's groups it happened in (a key from `kit.groups.open`
+   * or `onGroup`; null for the main group), or several when it touches more than one, like a
+   * move. The person can limit a callback address to some groups; an event with no group only
+   * goes to addresses that take everything. Since SDK 1.20.0.
    */
-  emit(event: string, data: Json): Promise<void>;
+  emit(event: string, data: Json, opts?: { group?: string | null | (string | null)[] }): Promise<void>;
   /** A short random id for new records. */
   id(): string;
   /**
@@ -441,7 +446,19 @@ export interface ApiEndpoint {
   about: string;
   /** The query parameters it reads, each with one line. */
   params?: Record<string, string>;
-  run(kit: Kit, params: Record<string, string>): Promise<Json>;
+  /**
+   * `scope` says what the key that called may see. The person can limit a key to some of the
+   * install's groups; then `scope.groups` lists them (null in the list is the main group) and
+   * the handler must return nothing from any other group. `scope.groups` null: everything.
+   * Since SDK 1.20.0; before that every key saw everything.
+   */
+  run(kit: Kit, params: Record<string, string>, scope: ApiScope): Promise<Json>;
+}
+
+/** What a key may see. Since SDK 1.20.0. */
+export interface ApiScope {
+  /** The groups it is limited to, by key (null: the main group). null: no limit. */
+  groups: (string | null)[] | null;
 }
 
 export interface WebDef {
