@@ -15,14 +15,14 @@ async function pact(t: T) {
 }
 const checkin = (t: T) => t.asked.filter((a) => (a.ref as { habitId?: string })?.habitId).at(-1)!;
 const offer = (t: T, id: string) => t.asked.find((a) => (a.ref as { offer?: string })?.offer === id);
-const web = async (t: T) => ((await t.load(habits)) as unknown as { pacts: { key: string; name: string; closed: boolean; habits: { name: string; together: number; people: { id: string; name: string | null; streak: number }[] }[] }[] }).pacts;
+const web = async (t: T) => ((await t.load(habits)) as unknown as { groups: { key: string; name: string; closed: boolean; habits: { name: string; together: number; people: { id: string; name: string | null; streak: number }[] }[] }[] }).groups;
 
 describe("starting a pact", () => {
   it("makes a group for it, and a habit added there belongs to the pact, not the private list", async () => {
     const t = createTestKit({ hour: 21 });
     await t.message(habits, "new pact Gym Buddies");
-    expect(t.groups.get(P)).toMatchObject({ name: "🤝 Gym Buddies" });
-    expect(t.sent.at(-1)!.text).toContain("pact *Gym Buddies*");
+    expect(t.groups.get(P)).toMatchObject({ name: "🌱 Gym Buddies" });
+    expect(t.sent.at(-1)!.text).toContain("called *Gym Buddies*");
     await t.message(habits, "add gym", null, P);
     expect(t.reactions.at(-1)).toBe("👍");
     expect(Object.keys(t.dump()).filter((k) => k.startsWith("habits/"))).toHaveLength(0);
@@ -32,23 +32,54 @@ describe("starting a pact", () => {
   it("lists and closes pacts, and refuses a second of the same name", async () => {
     const t = createTestKit();
     await t.message(habits, "pacts");
-    expect(t.sent.at(-1)!.text).toMatch(/No pacts yet/);
+    expect(t.sent.at(-1)!.text).toMatch(/You have one Habits group, this one/);
     await t.message(habits, "new pact Gym Buddies");
     await t.message(habits, "start a pact called gym buddies");
-    expect(t.sent.at(-1)!.text).toMatch(/already have a pact/);
+    expect(t.sent.at(-1)!.text).toMatch(/already have a group/);
     await t.message(habits, "pacts");
     expect(t.sent.at(-1)!.text).toContain("*Gym Buddies*: 0 habits");
     await t.message(habits, "close pact gym buddies");
     expect(t.groups.has(P)).toBe(false);
-    await t.message(habits, "close pact nope");
-    expect(t.sent.at(-1)!.text).toMatch(/don't have a pact/);
+    await t.message(habits, "close group nope");
+    expect(t.sent.at(-1)!.text).toMatch(/don't have a group/);
+    // The plain word works as well as the old one.
+    await t.message(habits, "new group Study");
+    expect(t.groups.has("study")).toBe(true);
+    await t.message(habits, "groups");
+    expect(t.sent.at(-1)!.text).toContain("🌱 *Study*: 0 habits");
   });
 
-  it("the private list stays its owner's to change", async () => {
-    const t = createTestKit();
-    await t.message(habits, "add read", null, null, asha);
-    expect(Object.keys(t.dump()).filter((k) => k.startsWith("habits/"))).toHaveLength(0);
-    expect(t.sent.at(-1)!.text).toBe("This is Test's list, so only they add or change habits here. You can take part in any of them: just answer its poll.");
+  it("a friend can add a habit in the main group, as their own", async () => {
+    const t = createTestKit({ hour: 21 });
+    await t.message(habits, "add read");
+    await t.message(habits, "add yoga at 7am", null, null, ravi);
+    expect(t.reactions.at(-1)).toBe("👍");
+    // It isn't one of the owner's habits, and the owner isn't doing it.
+    expect(Object.keys(t.dump()).filter((k) => k.startsWith("habits/"))).toHaveLength(1);
+    const main = (await web(t)).find((g) => g.key === null)!;
+    expect(main.habits).toMatchObject([{ name: "Yoga", people: [{ id: "ravi" }] }]);
+    await t.message(habits, "habits");
+    expect(t.sent.at(-1)!.text).toContain("2. *Yoga*");
+    // The owner can take it up, and can stop it; the friend can't touch the owner's own.
+    await t.message(habits, "done yoga");
+    expect((await web(t)).find((g) => g.key === null)!.habits[0].people.map((p) => p.id).sort()).toEqual(["owner", "ravi"]);
+    await t.message(habits, "stop read", null, null, ravi);
+    expect(t.sent.at(-1)!.text).toBe("*Read* is Test's habit, so only they can change it. To step out yourself, send _leave read_.");
+    await t.message(habits, "stop yoga");
+    expect((await web(t)).find((g) => g.key === null)).toBeUndefined();
+    // Adding one that is already there means doing it too.
+    await t.message(habits, "add read", null, null, ravi);
+    expect(Object.keys(t.dump()).filter((k) => k.startsWith("pjoins/"))).toContain(Object.keys(t.dump()).find((k) => k.startsWith("pjoins/") && k.endsWith(":ravi") && !k.includes("yoga")));
+  });
+
+  it("asks about a friend's habit in the main group every day", async () => {
+    const t = createTestKit({ hour: 7 });
+    await t.message(habits, "add yoga at 7am", null, null, ravi);
+    await t.schedule(habits, "checkin");
+    const q = t.asked.at(-1)!;
+    expect(q).toMatchObject({ question: "🌱 Did you Yoga today?  Ravi 🔥 0", group: null, keep: true });
+    await t.answer(habits, q.ref, 0, ravi);
+    expect((await web(t))[0].habits[0].people[0].streak).toBe(1);
   });
 });
 
@@ -58,7 +89,7 @@ describe("checking in together", () => {
     await pact(t);
     await t.schedule(habits, "checkin");
     const q = checkin(t);
-    expect(q).toMatchObject({ question: "🤝 Did you Gym today?  Owner 🔥 0".replace("Owner", "Test"), options: ["Yes", "No"], group: P, keep: true });
+    expect(q).toMatchObject({ question: "🌱 Did you Gym today?  Test 🔥 0", options: ["Yes", "No"], group: P, keep: true });
     await t.answer(habits, q.ref, 0);
     await t.answer(habits, q.ref, 0, ravi);
     expect(t.sent).toEqual([]);
@@ -84,7 +115,7 @@ describe("checking in together", () => {
     // The next poll carries the standings, so nothing extra is sent.
     t.setToday("2026-11-14");
     await t.schedule(habits, "checkin");
-    expect(checkin(t).question).toBe("🤝 Did you Gym today?  Together 🔥 1 · Test 🔥 4 · Ravi 🔥 1");
+    expect(checkin(t).question).toBe("🌱 Did you Gym today?  Together 🔥 1 · Test 🔥 4 · Ravi 🔥 1");
   });
 
   it("closes yesterday's poll when today's goes out, and an answer can change until then", async () => {
@@ -198,7 +229,7 @@ describe("in the pact's group", () => {
     await t.message(habits, "add study at 7am", null, P, ravi);
     expect((await web(t))[0].habits.map((h) => h.name)).toEqual(["Gym", "Study"]);
     await t.message(habits, "stop gym", null, P, ravi);
-    expect(t.sent.at(-1)!.text).toMatch(/Only the person who added \*Gym\*/);
+    expect(t.sent.at(-1)!.text).toBe("*Gym* was added by someone else, so only they or Test can stop it. To step out yourself, send _leave gym_.");
     await t.message(habits, "stop study", null, P);
     expect((await web(t))[0].habits.map((h) => h.name)).toEqual(["Gym"]);
   });
@@ -217,7 +248,7 @@ describe("in the pact's group", () => {
     people = (await web(t))[0].habits[0].people;
     expect(people.map((p) => p.id)).toEqual(["owner"]);
     await t.message(habits, "done yoga", null, P);
-    expect(t.sent.at(-1)!.text).toMatch(/can't find "yoga" in this pact/);
+    expect(t.sent.at(-1)!.text).toMatch(/can't find "yoga" here/);
   });
 
   it("shows how everyone stands", async () => {
@@ -227,7 +258,7 @@ describe("in the pact's group", () => {
     await t.message(habits, "done gym", null, P, ravi);
     await t.message(habits, "habits", null, P);
     const text = t.sent.at(-1)!.text;
-    expect(text).toContain("🤝 *Gym Buddies*");
+    expect(text).toContain("🌱 *Gym Buddies*");
     expect(text).toContain("1. *Gym*  Together 🔥 1");
     expect(text).toContain("Ravi  🔥 1");
     expect(t.sent.at(-1)!.group).toBe(P);
@@ -307,10 +338,11 @@ describe("a friend in the private Habits group", () => {
     await t.intent(habits, "finished reading for today", "log_done", null, 1, ravi);
     await t.intent(habits, "how are we doing", "list", null, 1, ravi);
     expect(t.sent.at(-1)!.text).toContain("Ravi  🔥 1");
-    await t.intent(habits, "let's add yoga", "add_habit", null, 1, ravi);
-    expect(t.sent.at(-1)!.text).toMatch(/^This is Test's list/);
-    await t.message(habits, "done yoga", null, null, ravi);
-    expect(t.sent.at(-1)!.text).toMatch(/can't find "yoga" here/);
+    await t.message(habits, "done swimming", null, null, ravi);
+    expect(t.sent.at(-1)!.text).toMatch(/can't find "swimming" here/);
+    await t.intent(habits, "I want to start doing yoga", "add_habit", null, 1, ravi);
+    await t.message(habits, "habits", null, null, ravi);
+    expect(t.sent.at(-1)!.text).toMatch(/\*(Doing yoga|Yoga)\*/);
   });
 
   it("is told to log in before having a group of their own, here and in a pact", async () => {

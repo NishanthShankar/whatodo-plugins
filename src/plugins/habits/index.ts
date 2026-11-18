@@ -1,5 +1,5 @@
 import { definePlugin, type Kit } from "../../sdk";
-import { closePact, createPact, forFriend, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, standings, withStandings, type Tools } from "./pact";
+import { closePact, createPact, extraLines, forFriend, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, privatePact, standings, withStandings, type Tools } from "./pact";
 import { bestStreak, cleanName, daysLabel, grid, isOn, parseDays, scanDays, streak } from "./streaks";
 
 /**
@@ -188,8 +188,10 @@ async function addHabit(kit: Kit, list: { id: string; habit: Habit }[], name: st
 
 async function summary(kit: Kit): Promise<string> {
   const list = await active(kit);
-  if (!list.length) return "No habits yet. Add one: _add meditate_";
-  const lines = ["*Your habits* (last 14 days)"];
+  // Habits friends added in this group come after the owner's own.
+  const extra = await extraLines(kit, TOOLS, list.length);
+  if (!list.length && !extra.length) return "No habits yet. Add one: _add meditate_";
+  const lines = [list.length ? "*Your habits* (last 14 days)" : "*Habits*"];
   for (const [i, { id, habit }] of list.entries()) {
     const done = await doneDays(kit, id);
     const s = streak(done, kit.today, habit.days);
@@ -202,6 +204,7 @@ async function summary(kit: Kit): Promise<string> {
       lines.push(`Together 🔥 ${st.together}`, ...st.people.filter((p) => p.id !== OWNER).map((p) => `${p.name ?? "Someone"}  🔥 ${p.streak}`));
     }
   }
+  lines.push(...extra);
   const hour = kit.settings.checkinHour;
   lines.push(
     "",
@@ -227,10 +230,10 @@ const HELP = [
   "_simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off",
   "_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it",
   "",
-  "*Pacts:* a habit you keep with other people.",
-  "_new pact gym buddies_ makes a WhatsApp group for it. Add your people there, then tell me a habit in that group",
-  "_pacts_ lists yours, _close pact gym buddies_ ends one",
-  "In a pact everyone answers the same poll and sees who did it. _habits_ there shows everyone's streaks",
+  "*More groups:* _new group gym buddies_ makes another Habits group, for a different set of habits or of people",
+  "_groups_ lists yours, _close group gym buddies_ ends one",
+  "",
+  "*With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks",
   "",
   "Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
 ].join("\n");
@@ -249,7 +252,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "3.2.0",
+  version: "3.3.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -283,7 +286,7 @@ export default definePlugin({
     // they added can take part in their habits, but the list stays theirs to change.
     if (event.group) return pactMessage(event, kit, TOOLS);
     if (event.sender && !event.sender.owner) {
-      return friendMessage(event, kit, (await active(kit)).map((h) => ({ id: h.id, name: h.habit.name })), () => summary(kit));
+      return friendMessage(event, kit, TOOLS, (await active(kit)).map((h) => ({ id: h.id, name: h.habit.name })), () => summary(kit));
     }
     const text = event.text.trim();
     const lower = text.toLowerCase();
@@ -300,8 +303,10 @@ export default definePlugin({
       }
     }
 
-    // "new pact gym buddies", "pacts", "close pact gym buddies"
+    // "new group gym buddies", "groups", "close group gym buddies"
     if (await privatePact(kit, text, lower.replace(/[!.]+$/, ""))) return;
+    // A habit a friend added in this group: the owner can do it, log it, stop it.
+    if (await ownerOnExtra(event, kit, TOOLS, (await active(kit)).map((h) => h.habit.name))) return;
 
     if (/^(help|\?|menu|commands)$/i.test(lower)) return kit.send(HELP);
     if (/^(habits|list|streaks?|show|my habits|status)$/i.test(lower)) return kit.send(await summary(kit));
@@ -424,7 +429,7 @@ export default definePlugin({
   async onIntent(event, kit) {
     if (event.group) return pactIntent(event, kit, TOOLS);
     if (event.sender && !event.sender.owner) {
-      return friendIntent(event, kit, (await active(kit)).map((h) => ({ id: h.id, name: h.habit.name })), () => summary(kit));
+      return friendIntent(event, kit, TOOLS, (await active(kit)).map((h) => ({ id: h.id, name: h.habit.name })), () => summary(kit));
     }
     const { text, intent, target } = event;
     const list = await active(kit);
@@ -514,7 +519,8 @@ export default definePlugin({
     }
     await setDay(kit, ref.habitId, ref.day, event.choice === 0 ? "done" : "missed");
     // A 👍 on the poll says it landed. Once is enough, and a deleted poll has its own line.
-    if (!event.changed && kit.settings.deletePolls !== true) kit.react("👍");
+    // With friends in the habit nothing is posted back: the poll shows who answered what.
+    if (!event.changed && kit.settings.deletePolls !== true && !(await hasFriends(kit, ref.habitId))) kit.react("👍");
   },
 
   async onSchedule(event, kit) {
@@ -580,7 +586,7 @@ export default definePlugin({
         quickLog: kit.settings.quickLog === true,
         deletePolls: kit.settings.deletePolls === true,
         habits: out,
-        pacts: await pactsForWeb(kit, days),
+        groups: await pactsForWeb(kit, days),
       };
     },
     /** A friend's own page: the habits they take part in here, and how everyone stands. */
@@ -631,7 +637,7 @@ export default definePlugin({
       async setQuickLog(kit, { on }) {
         await kit.setSettings({ quickLog: on === true });
       },
-      /** Start a pact: a habit group to keep with other people. */
+      /** Make another Habits group: for a different set of habits, or to keep some with other people. */
       async createPact(kit, { name }) {
         const made = await createPact(kit, String(name ?? ""));
         if ("error" in made) throw new Error(made.error.replace(/[_*]/g, ""));

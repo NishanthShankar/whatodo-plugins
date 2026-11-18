@@ -2,6 +2,18 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [3.3.0] - 2026-11-18
+
+### Changed
+- "Pacts" are now simply more Habits groups. _new group gym buddies_ makes one, _groups_ lists them, _close group gym buddies_ ends one. A group works the same on your own or with other people. The old words (_new pact_, _pacts_) still work.
+- Every Habits group follows one set of rules. Anyone in it can add a habit, do any habit there by answering its poll, and see everyone's streaks with _habits_. A habit can be stopped or rescheduled by whoever added it, or by the person whose group it is.
+- Friends can now add habits in your main Habits group too. Theirs are asked every day like yours, and listed after yours. You can take one up (_done yoga_) or stop it.
+- When other people take part in a habit, your own answer no longer gets a 👍: the poll already shows who answered what.
+- Group names and check-ins use 🌱 everywhere.
+
+### Data
+- Habits friends add in the main group are kept in `phabits` with an empty group key. `load` returns `groups` (was `pacts`), with the main group first when friends have added habits to it.
+
 ## [3.2.0] - 2026-11-18
 
 ### Added
