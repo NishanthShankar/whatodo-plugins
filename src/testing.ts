@@ -78,6 +78,11 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const groups = new Map<string, { name: string; hello: string | null }>();
   /** The extra group the event being handled came from: kit.send defaults to it. */
   let here: string | null = null;
+  /**
+   * Groups (null: the main one) where someone other than the owner has written or answered.
+   * As in telcurio, a question is only shared once there is more than one person to answer it.
+   */
+  const crowded = new Set<string | null>();
   let counter = 0;
   const state = { today: opts.today ?? "2026-11-15", hour: opts.hour ?? 21 };
   const settings: Record<string, Json> = { ...(opts.settings ?? {}) };
@@ -267,6 +272,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null, from?: string | Partial<Sender>, links?: Link[]) {
       withDefaults(plugin);
       const sender = senderOf(plugin, from);
+      if (!sender.owner) crowded.add(group);
       if (links && !plugin.permissions?.includes("links")) throw new Error(`${plugin.id}: link details need the "links" permission (telcurio wouldn't read them)`);
       here = group;
       try {
@@ -288,8 +294,9 @@ export function createTestKit(opts: TestKitOptions = {}) {
     },
     /**
      * Someone answers the open question asked with `ref`; `choice` counts from 0. As in
-     * telcurio: a plugin without "members" has one person, so the answer settles the question
-     * and its `confirm` line is posted; with "members" it stays open until `kit.close(ref)`,
+     * telcurio: with one person in the group (a plugin without "members", or a group where
+     * nobody but the owner has written or answered) the answer settles the question and its
+     * `confirm` line is posted; with more people it stays open until `kit.close(ref)`,
      * and a second, different answer from the same person arrives with `changed: true`.
      * A question asked with `keep` stays open and posts no confirm line, whoever is in the group.
      * Throws when no such question is open or the choice isn't one of its options.
@@ -303,7 +310,9 @@ export function createTestKit(opts: TestKitOptions = {}) {
       if (!(Number.isInteger(choice) && choice >= 0 && choice < q.options.length)) {
         throw new Error(`${plugin.id}: choice ${choice} isn't one of the ${q.options.length} options`);
       }
-      const shared = !!plugin.permissions?.includes("members");
+      if (!sender.owner) crowded.add(q.group);
+      // Shared: the plugin hears everyone and someone besides the owner is in that group.
+      const shared = !!plugin.permissions?.includes("members") && crowded.has(q.group);
       const votes = (answers.get(q) ?? answers.set(q, new Map()).get(q))!;
       const before = votes.get(sender.id);
       if (before === choice) return;
