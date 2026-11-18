@@ -1,6 +1,6 @@
 {
   "name": "whatodo-plugins",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "description": "Plugins for telcurio: everyday apps that live in your WhatsApp.",
   "type": "module",
   "license": "MIT",
