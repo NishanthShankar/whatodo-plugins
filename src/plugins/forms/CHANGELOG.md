@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.3] - 2026-11-19
+
+### Changed
+- The product has a new name, Zelfred. This app's store title, description and notes use it. Nothing about how it works has changed.
+
 ## [1.2.2] - 2026-11-19
 
 ### Changed
