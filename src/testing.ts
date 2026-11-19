@@ -1,7 +1,7 @@
 /**
- * A test harness for plugins: an in-memory Kit that behaves like telcurio's, plus helpers to
+ * A test harness for plugins: an in-memory Kit that behaves like Zelfred's, plus helpers to
  * drive events and read what the plugin did. Every plugin's tests use this, so a plugin that
- * passes here behaves the same inside telcurio.
+ * passes here behaves the same inside Zelfred.
  *
  *   const t = createTestKit({ today: "2026-11-15", hour: 21 });
  *   await t.message(plugin, "add meditate");
@@ -53,7 +53,7 @@ function shiftDay(day: string, n: number): string {
 const MAX_TEXT = 4000;
 
 /**
- * A link as telcurio would hand it over, for `t.message(..., links)`. Give the address and
+ * A link as Zelfred would hand it over, for `t.message(..., links)`. Give the address and
  * whatever the page says; the rest is filled in as a page that was read with nothing on it.
  */
 export function link(url: string, found: Partial<Omit<Link, "url">> = {}): Link {
@@ -72,7 +72,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const signedUp: string[] = [];
   /** Refs given to kit.mark(), in order: the person's messages the plugin asked to remember. */
   const marks: Json[] = [];
-  /** Fallback texts from kit.unsure(), in order. In telcurio these trigger intent understanding. */
+  /** Fallback texts from kit.unsure(), in order. In Zelfred these trigger intent understanding. */
   const unsures: string[] = [];
   /** Hooks that are open, by key. */
   const hooks = new Set<string>();
@@ -86,17 +86,17 @@ export function createTestKit(opts: TestKitOptions = {}) {
   let here: string | null = null;
   /**
    * Groups (null: the main one) where someone other than the owner has written or answered.
-   * As in telcurio, a question is only shared once there is more than one person to answer it.
+   * As in Zelfred, a question is only shared once there is more than one person to answer it.
    */
   const crowded = new Set<string | null>();
   let counter = 0;
   const state = { today: opts.today ?? "2026-11-15", hour: opts.hour ?? 21 };
   const settings: Record<string, Json> = { ...(opts.settings ?? {}) };
 
-  // Data must survive a JSON round trip, exactly as it does in telcurio's database.
+  // Data must survive a JSON round trip, exactly as it does in Zelfred's database.
   const clone = (v: Json): Json => JSON.parse(JSON.stringify(v));
 
-  /** The plugin being driven: its permissions decide what the kit allows, as in telcurio. */
+  /** The plugin being driven: its permissions decide what the kit allows, as in Zelfred. */
   let current: PluginDef | null = null;
   const need = (permission: "hooks" | "groups", what: string) => {
     if (current && !current.permissions?.includes(permission)) throw new Error(`${current.id}: ${what} needs the "${permission}" permission`);
@@ -234,10 +234,10 @@ export function createTestKit(opts: TestKitOptions = {}) {
       typeof from === "string"
         ? { id: from.toLowerCase().replace(/\s+/g, "-"), name: from, owner: false, profile: false }
         : { id: from.id ?? "owner", name: from.name ?? null, owner: from.owner ?? (from.id ?? "owner") === "owner", profile: from.profile ?? (from.owner ?? (from.id ?? "owner") === "owner") };
-    // As in telcurio: once they agreed (kit.signUp), their events say so.
+    // As in Zelfred: once they agreed (kit.signUp), their events say so.
     if (signedUp.includes(s.id)) s.profile = true;
     if (!s.owner && !plugin.permissions?.includes("members")) {
-      throw new Error(`${plugin.id}: a message from someone else needs the "members" permission (telcurio wouldn't deliver it)`);
+      throw new Error(`${plugin.id}: a message from someone else needs the "members" permission (Zelfred wouldn't deliver it)`);
     }
     return s;
   };
@@ -280,14 +280,14 @@ export function createTestKit(opts: TestKitOptions = {}) {
      * `group`: the key of the extra group the message was sent in (null: the main group).
      * `from`: who sent it. Leave out for the person who added the plugin; a name ("Asha") for
      * another member of the group, which needs the "members" permission.
-     * `links`: what telcurio read from the links in the message (build each with `link()`),
+     * `links`: what Zelfred read from the links in the message (build each with `link()`),
      * which needs the "links" permission.
      */
     async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null, from?: string | Partial<Sender>, links?: Link[]) {
       withDefaults(plugin);
       const sender = senderOf(plugin, from);
       if (!sender.owner) crowded.add(group);
-      if (links && !plugin.permissions?.includes("links")) throw new Error(`${plugin.id}: link details need the "links" permission (telcurio wouldn't read them)`);
+      if (links && !plugin.permissions?.includes("links")) throw new Error(`${plugin.id}: link details need the "links" permission (Zelfred wouldn't read them)`);
       here = group;
       try {
         if (/^(help|\?|menu|commands)$/i.test(text.trim())) return kit.send(plugin.help);
@@ -308,7 +308,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     },
     /**
      * Someone answers the open question asked with `ref`; `choice` counts from 0. As in
-     * telcurio: with one person in the group (a plugin without "members", or a group where
+     * Zelfred: with one person in the group (a plugin without "members", or a group where
      * nobody but the owner has written or answered) the answer settles the question and its
      * `confirm` line is posted; with more people it stays open until `kit.close(ref)`,
      * and a second, different answer from the same person arrives with `changed: true`.
@@ -348,7 +348,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
       return (await plugin.understand?.targets?.(kit)) ?? {};
     },
     /**
-     * Deliver an intent as telcurio would after kit.unsure(): checks the intent and target are
+     * Deliver an intent as Zelfred would after kit.unsure(): checks the intent and target are
      * ones the plugin declared, then calls onIntent.
      */
     async intent(plugin: PluginDef, text: string, intent: string, target: string | null = null, confidence = 1, from?: string | Partial<Sender>, group: string | null = null) {
@@ -367,7 +367,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
       }
     },
     /**
-     * Deliver a request to a hook as telcurio would. Throws when the hook isn't open (telcurio
+     * Deliver a request to a hook as Zelfred would. Throws when the hook isn't open (Zelfred
      * would have answered "not found" without calling the plugin).
      */
     async hook(plugin: PluginDef, key: string, fields: Record<string, string> = {}, files: HookFile[] = [], origin: string | null = null) {
@@ -378,7 +378,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     },
     /**
      * The person hands the plugin a WhatsApp group they already had (`"joined"`), or takes it
-     * back (`"left"`), as telcurio would. A joined group is listed in `groups` like any other.
+     * back (`"left"`), as Zelfred would. A joined group is listed in `groups` like any other.
      */
     async group(plugin: PluginDef, kind: "joined" | "left", key: string, name: string) {
       withDefaults(plugin);
@@ -392,7 +392,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
         here = null;
       }
     },
-    /** One of the person's other systems calls a read endpoint, as telcurio would after checking its key. */
+    /** One of the person's other systems calls a read endpoint, as Zelfred would after checking its key. */
     async api(plugin: PluginDef, name: string, params: Record<string, string> = {}, scope: { groups: (string | null)[] | null } = { groups: null }) {
       withDefaults(plugin);
       const endpoint = plugin.api?.get[name];

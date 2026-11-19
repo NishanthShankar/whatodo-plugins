@@ -16,7 +16,7 @@
  * a reaction that logic checks for) must never vary: write it with `fixed`, which takes
  * exactly one string.
  *
- * telcurio itself has the same helper (whatodo: convex/copy/pick.ts).
+ * Zelfred itself has the same helper (whatodo: convex/copy/pick.ts).
  *
  * A plugin may not call Math.random itself (see docs/sdk-reference.md); it gets variety only
  * through `msg`, in its copy.ts.

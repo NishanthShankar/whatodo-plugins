@@ -4,7 +4,7 @@ Every plugin ships with tests in `src/plugins/<id>/__tests__/`. CI runs them, pl
 
 ## The test kit
 
-`createTestKit` (from `whatodo-plugins/testing`, or `../../../testing` inside this repo) gives you an in-memory kit that behaves like telcurio's: data goes through a JSON round trip, `send` rejects empty or over-long messages, `list` sorts the same way, settings start from the plugin's defaults.
+`createTestKit` (from `whatodo-plugins/testing`, or `../../../testing` inside this repo) gives you an in-memory kit that behaves like Zelfred's: data goes through a JSON round trip, `send` rejects empty or over-long messages, `list` sorts the same way, settings start from the plugin's defaults.
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -30,15 +30,15 @@ it("logs a glass and reacts", async () => {
 
 ### Driving events
 
-| Call | Does what telcurio does when… |
+| Call | Does what Zelfred does when… |
 |---|---|
 | `await t.install(plugin)` | the plugin is installed (`onInstall`) |
-| `await t.message(plugin, text, quotedRef?, group?, from?, links?)` | the person sends `text` (as a reply to a message with `quotedRef`). `help`/`?`/`menu`/`commands` post `plugin.help`, as telcurio does. `links`: what telcurio read from the links in it, each built with `link(url, { site, kind, title, ... })` from the test kit; needs the `"links"` permission. |
+| `await t.message(plugin, text, quotedRef?, group?, from?, links?)` | the person sends `text` (as a reply to a message with `quotedRef`). `help`/`?`/`menu`/`commands` post `plugin.help`, as Zelfred does. `links`: what Zelfred read from the links in it, each built with `link(url, { site, kind, title, ... })` from the test kit; needs the `"links"` permission. |
 | `await t.react(plugin, emoji \| null, ref, group?, from?)` | the person reacts to (null: un-reacts) a message sent with `ref` |
-| `from` on the three calls above and below | who sent it. Left out: the person who added the plugin. A name like `"Asha"`: another member of the group (her `sender.id` is `"asha"`). The plugin needs the `"members"` permission, or the kit throws as telcurio would not have delivered it. |
+| `from` on the three calls above and below | who sent it. Left out: the person who added the plugin. A name like `"Asha"`: another member of the group (her `sender.id` is `"asha"`). The plugin needs the `"members"` permission, or the kit throws as Zelfred would not have delivered it. |
 | `await t.answer(plugin, ref, choice, from?)` | someone answers the open question asked with `ref` (`kit.ask`); `choice` counts from 0. Settles it and posts its `confirm` line when the owner is alone in that group; with `"members"` and someone else having written or answered there, it stays open and a second answer from the same person has `changed: true`. Throws when no such question is open. |
 | `await t.schedule(plugin, id)` | schedule `id` fires |
-| `await t.intent(plugin, text, intent, target?, confidence?, from?, group?)` | telcurio's intent model read an unclear message as `intent` (about `target`). Checks both were declared, then calls `onIntent`. |
+| `await t.intent(plugin, text, intent, target?, confidence?, from?, group?)` | Zelfred's intent model read an unclear message as `intent` (about `target`). Checks both were declared, then calls `onIntent`. |
 | `await t.targets(plugin)` | returns what `understand.targets` gives right now |
 | `await t.upgrade(plugin, fromVersion)` | a new version meets an install made with `fromVersion` |
 | `await t.load(plugin, args?)` | the web page loads |
@@ -54,7 +54,7 @@ it("logs a glass and reacts", async () => {
 | `t.marks` | refs given to `kit.mark`, in order |
 | `t.signedUp` | sender ids given to `kit.signUp`, in order. A member made with a name has `profile: false` until then. |
 | `t.asked` | questions asked with `kit.ask`, in order: `{ question, options, ref, group, confirm, open }` |
-| `t.unsures` | fallback texts from `kit.unsure()`, in order (in telcurio these trigger intent understanding) |
+| `t.unsures` | fallback texts from `kit.unsure()`, in order (in Zelfred these trigger intent understanding) |
 | `t.dump()` | `{ "collection/key": data }` of everything stored |
 | `t.kit.settings` | current settings |
 | `t.setToday(day)`, `t.setHour(h)` | move the clock between events |

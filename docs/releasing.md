@@ -61,7 +61,7 @@ Stored data outlives versions. Rules:
 
 ## Removing a plugin
 
-A released plugin is never deleted from the repo (CI refuses): people have it installed. To retire one, release a MINOR that says so in its description and welcome text, and open an issue so telcurio can hide it from the marketplace for new installs.
+A released plugin is never deleted from the repo (CI refuses): people have it installed. To retire one, release a MINOR that says so in its description and welcome text, and open an issue so Zelfred can hide it from the marketplace for new installs.
 
 ## The release, step by step
 
@@ -73,7 +73,7 @@ A released plugin is never deleted from the repo (CI refuses): people have it in
 6. `pnpm check` and `pnpm release:check` locally.
 7. Open a PR with the template filled in. CI runs typecheck, tests, conformance and the release rules against `main`.
 8. A maintainer reviews against [review-checklist.md](review-checklist.md) and merges.
-9. telcurio bumps its pinned commit of this repo, runs its own tests, and deploys. On the next event for each install, `onUpgrade` runs and the new version takes over.
+9. Zelfred bumps its pinned commit of this repo, runs its own tests, and deploys. On the next event for each install, `onUpgrade` runs and the new version takes over.
 
 ## SDK releases
 
