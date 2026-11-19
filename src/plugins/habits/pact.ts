@@ -8,7 +8,7 @@ import { bestStreak, cleanName, isOn, parseDays, scanDays, streak } from "./stre
  * a habit, and every day each habit gets one poll for the whole group. WhatsApp shows who
  * tapped what, so the poll is the scoreboard and nothing is posted per answer.
  *
- * Whose answers are kept: the person who made the pact, and anyone with a telcurio profile.
+ * Whose answers are kept: the person who made the pact, and anyone with a Zelfred profile.
  * Someone without one is offered a profile on their first answer ("Good start Asha. Let me create an
  * account for you..."); on their yes their streak is kept from that day, on "not now" what they
  * answered is forgotten and they are not asked again ("set me up" brings it back).
@@ -179,7 +179,7 @@ async function settleWaiting(kit: Kit, sender: Sender) {
   }
 }
 
-/** They said yes to a profile of their own: telcurio records it, and they can log in and see their streak. */
+/** They said yes to a profile of their own: Zelfred records it, and they can log in and see their streak. */
 async function accept(kit: Kit, sender: Sender) {
   await kit.signUp(sender.id);
   const person = (await kit.store.get<Person>("people", sender.id)) ?? { name: sender.name };
@@ -383,7 +383,7 @@ export async function pactMessage(event: MessageEvent, kit: Kit, tools: Tools): 
   const lower = text.toLowerCase().replace(/[!.]+$/, "");
   if (STANDINGS.test(lower)) return kit.send(await summary(kit, pact, p.name));
   if (SET_UP.test(lower)) return setUp(kit, sender);
-  // A group of one's own is made from one's own telcurio, which means logging in first.
+  // A group of one's own is made from one's own Zelfred, which means logging in first.
   if (!sender.owner && OWN_GROUP.test(lower)) return kit.send(copy.ownGroup());
   if (await habitCommands(kit, pact, sender, text, tools)) return;
   kit.unsure(copy.unsureInGroup());
@@ -660,7 +660,7 @@ export async function createPact(kit: Kit, name: string): Promise<{ key: string;
 
 /**
  * A WhatsApp group the person already had becomes a habit group (`joined`), or stops being one
- * (`left`). telcurio made the key; the group keeps its own name and its own people.
+ * (`left`). Zelfred made the key; the group keeps its own name and its own people.
  */
 export async function existingGroup(kit: Kit, kind: "joined" | "left", key: string, name: string): Promise<void> {
   const old = await kit.store.get<Pact>("pacts", key);

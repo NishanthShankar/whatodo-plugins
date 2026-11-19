@@ -65,7 +65,7 @@ export const CHECKIN_OPTIONS = [YES, NO];
  */
 export const OFFER_OPTIONS = [YES, NOT_NOW];
 
-/** Where telcurio puts the chosen option in a poll's confirm line. Not wording: never change it. */
+/** Where Zelfred puts the chosen option in a poll's confirm line. Not wording: never change it. */
 const OPTION = fixed("{{option}}");
 
 // ── Reactions ──
