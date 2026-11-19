@@ -223,7 +223,7 @@ function checkDays(days: unknown): number[] | null {
 
 export default definePlugin({
   id: "habits",
-  version: "3.6.1",
+  version: "3.6.2",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -237,7 +237,7 @@ export default definePlugin({
   // added to and answer in ("members"). The private Habits group still hears only its owner.
   permissions: ["groups", "members"],
   listing: {
-    title: "Habit Tracker on WhatsApp: Daily Check-ins | telcurio",
+    title: "Habit Tracker on WhatsApp: Daily Check-ins | Zelfred",
     description:
       "Track habits on WhatsApp. Get a daily check-in, tap Yes or No and watch your streak grow. Free, in its own WhatsApp group. No app.",
     h1: "Habit tracker on WhatsApp",
@@ -374,7 +374,7 @@ export default definePlugin({
         return kit.react(LOGGED);
       }
     }
-    // Not a command: telcurio works out what was meant and calls onIntent below.
+    // Not a command: Zelfred works out what was meant and calls onIntent below.
     kit.unsure(copy.unsure());
   },
 

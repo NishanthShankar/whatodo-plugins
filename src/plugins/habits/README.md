@@ -21,7 +21,7 @@ Send these in the Habits group.
 | `delete polls on` / `delete polls off` | Whether a check-in poll is deleted once you answer it (with a line saying what you chose) or stays so you can change it. Off by default. 👍 |
 | `help` | This list. |
 
-Anything else goes to telcurio's intent model, so plain sentences work too: "I want to start going to the gym on mondays and thursdays", "finished my workout", "skipped reading today", "move gym to tuesdays", "check in with me at 8pm instead". Intents: `add_habit`, `log_done`, `missed`, `undo_done`, `remove_habit`, `set_days`, `set_time`, `default_time`, `list`, `set_me_up`, `help`; targets are the active habits (id to name). If the text doesn't say which habit, days or time, it asks.
+Anything else goes to Zelfred's intent model, so plain sentences work too: "I want to start going to the gym on mondays and thursdays", "finished my workout", "skipped reading today", "move gym to tuesdays", "check in with me at 8pm instead". Intents: `add_habit`, `log_done`, `missed`, `undo_done`, `remove_habit`, `set_days`, `set_time`, `default_time`, `list`, `set_me_up`, `help`; targets are the active habits (id to name). If the text doesn't say which habit, days or time, it asks.
 
 Check-ins: at each habit's hour (its own, else the default), on its days, the plugin asks with one poll per habit not yet done that day: "🌱 Did you Read today?  🔥 5" with Yes and No (with simple messages on: "Read  🔥 5"; the streak is always there, 🔥 0 included) (`kit.ask` with `keep`). Streaks skip days a habit isn't due on. Yes logs it; No says you didn't (counts like no answer, but closes the day so it isn't asked again). The first answer gets a 👍 on the poll.
 
@@ -46,7 +46,7 @@ In your main Habits group:
 | `groups` | Lists your Habits groups. |
 | `close group gym buddies` | Ends a group and closes its chat. What was logged is kept. |
 
-A group you already have can be a Habits group too: add telcurio to it, then pick Habits for it in your chat with telcurio or on the web. It keeps its name and its people. `close group <its name>` stops Habits there without closing the chat.
+A group you already have can be a Habits group too: add Zelfred to it, then pick Habits for it in your chat with Zelfred or on the web. It keeps its name and its people. `close group <its name>` stops Habits there without closing the chat.
 
 In any Habits group, from anyone in it:
 
@@ -67,7 +67,7 @@ How groups behave (the owner's decisions, 2026-11-18):
 - One poll a day per habit, kept so it shows who did it. Answers can change until that habit's next check-in. Nothing is posted or reacted for an answer once other people take part.
 - The question carries the standings: "🌱 Did you Gym today?  Together 🔥 4 · Asha 🔥 12 · Ravi 🔥 4". The together streak counts days everyone doing the habit said Yes; a person counts from the day they joined and stops counting after a week of silence.
 - In the main group your own habits keep everything they had (reactions on old check-ins, simple messages, delete polls when you are alone in a habit). Habits friends add there are listed after yours.
-- Everyone who takes part gets a streak, profile or not, shown in the group and on the web. Someone without a telcurio profile gets one poll on their first answer: "Good start Asha. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up." Only their own vote counts: if someone else votes on it, telcurio says once "I need consent from Asha for this, so only Asha's vote counts here." Yes records their agreement and lets them log in. Not now makes no profile, answers "No problem. Just ask me to set it up for you later if you change your mind.", and they are never asked again.
+- Everyone who takes part gets a streak, profile or not, shown in the group and on the web. Someone without a Zelfred profile gets one poll on their first answer: "Good start Asha. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up." Only their own vote counts: if someone else votes on it, Zelfred says once "I need consent from Asha for this, so only Asha's vote counts here." Yes records their agreement and lets them log in. Not now makes no profile, answers "No problem. Just ask me to set it up for you later if you change your mind.", and they are never asked again.
 - A friend who asks for a group of their own is told to log in at app.whatodo.today and add Habits.
 - A friend who logs in sees the habits they take part in on the web (`web.loadFor`): their own days and streak, the together streak and everyone's streaks. Nothing else of the owner's.
 - Limits: 10 extra groups, 12 habits added per group.
@@ -110,6 +110,6 @@ Lockable. `load({ days? })` returns `{ today, timezone, habitHour, quickLog, del
 
 Permissions: `groups` (more than one Habits group) and `members` (other people in a group are heard).
 
-In any Habits group, everyone in it is heard and can see everything posted there, including each other's answers on the polls. For each person doing a habit it stores the WhatsApp name they show, the days they said Yes or No, and whether they agreed to a telcurio profile. A person's id here is not a phone number. Someone who says Not now has their answers deleted and nothing further kept.
+In any Habits group, everyone in it is heard and can see everything posted there, including each other's answers on the polls. For each person doing a habit it stores the WhatsApp name they show, the days they said Yes or No, and whether they agreed to a Zelfred profile. A person's id here is not a phone number. Someone who says Not now has their answers deleted and nothing further kept.
 
-Your own Habits group works the same way once you add someone to it: they are heard and can see everything posted there, including your check-ins. With nobody else in it, it reads only its own group's messages, its own stored data, the person's time zone and name. Stores habit names and the days they were done. A message it can't read, with its intent descriptions and your habit names, is sent by telcurio to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.
+Your own Habits group works the same way once you add someone to it: they are heard and can see everything posted there, including your check-ins. With nobody else in it, it reads only its own group's messages, its own stored data, the person's time zone and name. Stores habit names and the days they were done. A message it can't read, with its intent descriptions and your habit names, is sent by Zelfred to its intent model (jev) to be classified; Zelfred keeps only the answer, never the text.
