@@ -1,5 +1,10 @@
 # Changelog: MediaStore
 
+## [1.7.1] - 2026-11-19
+
+### Changed
+- The product has a new name, Zelfred. This app's store title, description and notes use it. Nothing about how it works has changed.
+
 ## [1.7.0] - 2026-11-19
 
 ### Changed

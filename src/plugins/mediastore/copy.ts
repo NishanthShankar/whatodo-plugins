@@ -106,7 +106,7 @@ export const copy = {
   unsure: msg([`I didn't get that. Send a link to save it, or _${FIND}_ and a few words to look for one. Send _${HELP}_ for more.`]),
 
   // ── Saving ──
-  /** Sent once, after the very first save. `read`: telcurio could read the link's page. */
+  /** Sent once, after the very first save. `read`: Zelfred could read the link's page. */
   firstSave: msg<{ read: boolean }>([
     ({ read }) =>
       [
