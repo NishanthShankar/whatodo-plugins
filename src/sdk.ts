@@ -1,22 +1,22 @@
 /**
- * The telcurio plugin SDK.
+ * The Zelfred plugin SDK.
  *
- * A plugin lives in its own WhatsApp group with one person and the telcurio bot (and, with the
- * "members" permission, the other people that person adds to the group). telcurio sends
+ * A plugin lives in its own WhatsApp group with one person and the Zelfred bot (and, with the
+ * "members" permission, the other people that person adds to the group). Zelfred sends
  * it events (a message, a reaction, a scheduled moment, a call from its web page, a request from
  * outside to one of its hooks) and hands it
  * a Kit to act with. Plugins never talk to WhatsApp or the database directly, which keeps them
- * portable: the same plugin can run bundled inside telcurio or, later, as a hosted service.
+ * portable: the same plugin can run bundled inside Zelfred or, later, as a hosted service.
  *
- * Handlers run inside a database transaction on the telcurio side, so they must be
+ * Handlers run inside a database transaction on the Zelfred side, so they must be
  * deterministic: no network calls, no timers. Use kit.now instead of Date.now().
  */
 
 /**
- * The SDK's own version. Plugins are written against a major version; telcurio refuses a
+ * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.20.0";
+export const SDK_VERSION = "1.20.1";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -26,23 +26,23 @@ export type Tier = 1 | 2 | 3;
 
 /**
  * What a plugin may do beyond its own group and storage. A plugin lists the ones it needs in
- * `permissions`; telcurio shows them to the person before they add it and refuses the rest.
- * - "hooks": receive requests from outside telcurio (`kit.hooks`, `onHook`, files).
+ * `permissions`; Zelfred shows them to the person before they add it and refuses the rest.
+ * - "hooks": receive requests from outside Zelfred (`kit.hooks`, `onHook`, files).
  * - "groups": make extra WhatsApp groups for the install (`kit.groups`).
  * - "replies": be called back when someone replies. Reserved: named so plugins and people can
  *   plan for it, not built yet.
  * - "lock-members": block adding members. The plugin's groups (its main one and any extra ones)
- *   are made with telcurio as the only admin and set so only admins can add people, so nobody
+ *   are made with Zelfred as the only admin and set so only admins can add people, so nobody
  *   else can be brought in. Reserved since SDK 1.7.0: named, not enforced yet.
  * - "members": hear everyone in its groups, not only the person who added it. Without it,
  *   messages and reactions from other people in the group never reach the plugin. Each event
  *   says who sent it (`event.sender`). Can't be combined with "lock-members". Since SDK 1.8.0.
- * - "links": have telcurio read the public details of the links people send (title, caption,
+ * - "links": have Zelfred read the public details of the links people send (title, caption,
  *   who posted it, picture address). A plugin can't reach the internet itself; with this,
- *   telcurio opens each link and hands over what it found in `event.links`. Since SDK 1.10.0.
+ *   Zelfred opens each link and hands over what it found in `event.links`. Since SDK 1.10.0.
  * - "api": let the person's own other systems read this install's data and be told when
  *   something happens (`api` on the plugin, `kit.emit`). Nothing is open until the person
- *   makes a key on the plugin's page; telcurio checks the key, limits how often it is used
+ *   makes a key on the plugin's page; Zelfred checks the key, limits how often it is used
  *   and signs every callback. Since SDK 1.19.0.
  * Since SDK 1.6.0.
  */
@@ -75,7 +75,7 @@ export interface Person {
   /**
    * The id their own events carry as `sender.id`. With it a plugin that hears several people
    * can find the owner's own records outside an event too (a page load, a schedule). Not a
-   * phone number. telcurio always sets it since SDK 1.15.0.
+   * phone number. Zelfred always sets it since SDK 1.15.0.
    */
   id?: string;
   name: string | null;
@@ -93,12 +93,12 @@ export interface Sender {
    * when you store who did what. It is not a phone number and says nothing about the person.
    */
   id: string;
-  /** Their WhatsApp name, when telcurio knows it. Names change and repeat: show it, don't key on it. */
+  /** Their WhatsApp name, when Zelfred knows it. Names change and repeat: show it, don't key on it. */
   name: string | null;
   /** True for the person who added the plugin. */
   owner: boolean;
   /**
-   * Whether they have a telcurio profile of their own. Always true for the owner. Someone a
+   * Whether they have a Zelfred profile of their own. Always true for the owner. Someone a
    * friend brought into a group usually has none: they can be offered one, and
    * `kit.signUp(sender.id)` records their yes. Since SDK 1.13.0.
    */
@@ -126,11 +126,11 @@ export interface Kit {
   send(text: string, opts?: { ref?: Json; group?: string }): void;
   /**
    * Ask for a choice between options. Use it whenever the plugin needs a structured answer,
-   * a plain yes or no included. telcurio sends a WhatsApp poll (the question with a numbered
+   * a plain yes or no included. Zelfred sends a WhatsApp poll (the question with a numbered
    * list when a poll can't be sent) and each answer arrives as `onAnswer` with the `ref` given
    * here. A typed answer (the option's number or its text) counts too.
    *
-   * - In a group of one person and telcurio, the first answer settles it: the poll is deleted
+   * - In a group of one person and Zelfred, the first answer settles it: the poll is deleted
    *   so it can't be changed, and `confirm` is posted as the record.
    * - In a group with more people (the "members" permission) the poll stays, everyone's first
    *   answer counts, and the question stays open until the plugin calls `kit.close(ref)`.
@@ -181,22 +181,22 @@ export interface Kit {
   mark(ref: Json): void;
   /**
    * Say you couldn't read the message being handled (onMessage only). If the plugin declares
-   * `understand`, telcurio asks its intent model which of your intents the message means and
-   * calls `onIntent` with the answer; if the plugin doesn't, or the model isn't sure, telcurio
+   * `understand`, Zelfred asks its intent model which of your intents the message means and
+   * calls `onIntent` with the answer; if the plugin doesn't, or the model isn't sure, Zelfred
    * sends `fallback` instead. Call it instead of sending your own "I didn't get that". Since
    * SDK 1.4.0.
    */
   unsure(fallback: string): void;
   /**
-   * This person said yes to having their own telcurio profile (ask first, with `kit.ask`;
-   * never call it without their yes). telcurio records that they agreed, when and in which
+   * This person said yes to having their own Zelfred profile (ask first, with `kit.ask`;
+   * never call it without their yes). Zelfred records that they agreed, when and in which
    * plugin, and from then on their events arrive with `sender.profile: true`. Give the
    * `sender.id` of someone who has written or answered in one of the plugin's groups. Needs
    * the "members" permission. Since SDK 1.13.0.
    */
   signUp(senderId: string): Promise<void>;
   /**
-   * Tell the person's other systems that something happened: telcurio sends `data` to the
+   * Tell the person's other systems that something happened: Zelfred sends `data` to the
    * address they set up for callbacks, if they did and asked for this event. `event` must be
    * one of the plugin's `api.events`. Send only what `api.get` would also show. Needs the
    * "api" permission. Not on page loads. Since SDK 1.19.0.
@@ -221,16 +221,16 @@ export interface Kit {
   };
   /**
    * Extra WhatsApp groups for this install, besides its main one: each has the person and
-   * telcurio in it, like the main group. For plugins where one thing deserves its own chat
+   * Zelfred in it, like the main group. For plugins where one thing deserves its own chat
    * (a form, a project). Making a group takes a little while. Since SDK 1.6.0.
    */
   groups: {
     /** Ask for a group for `key` (lowercase letters, digits and dashes). Does nothing if it exists. `hello` is posted in it once it's made. */
     open(key: string, opts: { name: string; hello?: string }): Promise<void>;
-    /** Stop using the group for `key`. telcurio stops listening and posting there; the chat itself stays on the person's phone. */
+    /** Stop using the group for `key`. Zelfred stops listening and posting there; the chat itself stays on the person's phone. */
     close(key: string): Promise<void>;
   };
-  /** Files that arrived through hooks. The plugin holds their ids; telcurio holds the bytes. Since SDK 1.5.0. */
+  /** Files that arrived through hooks. The plugin holds their ids; Zelfred holds the bytes. Since SDK 1.5.0. */
   files: {
     /** Delete a file for good. */
     remove(id: string): Promise<void>;
@@ -247,7 +247,7 @@ export interface Kit {
 }
 
 /**
- * What telcurio read from a link's public page, for plugins with the "links" permission.
+ * What Zelfred read from a link's public page, for plugins with the "links" permission.
  * Anything it couldn't read is null; a private, deleted or unreachable link has `found: false`
  * and only `url`, `canonical`, `site` and `kind`. Since SDK 1.10.0.
  */
@@ -263,7 +263,7 @@ export interface Link {
   site: string;
   /** "video", "short" (YouTube), "reel", "post" (Instagram) or "page" (anything else). */
   kind: "video" | "short" | "reel" | "post" | "page";
-  /** False when telcurio couldn't read the page. */
+  /** False when Zelfred couldn't read the page. */
   found: boolean;
   title: string | null;
   /** The description or caption, up to 5000 characters. */
@@ -281,7 +281,7 @@ export interface MessageEvent {
   /** The ref of the message this one replies to (one of the plugin's, or one marked with `kit.mark`), if any. */
   quotedRef: Json | null;
   /**
-   * The links in the message with what telcurio read from each, in the order they appear (at
+   * The links in the message with what Zelfred read from each, in the order they appear (at
    * most 3). Only with the "links" permission, and only when the message has a link. Reading
    * takes a second or two, so the message reaches the plugin that much later.
    * Since SDK 1.10.0.
@@ -289,7 +289,7 @@ export interface MessageEvent {
   links?: Link[];
   /** The key of the extra group it was sent in; null or unset for the main group. Since SDK 1.6.0. */
   group?: string | null;
-  /** Who sent it. telcurio always sets it since SDK 1.8.0. */
+  /** Who sent it. Zelfred always sets it since SDK 1.8.0. */
   sender?: Sender;
 }
 
@@ -300,13 +300,13 @@ export interface ReactionEvent {
   ref: Json;
   /** The key of the extra group the message is in; null or unset for the main group. Since SDK 1.6.0. */
   group?: string | null;
-  /** Who reacted. telcurio always sets it since SDK 1.8.0. */
+  /** Who reacted. Zelfred always sets it since SDK 1.8.0. */
   sender?: Sender;
 }
 
 /**
  * Someone answered a question asked with `kit.ask`. A person's first answer is the one that
- * counts. In a group with several people a person may change it once, ever (telcurio tells
+ * counts. In a group with several people a person may change it once, ever (Zelfred tells
  * them so); that arrives as a second event with `changed: true` and replaces their first.
  * A question asked with `keep` takes every change while it is open, each with `changed: true`.
  * Since SDK 1.9.0.
@@ -326,7 +326,7 @@ export interface AnswerEvent {
   sender?: Sender;
 }
 
-/** A file that came with a hook request. Only telcurio can read its bytes; the plugin keeps the id. */
+/** A file that came with a hook request. Only Zelfred can read its bytes; the plugin keeps the id. */
 export interface HookFile {
   id: string;
   /** The form field it was sent in. */
@@ -339,22 +339,22 @@ export interface HookFile {
   size: number;
 }
 
-/** A request from outside telcurio to one of the install's hooks. Since SDK 1.5.0. */
+/** A request from outside Zelfred to one of the install's hooks. Since SDK 1.5.0. */
 /**
  * A WhatsApp group the person already had was handed to the plugin, or taken back. From then
  * on it works like a group made with `kit.groups.open`: messages there arrive with
- * `group: key`, and `kit.send(text, { group: key })` posts there. The differences: telcurio
+ * `group: key`, and `kit.send(text, { group: key })` posts there. The differences: Zelfred
  * didn't make it, other people may already be in it, and `kit.groups.close(key)` only stops
  * listening there (nobody is taken out and nothing is said). Since SDK 1.17.0.
  */
 export interface GroupEvent {
   /**
    * "joined": the person chose this plugin for the group. `kit.send` in the handler posts in
-   * that group. "left": they chose something else for it; telcurio has already stopped
+   * that group. "left": they chose something else for it; Zelfred has already stopped
    * listening there, so only tidy up your own records.
    */
   kind: "joined" | "left";
-  /** telcurio's key for the group. Never the same as a key the plugin picked itself: it starts with "x-". */
+  /** Zelfred's key for the group. Never the same as a key the plugin picked itself: it starts with "x-". */
   key: string;
   /** The WhatsApp group's name. */
   name: string;
@@ -363,14 +363,14 @@ export interface GroupEvent {
 export interface HookEvent {
   /** The key the hook was made with (`kit.hooks.url(key)`). */
   key: string;
-  /** The text fields, as sent. Names and values are capped by telcurio. */
+  /** The text fields, as sent. Names and values are capped by Zelfred. */
   fields: Record<string, string>;
   files: HookFile[];
   /** The site the request came from (its Origin header), when it said. */
   origin: string | null;
 }
 
-/** What telcurio's intent model made of a message the plugin was unsure about. */
+/** What Zelfred's intent model made of a message the plugin was unsure about. */
 export interface IntentEvent {
   /** The message, as sent. */
   text: string;
@@ -380,7 +380,7 @@ export interface IntentEvent {
   target: string | null;
   /** 0 to 1. Below the platform's threshold onIntent isn't called at all. */
   confidence: number;
-  /** Who sent the message. telcurio always sets it since SDK 1.8.0. */
+  /** Who sent the message. Zelfred always sets it since SDK 1.8.0. */
   sender?: Sender;
   /**
    * The key of the extra group the message was sent in; null or unset for the main group.
@@ -390,7 +390,7 @@ export interface IntentEvent {
 }
 
 /**
- * Lets telcurio work out what an unclear message means. The model only picks: an intent from
+ * Lets Zelfred work out what an unclear message means. The model only picks: an intent from
  * this list, and optionally the thing it's about from `targets`. It never writes text, so the
  * plugin still reads names, days and times out of the message itself in `onIntent`.
  */
@@ -426,7 +426,7 @@ export interface ScheduleDef {
  * What a plugin opens to the person's own other systems (their scripts, their backend), once
  * they make a key on the plugin's page. Since SDK 1.19.0.
  *
- * telcurio does the plumbing: it checks the key, counts the calls, and turns `GET
+ * Zelfred does the plumbing: it checks the key, counts the calls, and turns `GET
  * /api/v1/<plugin id>/<name>?a=b` into `get[name](kit, { a: "b" })`. The kit is read-only, as
  * on a page load. Whatever the handler returns is sent back as JSON, so return only what the
  * person themselves may see, keep it small, and take `limit` and `after` for long lists.
@@ -462,13 +462,13 @@ export interface ApiScope {
 }
 
 export interface WebDef {
-  /** Whether the person can put this plugin's page behind their telcurio PIN. */
+  /** Whether the person can put this plugin's page behind their Zelfred PIN. */
   lockable?: boolean;
   /** Data for the plugin's web page. */
   load(kit: Kit, args: Record<string, Json>): Promise<Json>;
   /**
    * Data for the page of someone else in the plugin's groups: a friend who takes part in what
-   * the owner set up and has logged in to telcurio themselves. `sender` is that person. Return
+   * the owner set up and has logged in to Zelfred themselves. `sender` is that person. Return
    * only what they may see (their own numbers, and what the group already shows everyone).
    * Read-only, like `load`. Without it such a person sees nothing of this plugin. Needs the
    * "members" permission. Since SDK 1.14.0.
@@ -483,7 +483,7 @@ export interface WebDef {
  * page heading). Write for what people search, not the plugin's name.
  */
 export interface Listing {
-  /** The full page title, brand included, 60 characters at most: "Habit Tracker on WhatsApp: Daily Check-ins | telcurio". */
+  /** The full page title, brand included, 60 characters at most: "Habit Tracker on WhatsApp: Daily Check-ins | Zelfred". */
   title: string;
   /** Meta description, 155 characters at most. */
   description: string;
@@ -518,7 +518,7 @@ export interface PluginDef {
   /** What it may do beyond its own group and storage. See `Permission`. Since SDK 1.6.0. */
   permissions?: Permission[];
   /**
-   * Not offered to everyone: left out of the store and the public site, and only people telcurio
+   * Not offered to everyone: left out of the store and the public site, and only people Zelfred
    * allows can add it. For plugins still being tried out. Since SDK 1.5.0.
    */
   unlisted?: boolean;
@@ -542,20 +542,20 @@ export interface PluginDef {
   onAnswer?(event: AnswerEvent, kit: Kit): Promise<void>;
   /**
    * A request arrived at one of this install's hooks. It runs like any other handler (it can
-   * store and `kit.send`); telcurio has already answered the sender. Since SDK 1.5.0.
+   * store and `kit.send`); Zelfred has already answered the sender. Since SDK 1.5.0.
    */
   onHook?(event: HookEvent, kit: Kit): Promise<void>;
   /** Read endpoints and events for the person's other systems. Needs the "api" permission. Since SDK 1.19.0. */
   api?: ApiDef;
   /**
    * Having this means the person can hand the plugin a WhatsApp group they already had (one
-   * telcurio didn't make): on the web, or when they add telcurio to a group. Needs the
+   * Zelfred didn't make): on the web, or when they add Zelfred to a group. Needs the
    * "groups" permission. Since SDK 1.17.0.
    */
   onGroup?(event: GroupEvent, kit: Kit): Promise<void>;
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
-  /** Called with the intent telcurio found for an unclear message. Required with `understand`. */
+  /** Called with the intent Zelfred found for an unclear message. Required with `understand`. */
   onIntent?(event: IntentEvent, kit: Kit): Promise<void>;
   web?: WebDef;
 }
@@ -570,7 +570,7 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-/** The limits of a question (`kit.ask`), shared by telcurio and the test kit. Throws a plain sentence when one is broken. */
+/** The limits of a question (`kit.ask`), shared by Zelfred and the test kit. Throws a plain sentence when one is broken. */
 export function checkAsk(question: string, options: string[], opts?: { intro?: string; mention?: string }): void {
   if (opts?.intro !== undefined) {
     if (typeof opts.intro !== "string" || !opts.intro.trim()) throw new Error("kit.ask: the intro is empty");

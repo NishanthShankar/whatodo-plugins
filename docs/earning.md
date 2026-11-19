@@ -4,11 +4,11 @@
 
 ## The goal
 
-Developers publish plugins on telcurio and earn when people pay for them. telcurio handles WhatsApp, the account, storage, the website, payments and payouts; the developer handles what the plugin does.
+Developers publish plugins on Zelfred and earn when people pay for them. Zelfred handles WhatsApp, the account, storage, the website, payments and payouts; the developer handles what the plugin does.
 
 ## What's decided
 
-- **Plugins declare a platform cost tier.** `tier` (1 low, 2 medium, 3 high) says what a plugin costs telcurio to run. Pricing will be built on it, so it is set honestly and changed only through a reviewed release.
+- **Plugins declare a platform cost tier.** `tier` (1 low, 2 medium, 3 high) says what a plugin costs Zelfred to run. Pricing will be built on it, so it is set honestly and changed only through a reviewed release.
 - **Prices live in the definition.** `price` is in the smallest currency unit (paise for INR). Today it must be 0.
 - **No paid feature without a release.** Turning on a price, or changing it, is a plugin release with a CHANGELOG entry, reviewed like any other.
 - **Strict quality first.** The review bar ([review-checklist.md](review-checklist.md)), versioning and data-compatibility rules ([releasing.md](releasing.md)) exist now so paid plugins can be trusted later.
@@ -20,7 +20,7 @@ These will be settled and published before the first paid plugin:
 
 - One-time vs subscription pricing, trials, and how they appear in the definition (`price` will likely grow a billing period and currency).
 - Payment provider and supported regions (India first).
-- Revenue share between developers and telcurio, payout schedule, tax handling and invoicing.
+- Revenue share between developers and Zelfred, payout schedule, tax handling and invoicing.
 - What happens to a paid install when payment stops (likely: the plugin pauses, data is kept).
 - Refunds and the developer's support obligations.
 - How outside developers sign up, agree to terms, and publish (in this repo under review first; hosted plugins later).

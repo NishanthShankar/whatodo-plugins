@@ -2,6 +2,11 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.20.1] - 2026-11-19
+
+### Changed
+- The product has a new name, Zelfred. Comments and docs use it. Nothing in the SDK behaves differently.
+
 ## [1.20.0] - 2026-11-19
 
 ### Added
