@@ -27,7 +27,7 @@ What you get back: the first date you ever send is confirmed in words ("Got it: 
 
 Answering a reminder: `yes` (or reacting ✅ to it) means your period started today; `started 2 days ago` or `14 nov` gives the day; `not yet` is fine too. To the pregnancy test nudge, `yes` or `positive` turns pregnancy mode on and `no` just says OK. You don't have to reply to the message itself: a plain `yes` is read as the answer to the last reminder.
 
-Messages the commands don't cover ("my periods came on 9th nov", "kab tha last period") go to telcurio's intent understanding: a period starting (the date is read from the sentence, today if there isn't one), asking for the last period, history, pregnant, not pregnant, undo and help.
+Messages the commands don't cover ("my periods came on 9th nov", "kab tha last period") go to Zelfred's intent understanding: a period starting (the date is read from the sentence, today if there isn't one), asking for the last period, history, pregnant, not pregnant, undo and help.
 
 ## Schedules
 
@@ -63,4 +63,4 @@ Messages the commands don't cover ("my periods came on 9th nov", "kab tha last p
 
 ## Privacy
 
-Reads only the messages you send in its own group, its own stored data, your time zone and your name. Stores only your LMP dates, whether you're in pregnancy mode (and since when), and which reminders it already sent. Nothing leaves telcurio, except that a message the commands don't understand is passed to telcurio's intent model to work out what you meant. This is sensitive health data: on the telcurio website, keep your account behind your PIN.
+Reads only the messages you send in its own group, its own stored data, your time zone and your name. Stores only your LMP dates, whether you're in pregnancy mode (and since when), and which reminders it already sent. Nothing leaves Zelfred, except that a message the commands don't understand is passed to Zelfred's intent model to work out what you meant. This is sensitive health data: on the Zelfred website, keep your account behind your PIN.
