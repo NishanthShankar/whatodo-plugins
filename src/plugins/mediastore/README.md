@@ -1,6 +1,6 @@
 # 🎬 MediaStore
 
-Forward a YouTube video, a short or an Instagram reel and it is kept with its title, caption and who posted it, so you can find it later with a few words. Lives in its own WhatsApp group, "🎬 MediaStore". Not listed yet: only people telcurio allows can add it. The name may change.
+Forward a YouTube video, a short or an Instagram reel and it is kept with its title, caption and who posted it, so you can find it later with a few words. Lives in its own WhatsApp group, "🎬 MediaStore".
 
 ## Commands
 
@@ -67,7 +67,7 @@ Actions: `setLiked { id, on }`, `setImportant { id, on }`, `setNote { id, note }
 
 ## Privacy
 
-Permissions: `links`, `groups` and `members`.
+Permissions: `links`, `groups`, `members` and `api` (the API is private for now, see the end of this page).
 
 A MediaStore group can be shared: anyone you add to it can send links, search, mark and remove, and can read everything the plugin posts there. Each link keeps the WhatsApp name of who sent it.
 

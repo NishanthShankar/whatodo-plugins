@@ -1,5 +1,10 @@
 # Changelog: MediaStore
 
+## [1.7.0] - 2026-11-19
+
+### Changed
+- MediaStore is listed: anyone on telcurio can add it from the app store, and it has its own page on the site. Nothing about how it works has changed.
+
 ## [1.6.0] - 2026-11-19
 
 ### Added
