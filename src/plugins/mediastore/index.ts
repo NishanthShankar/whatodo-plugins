@@ -19,7 +19,7 @@ export interface Item {
   canonical: string;
   site: string;
   kind: Link["kind"];
-  /** False when telcurio couldn't read the page: only the link itself is kept. */
+  /** False when Zelfred couldn't read the page: only the link itself is kept. */
   found: boolean;
   title: string | null;
   description: string | null;
@@ -141,7 +141,7 @@ async function remove(kit: Kit, id: string) {
 
 /**
  * A link as their other systems see it. The same things the person sees on their page, with
- * two differences: no telcurio ids of people (only the name of whoever sent it), and the group
+ * two differences: no Zelfred ids of people (only the name of whoever sent it), and the group
  * by name as well as key.
  */
 async function publicLink(kit: Kit, id: string, item: Item, names?: Map<string, string>): Promise<Json> {
@@ -345,7 +345,7 @@ async function createGroup(kit: Kit, name: string): Promise<{ key: string; name:
 
 /**
  * A WhatsApp group the person already had becomes one more group for links (`joined`), or
- * stops being one (`left`). telcurio made the key; the group keeps its own name and people.
+ * stops being one (`left`). Zelfred made the key; the group keeps its own name and people.
  */
 async function existingGroup(kit: Kit, kind: "joined" | "left", key: string, name: string): Promise<void> {
   const old = await kit.store.get<Category>("groups", key);
@@ -586,7 +586,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.7.0",
+  version: "1.7.1",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
@@ -600,7 +600,7 @@ export default definePlugin({
   permissions: ["links", "groups", "members", "api"],
   api,
   listing: {
-    title: "Save Reels and Videos on WhatsApp, Find Later | telcurio",
+    title: "Save Reels and Videos on WhatsApp, Find Later | Zelfred",
     description: "Forward Instagram reels and YouTube videos to a WhatsApp chat. Their titles and captions are kept, so you can find any of them later with a few words.",
     h1: "Save reels and videos on WhatsApp",
   },
@@ -769,7 +769,7 @@ export default definePlugin({
       },
       /**
        * A link's picture address stopped working (Instagram's do after a few days) and the
-       * page got today's from telcurio: keep it, so it isn't asked for again tomorrow.
+       * page got today's from Zelfred: keep it, so it isn't asked for again tomorrow.
        */
       async setImage(kit, { id, image }) {
         const item = await kit.store.get<Item>("links", String(id));

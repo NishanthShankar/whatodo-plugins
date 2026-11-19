@@ -22,7 +22,7 @@ Send these in the MediaStore group.
 | `close group recipes` | Closes that group. Its links stay saved. |
 | `help` | The command list. |
 
-A group you already have can be a MediaStore group too: add telcurio to it, then pick MediaStore for it in your chat with telcurio or on the web. `close group <its name>` stops the saving there without closing the chat.
+A group you already have can be a MediaStore group too: add Zelfred to it, then pick MediaStore for it in your chat with Zelfred or on the web. `close group <its name>` stops the saving there without closing the chat.
 
 On a link you sent (or on a single result the plugin posted):
 
@@ -39,7 +39,7 @@ On a link you sent (or on a single result the plugin posted):
 
 A message can hold up to 3 links; each is saved. In one of your extra groups, links are saved under that group, and `find`, `recent`, `liked`, `important`, `undo` and `count` look only at that group's links. Plain sentences there do the same. In the main group they look through everything.
 
-Anything else goes to telcurio's intent model, so plain sentences work: "where is that pasta video I saved", "show me what I liked". Intents: `search`, `recent`, `liked`, `important`, `groups`, `new_group`, `move`, `undo`, `help`. No targets.
+Anything else goes to Zelfred's intent model, so plain sentences work: "where is that pasta video I saved", "show me what I liked". Intents: `search`, `recent`, `liked`, `important`, `groups`, `new_group`, `move`, `undo`, `help`. No targets.
 
 The move question (the owner's decisions, 2026-11-18): asked as a poll when someone replies `move` to a link. It lists the open groups, and the main one, other than where the link is, and only those that both the person asking and the person who shared the link are part of (the person who added MediaStore is part of all; anyone else counts once they have written in a group). Last option "Leave it here". Only the person who asked decides; the poll is removed once they answer and one line says where it went. No groups in common gets a message, not a poll.
 
@@ -71,9 +71,9 @@ Permissions: `links`, `groups`, `members` and `api` (the API is private for now,
 
 A MediaStore group can be shared: anyone you add to it can send links, search, mark and remove, and can read everything the plugin posts there. Each link keeps the WhatsApp name of who sent it.
 
-Reads only the messages in its own groups (from everyone in them), its own stored data, and the person's time zone and name. When you send a link, telcurio's servers open that link's public page, the way a link preview does, and hand the plugin its title, caption, who posted it, length and picture address. The site sees a request from telcurio, not from you. Nothing behind a login is read, and nothing of what is said or shown in a video.
+Reads only the messages in its own groups (from everyone in them), its own stored data, and the person's time zone and name. When you send a link, Zelfred's servers open that link's public page, the way a link preview does, and hand the plugin its title, caption, who posted it, length and picture address. The site sees a request from Zelfred, not from you. Nothing behind a login is read, and nothing of what is said or shown in a video.
 
-Stores each link with those details and your own note. Pictures are not stored, only their addresses. A message it can't read is sent by telcurio, with the intent descriptions, to its intent model (jev) to be classified; telcurio keeps only the answer, never the text.
+Stores each link with those details and your own note. Pictures are not stored, only their addresses. A message it can't read is sent by Zelfred, with the intent descriptions, to its intent model (jev) to be classified; Zelfred keeps only the answer, never the text.
 
 ## For your other systems (private for now)
 
