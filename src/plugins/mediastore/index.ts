@@ -586,7 +586,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
 
 export default definePlugin({
   id: "mediastore",
-  version: "1.6.0",
+  version: "1.7.0",
   sdk: "1",
   name: "MediaStore",
   icon: "🎬",
@@ -596,7 +596,6 @@ export default definePlugin({
   groupName: copy.groupName(),
   price: 0,
   tier: 2,
-  unlisted: true,
   // "members": a group can be shared, and each link remembers who sent it.
   permissions: ["links", "groups", "members", "api"],
   api,
