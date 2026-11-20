@@ -312,3 +312,61 @@ describe("forms: basics", () => {
     expect(last(t)).toBe(forms.help);
   });
 });
+
+describe("forms: renaming", () => {
+  type Named = { forms: { key: string; name: string; url: string; groupName: string | null }[] };
+  const named = async (t: ReturnType<typeof T>) => ((await t.load(forms)) as unknown as Named).forms;
+
+  it("rename <form> to <name> changes the name and nothing else", async () => {
+    const t = T();
+    await t.message(forms, "new form contact");
+    const before = (await named(t))[0];
+    await t.message(forms, "rename contact to Contact Us");
+    expect(last(t)).toBe("📬 *contact* is now *Contact Us*. Its address hasn't changed.");
+    const after = (await named(t))[0];
+    expect(after).toMatchObject({ key: "contact", name: "Contact Us", url: before.url, groupName: null });
+    // It answers to its new name and still to its key.
+    await t.message(forms, "address contact us");
+    expect(last(t)).toContain(before.url);
+    await t.message(forms, "rename contact");
+    expect(last(t)).toContain("Tell me the new name too");
+    await t.message(forms, "rename nothing to Something");
+    expect(last(t)).toContain(`I don't have a form called "nothing"`);
+  });
+
+  it("won't take a name another form answers to", async () => {
+    const t = T();
+    await t.message(forms, "new form contact");
+    await t.message(forms, "new form Partners");
+    await t.message(forms, "rename contact to partners");
+    expect(last(t)).toBe(`You already have a form called "partners". Pick another name.`);
+    expect((await named(t)).map((f) => f.name)).toEqual(["contact", "Partners"]);
+  });
+
+  it("a form's own group keeps its name when the form is renamed, and gets its own from the page", async () => {
+    const t = T();
+    await t.message(forms, "new form KYC in its own group");
+    expect(t.groups.get("kyc")!.name).toBe("📬 KYC");
+    await t.message(forms, "rename to Know Your Customer", null, "kyc");
+    expect(last(t)).toBe("📬 *KYC* is now *Know Your Customer*. Its address hasn't changed.");
+    expect(t.groups.get("kyc")!.name).toBe("📬 KYC");
+    expect((await named(t))[0]).toMatchObject({ name: "Know Your Customer", groupName: "📬 KYC" });
+
+    const out = await t.act(forms, "rename", { key: "kyc", groupName: "  Customer   checks  " });
+    expect(out).toMatchObject({ name: "Know Your Customer", groupName: "Customer checks" });
+    expect(t.groups.get("kyc")!.name).toBe("Customer checks");
+    // Both at once, and a group name longer than WhatsApp takes is cut.
+    await t.act(forms, "rename", { key: "kyc", name: "KYC 2", groupName: "A group name that is far too long" });
+    expect((await named(t))[0]).toMatchObject({ name: "KYC 2", groupName: "A group name that is far" });
+    expect(t.groups.get("kyc")!.name.length).toBeLessThanOrEqual(25);
+  });
+
+  it("a form in the main group has no group name to change", async () => {
+    const t = T();
+    await t.message(forms, "new form contact");
+    await t.act(forms, "rename", { key: "contact", name: "Hello", groupName: "Ignored" });
+    expect((await named(t))[0]).toMatchObject({ name: "Hello", groupName: null });
+    expect(t.groups.size).toBe(0);
+    await expect(t.act(forms, "rename", { key: "contact", name: "   " })).rejects.toThrow(/Give the form a name/);
+  });
+});

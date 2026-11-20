@@ -2,6 +2,16 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-11-20
+
+### Added
+- A form can be renamed: `rename contact to Contact us` (in a form's own group, `rename to Contact us`), or on the page. Its address and everything it received stay.
+- On the page, a form's own WhatsApp group can be given a name of its own. Renaming the form leaves the group's name as it is.
+- Page action `rename { key, name?, groupName? }`; `load` returns each form's `groupName`.
+
+### Data
+- `forms`: new optional `groupName`, the name the person gave the form's own group.
+
 ## [1.2.3] - 2026-11-19
 
 ### Changed

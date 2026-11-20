@@ -19,6 +19,7 @@ export const NEW_FORM_EXAMPLE = fixed("new form contact");
 export const OWN_GROUP = fixed("in its own group");
 export const GROUP_EXAMPLE = fixed("group contact");
 export const FORMS = fixed("forms");
+export const RENAME_EXAMPLE = fixed("rename contact to Contact us");
 export const ADDRESS = fixed("address");
 export const ADDRESS_EXAMPLE = fixed("address contact");
 export const LAST = fixed("last");
@@ -48,6 +49,7 @@ export const copy = {
       `_${FORMS}_ lists your forms and their addresses`,
       `_${ADDRESS_EXAMPLE}_ shows one form's address again`,
       `_${LAST}_ (or _${LAST_EXAMPLE}_) shows the latest submission`,
+      `_${RENAME_EXAMPLE}_ gives a form a new name; its address stays`,
       `_${NEW_ADDRESS_EXAMPLE}_ replaces a form's address if the old one is being misused`,
       `_${CLOSE_EXAMPLE}_ stops a form taking submissions`,
       "",
@@ -87,6 +89,10 @@ export const copy = {
   newAddress: msg<{ name: string; url: string }>([
     ({ name, url }) => `📬 *${name}* has a new address. The old one no longer works, so update your website:\n\n${url}\n\nEverything it received is still here.`,
   ]),
+  /** A form got a new name. Its key, and so its address, stay as they were. */
+  renamed: msg<{ from: string; to: string }>([({ from, to }) => `📬 *${from}* is now *${to}*. Its address hasn't changed.`]),
+  renameNeedsName: msg([`Tell me the new name too, like _${RENAME_EXAMPLE}_.`]),
+  nameTaken: msg<{ name: string }>([({ name }) => `You already have a form called "${name}". Pick another name.`]),
   noSuchForm: msg<{ name: string }>([({ name }) => `I don't have a form called "${name}". Send _${FORMS}_ to see yours.`]),
   /** Asked for the address, or a new one, of a closed form. */
   closedReopen: msg<{ name: string; key: string }>([({ name, key }) => `*${name}* is closed. Send _${NEW_FORM} ${key}_ to open it again with a new address.`]),
