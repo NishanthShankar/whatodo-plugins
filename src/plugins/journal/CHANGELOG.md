@@ -1,5 +1,11 @@
 # Changelog: Journal
 
+## [1.2.0] - 2026-11-20
+
+### Changed
+- Journal is listed: anyone on Zelfred can add it from the app store, and it has its own page on the site.
+- The tagline and the site's description say "lock it" where they said "locked", because a journal started in WhatsApp is locked by its person a little later.
+
 ## [1.1.0] - 2026-11-20
 
 ### Changed

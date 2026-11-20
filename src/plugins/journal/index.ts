@@ -52,11 +52,11 @@ async function allDays(kit: Kit): Promise<{ day: string; n: number }[]> {
 
 export default definePlugin({
   id: "journal",
-  version: "1.1.0",
+  version: "1.2.0",
   sdk: "1",
   name: "Journal",
   icon: "📓",
-  tagline: "Write in WhatsApp, read on the web. Locked so only you can open it.",
+  tagline: "Write in WhatsApp, read on the web. Lock it so only you can open it.",
   description:
     "Every message in its WhatsApp group becomes a journal entry: words, photos, voice notes. Each one is locked as it arrives, and once you lock the journal with a key of your own nobody but you can open it, Zelfred included. Reading, searching and editing happen on the web page, after unlocking.",
   groupName: copy.groupName(),
@@ -66,11 +66,9 @@ export default definePlugin({
   // "vault": what is written is locked on arrival and never reaches this plugin.
   // "lock-members": the journal is one person's, so nobody else is brought into the group.
   permissions: ["vault", "lock-members"],
-  // Still being tried out, and its locking has to be reviewed before anyone else uses it.
-  unlisted: true,
   listing: {
     title: "Private Journal on WhatsApp: Locked Entries | Zelfred",
-    description: "Write your journal in WhatsApp and read it on the web. Entries are locked with a key only you hold, so only you can open them. Photos too.",
+    description: "Write your journal in WhatsApp and read it on the web. Lock it with a key only you hold, and only you can open it. Photos too.",
     h1: "A private journal you write in WhatsApp",
   },
   welcome: copy.welcome(),
