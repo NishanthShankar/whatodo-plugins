@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import { checkAsk, type HookFile, type Json, type Kit, type Link, type PluginDef, type Sender, type StoredItem } from "./sdk";
+import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type PluginDef, type Sender, type StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -215,7 +215,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
       },
     },
     time: {
-      day: () => state.today,
+      // The kit's own moment is "today"; any other instant is worked out from the clock (at UTC, as `now` is).
+      day: (ms?: number) => (ms === undefined || ms === kit.now ? state.today : new Date(ms).toISOString().slice(0, 10)),
       shiftDay,
       hour: () => state.hour,
     },
@@ -290,11 +291,22 @@ export function createTestKit(opts: TestKitOptions = {}) {
       if (links && !plugin.permissions?.includes("links")) throw new Error(`${plugin.id}: link details need the "links" permission (Zelfred wouldn't read them)`);
       here = group;
       try {
+        // A vault plugin never hears a message: in Zelfred it arrives locked, as an entry.
+        if (plugin.permissions?.includes("vault")) throw new Error(`${plugin.id}: a "vault" plugin gets entries, not messages. Use t.entry().`);
         if (/^(help|\?|menu|commands)$/i.test(text.trim())) return kit.send(plugin.help);
         await plugin.onMessage?.({ text, quotedRef, group, sender, ...(links ? { links: links.map((l) => ({ ...l })) } : {}) }, kit);
       } finally {
         here = null;
       }
+    },
+    /**
+     * An entry was added to, edited in or removed from a "vault" plugin's group. As in Zelfred,
+     * the plugin gets no words, only this. `at` defaults to the kit's clock.
+     */
+    async entry(plugin: PluginDef, event: Partial<EntryEvent> & { id: string }) {
+      withDefaults(plugin);
+      if (!plugin.permissions?.includes("vault")) throw new Error(`${plugin.id}: entries need the "vault" permission`);
+      await plugin.onEntry?.({ change: "added", kind: "text", at: kit.now, source: "whatsapp", sender: senderOf(plugin), ...event }, kit);
     },
     async react(plugin: PluginDef, emoji: string | null, ref: Json, group: string | null = null, from?: string | Partial<Sender>) {
       withDefaults(plugin);

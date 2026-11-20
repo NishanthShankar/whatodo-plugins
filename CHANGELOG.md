@@ -2,6 +2,16 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.21.0] - 2026-11-20
+
+### Added
+- Permission `"vault"`: nobody but the person can read what is written in the plugin's group. Every message there is locked on arrival with a key only the person's browser holds, and the plugin is told through the new `onEntry(event, kit)` that an entry was added, edited or removed: its id, kind and time, never its words. The plugin's `welcome` is pinned in the group, because "help" can't be asked for there.
+- `definePlugin` refuses a vault plugin that has `onMessage`, `understand`, `onGroup`, or the `"links"` or `"members"` permission, and refuses `onEntry` without `"vault"`.
+- Test kit: `t.entry(plugin, { id, change?, kind?, at?, source? })`. `t.message` throws for a vault plugin.
+
+### Changed
+- Test kit: `kit.time.day(ms)` works out the day of the instant it is given. It used to answer the kit's own day whatever it was asked; for the kit's own `now` it still does.
+
 ## [1.20.1] - 2026-11-19
 
 ### Changed
