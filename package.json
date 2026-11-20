@@ -1,6 +1,6 @@
 {
   "name": "whatodo-plugins",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "description": "Plugins for Zelfred: everyday apps that live in your WhatsApp.",
   "type": "module",
   "license": "MIT",

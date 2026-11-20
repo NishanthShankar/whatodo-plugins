@@ -2,6 +2,11 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.22.0] - 2026-11-20
+
+### Added
+- `kit.groups.rename(key, name)`: give one of the install's extra groups a new name (1-25 characters). A group still being made gets the new name when it is made. It does nothing for a group that isn't open, or for one the person already had and handed over. The test kit's `groups` map shows the new name.
+
 ## [1.21.0] - 2026-11-20
 
 ### Added

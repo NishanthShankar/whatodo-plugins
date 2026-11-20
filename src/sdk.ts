@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.21.0";
+export const SDK_VERSION = "1.22.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -241,6 +241,13 @@ export interface Kit {
     open(key: string, opts: { name: string; hello?: string }): Promise<void>;
     /** Stop using the group for `key`. Zelfred stops listening and posting there; the chat itself stays on the person's phone. */
     close(key: string): Promise<void>;
+    /**
+     * Give the group for `key` a new name (1-25 characters). A group that is still being made
+     * is made with the new name. Does nothing when there is no open group for `key`, or when it
+     * is a group the person already had and handed over (that one is theirs to name).
+     * Since SDK 1.22.0.
+     */
+    rename(key: string, name: string): Promise<void>;
   };
   /** Files that arrived through hooks. The plugin holds their ids; Zelfred holds the bytes. Since SDK 1.5.0. */
   files: {

@@ -213,6 +213,12 @@ export function createTestKit(opts: TestKitOptions = {}) {
       async close(key) {
         groups.delete(key);
       },
+      async rename(key, name) {
+        need("groups", "kit.groups.rename");
+        if (!name?.trim() || name.length > 25) throw new Error("kit.groups.rename: give the group a name of 1-25 characters");
+        const g = groups.get(key);
+        if (g) g.name = name;
+      },
     },
     time: {
       // The kit's own moment is "today"; any other instant is worked out from the clock (at UTC, as `now` is).
