@@ -24,6 +24,8 @@ interface Form {
   count: number;
   /** It has its own WhatsApp group (its key is the form's key): submissions go there, not to the main Forms group. */
   ownGroup?: boolean;
+  /** The name the person gave that group on the page. Unset: it is named after the form as it was when the group was made. */
+  groupName?: string;
 }
 
 interface Submission {
@@ -81,13 +83,46 @@ async function forms(kit: Kit) {
 async function findForm(kit: Kit, text: string): Promise<{ key: string; form: Form } | null> {
   const key = slug(text);
   const form = key ? await kit.store.get<Form>("forms", key) : null;
-  return form ? { key, form } : null;
+  if (form) return { key, form };
+  // A renamed form keeps its key, so it is also found by the name it has now.
+  const named = key ? (await forms(kit)).find((f) => slug(f.data.name) === key) : undefined;
+  return named ? { key: named.key, form: named.data } : null;
 }
 
 /** The WhatsApp group of a form that has its own: named after the form. */
+/** What a form's own group is called: the name the person gave it, else the form's name with the mailbox. */
+const groupNameOf = (form: Form) => form.groupName ?? copy.groupTitle({ name: form.name }).slice(0, 25);
+
+/**
+ * Give a form a new name, and its own group one too if asked. The key stays, so the address
+ * and everything the form received stay with it. Returns the form, or why it couldn't be done.
+ */
+async function renameForm(kit: Kit, key: string, form: Form, name: string | null, groupName: string | null): Promise<{ form: Form } | { error: string }> {
+  const next: Form = { ...form };
+  if (name !== null) {
+    const clean = name.trim().replace(/\s+/g, " ").slice(0, 40);
+    if (!clean || !slug(clean)) return { error: copy.formNeedsName() };
+    // Forms are found by name too, so two can't answer to the same one.
+    const taken = (await forms(kit)).some((f) => f.key !== key && (f.key === slug(clean) || slug(f.data.name) === slug(clean)));
+    if (taken) return { error: copy.nameTaken({ name: clean }) };
+    // The group keeps the name it has: a form's new name doesn't rename a chat behind the person's back.
+    if (form.ownGroup && !form.groupName) next.groupName = groupNameOf(form);
+    next.name = clean;
+  }
+  if (groupName !== null && form.ownGroup) {
+    const clean = groupName.trim().replace(/\s+/g, " ").slice(0, 25).trim();
+    if (clean && clean !== groupNameOf(next)) {
+      await kit.groups.rename(key, clean);
+      next.groupName = clean;
+    }
+  }
+  await kit.store.put("forms", key, next as unknown as Json, next.created);
+  return { form: next };
+}
+
 async function openGroup(kit: Kit, key: string, form: Form) {
   await kit.groups.open(key, {
-    name: copy.groupTitle({ name: form.name }).slice(0, 25),
+    name: groupNameOf(form),
     hello: copy.groupHello({ name: form.name }),
   });
 }
@@ -147,7 +182,7 @@ async function removeSubmission(kit: Kit, id: string) {
 
 export default definePlugin({
   id: "forms",
-  version: "1.2.3",
+  version: "1.3.0",
   sdk: "1",
   name: "Forms",
   icon: "📬",
@@ -200,6 +235,16 @@ export default definePlugin({
       await openGroup(kit, found.key, form);
       await kit.store.put("forms", found.key, form as unknown as Json, form.created);
       return kit.send(copy.makingGroup({ name: form.name }));
+    }
+
+    m = text.match(/^rename(?:\s+(?:the\s+)?form)?(?:\s+(.+?))?\s+to\s+(.+)$/i) ?? text.match(/^rename\b(.*)$/i);
+    if (m && (m[2] === undefined || m[1] || hereKey)) {
+      if (m[2] === undefined) return kit.send(copy.renameNeedsName());
+      const found = await findForm(kit, m[1] ?? hereKey!);
+      if (!found) return kit.send(copy.noSuchForm({ name: `${m[1] ?? hereKey}` }));
+      const done = await renameForm(kit, found.key, found.form, m[2], null);
+      if ("error" in done) return kit.send(done.error);
+      return kit.send(copy.renamed({ from: found.form.name, to: done.form.name }));
     }
 
     m = lower.match(/^(?:new|change|replace|reset|rotate)\s+(?:the\s+)?(?:address|url|link)(?:(?:\s+(?:of|for))?\s+(.+))?$/);
@@ -293,7 +338,7 @@ export default definePlugin({
       const all = await kit.store.list<Submission>("submissions");
       const mine = (only ? all.filter((s) => s.data.form === only) : all).reverse().slice(0, limit);
       return {
-        forms: (await forms(kit)).map((f) => ({ key: f.key, name: f.data.name, url: f.data.url, closed: !!f.data.closed, count: f.data.count, createdDay: f.data.createdDay, ownGroup: !!f.data.ownGroup })),
+        forms: (await forms(kit)).map((f) => ({ key: f.key, name: f.data.name, url: f.data.url, closed: !!f.data.closed, count: f.data.count, createdDay: f.data.createdDay, ownGroup: !!f.data.ownGroup, groupName: f.data.ownGroup ? groupNameOf(f.data) : null })),
         submissions: mine.map((s) => ({ id: s.key, form: s.data.form, at: s.data.at, fields: s.data.fields, order: ordered(s.data).map(([k]) => k), files: s.data.files, origin: s.data.origin, done: !!s.data.done })),
         total: all.length,
       } as unknown as Json;
@@ -309,6 +354,15 @@ export default definePlugin({
         if (!form) return;
         await kit.hooks.remove(String(key));
         await kit.store.put("forms", String(key), { ...form, closed: true } as unknown as Json, form.created);
+      },
+      /** A new name for a form (`name`), for its own WhatsApp group (`groupName`), or both. The address stays. */
+      async rename(kit, { key, name, groupName }) {
+        const k = String(key);
+        const form = await kit.store.get<Form>("forms", k);
+        if (!form) throw new Error("That form isn't there any more.");
+        const done = await renameForm(kit, k, form, typeof name === "string" ? name : null, typeof groupName === "string" ? groupName : null);
+        if ("error" in done) throw new Error(done.error.replace(/[_*]/g, ""));
+        return { key: k, name: done.form.name, groupName: done.form.ownGroup ? groupNameOf(done.form) : null };
       },
       /** Replace a form's address; its submissions stay. Returns the new one. */
       async newAddress(kit, { key }) {

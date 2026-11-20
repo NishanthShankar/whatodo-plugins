@@ -656,6 +656,7 @@ _group contact_ gives a form you already have its own group
 _forms_ lists your forms and their addresses
 _address contact_ shows one form's address again
 _last_ (or _last contact_) shows the latest submission
+_rename contact to Contact us_ gives a form a new name; its address stays
 _new address contact_ replaces a form's address if the old one is being misused
 _close contact_ stops a form taking submissions
 
@@ -683,6 +684,7 @@ _group contact_ gives a form you already have its own group
 _forms_ lists your forms and their addresses
 _address contact_ shows one form's address again
 _last_ (or _last contact_) shows the latest submission
+_rename contact to Contact us_ gives a form a new name; its address stays
 _new address contact_ replaces a form's address if the old one is being misused
 _close contact_ stops a form taking submissions
 
