@@ -1,5 +1,10 @@
 # Changelog: Journal
 
+## [1.2.1] - 2026-11-20
+
+### Changed
+- The tagline and the site's title and description say "encrypted". It is zero-access encryption: entries are encrypted as they arrive and, once the journal is locked, with a key only its person holds. Still never "end to end encrypted", because each message is read once on arrival in order to encrypt it.
+
 ## [1.2.0] - 2026-11-20
 
 ### Changed

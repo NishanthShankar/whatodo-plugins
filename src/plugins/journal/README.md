@@ -6,7 +6,7 @@ A journal started in WhatsApp can be written in at once. Until its person locks 
 
 Listed since 1.2.0: anyone on Zelfred can add it. Its locking has not been reviewed by a specialist yet.
 
-Do not describe it as "end to end encrypted". It isn't: one process reads each message for a moment as it arrives, in order to lock it.
+Do not describe it as "end to end encrypted". It isn't: one process reads each message for a moment as it arrives, in order to lock it. The accurate name is zero-access encryption: entries are encrypted on arrival and, once the journal is locked, only its person holds the key.
 
 ## Commands
 
