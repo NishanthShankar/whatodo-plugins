@@ -13,7 +13,6 @@ it("journal copy", () => {
     tagline: journal.tagline,
     description: journal.description,
     listing: journal.listing,
-    firstEntry: copy.firstEntry(),
     prompt: copy.prompt(),
     streak: copy.streak({ days: 7 }),
   }).toMatchSnapshot();

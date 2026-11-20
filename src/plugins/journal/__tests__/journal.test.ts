@@ -32,14 +32,19 @@ describe("journal", () => {
     }
   });
 
-  it("says one line after the first entry, then stays quiet", async () => {
+  it("counts entries and says nothing of its own (the line after the first entry is Zelfred's)", async () => {
     const t = T();
     await t.entry(journal, { id: "a" });
-    expect(t.sent.map((s) => s.text)).toEqual([copy.firstEntry()]);
     await t.entry(journal, { id: "b", kind: "image" });
     await t.entry(journal, { id: "c", change: "edited" });
-    expect(t.sent).toHaveLength(1);
+    expect(t.sent).toHaveLength(0);
     expect(t.dump()["days/2026-11-20"]).toBe(2);
+  });
+
+  it("makes no promise about who can open it: that wording is Zelfred's, by who holds the key", () => {
+    for (const text of [journal.welcome, copy.prompt()]) {
+      expect(text).not.toMatch(/can't open|passphrase|only you can/i);
+    }
   });
 
   it("says nothing about an entry written on the page, but counts it", async () => {
