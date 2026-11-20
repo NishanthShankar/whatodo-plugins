@@ -1,5 +1,14 @@
 # Changelog: Journal
 
+## [1.1.0] - 2026-11-20
+
+### Changed
+- The pinned note no longer says who can open the journal, and the line after the first entry is gone from this plugin. Zelfred now says both, because the answer depends on who holds the key: a journal can be started in WhatsApp and locked by its person a little later.
+- Descriptions say "a key only you hold" where they said "your passphrase": the journal can be locked with Face ID or a fingerprint too.
+
+### Data
+- `state` / `first` is no longer written or read.
+
 ## [1.0.0] - 2026-11-20
 
 ### Added

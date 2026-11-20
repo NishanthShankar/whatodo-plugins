@@ -2,11 +2,10 @@
 
 exports[`journal copy 1`] = `
 {
-  "description": "Every message in its WhatsApp group becomes a journal entry: words, photos, voice notes. Each one is read once to lock it with a key made from your passphrase, and after that nobody but you can open it, Zelfred included. Reading, searching and editing happen on the web page, after unlocking.",
-  "firstEntry": "That's your first entry, locked and kept. Open your journal at app.whatodo.today/plugins/journal with your passphrase to read it.",
+  "description": "Every message in its WhatsApp group becomes a journal entry: words, photos, voice notes. Each one is locked as it arrives, and once you lock the journal with a key of your own nobody but you can open it, Zelfred included. Reading, searching and editing happen on the web page, after unlocking.",
   "groupName": "📓 Journal",
   "listing": {
-    "description": "Write your journal in WhatsApp and read it on the web. Entries are locked with your passphrase, so only you can open them. Photos too.",
+    "description": "Write your journal in WhatsApp and read it on the web. Entries are locked with a key only you hold, so only you can open them. Photos too.",
     "h1": "A private journal you write in WhatsApp",
     "title": "Private Journal on WhatsApp: Locked Entries | Zelfred",
   },
@@ -14,7 +13,6 @@ exports[`journal copy 1`] = `
   "streak": "7 days in a row.",
   "tagline": "Write in WhatsApp, read on the web. Locked so only you can open it.",
   "welcome": "📓 *Your journal*
-I read each message here once, to lock it away. After that I can't open it. Only you can, with your passphrase.
 
 • Every message is an entry: words, photos, voice notes.
 • ❌ on a message removes it.

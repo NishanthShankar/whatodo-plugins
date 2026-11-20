@@ -1,16 +1,16 @@
 /**
  * Journal: write in WhatsApp, read on the web, and nobody but the person can open it.
  *
- * It has the "vault" permission: every message in its group is locked on arrival with a key
- * only the person's browser holds, and this plugin is told only that an entry arrived, was
- * edited or was removed. It never sees a word. What it does with that: count entries per day,
- * keep the streak, say one line after the first entry, and ask "How was today?" in the
- * evening if the person turned that on.
+ * It has the "vault" permission: every message in its group is locked on arrival, and this
+ * plugin is told only that an entry arrived, was edited or was removed. It never sees a word.
+ * What it does with that: count entries per day, keep the streak, and ask "How was today?" in
+ * the evening if the person turned that on. Who holds the key, and every word about it, is
+ * Zelfred's business, not this plugin's.
  *
  * Data:
  *   days    key = "YYYY-MM-DD"   data = number of entries that day   sort = the day
- *   state   key = "first"        data = 1 once the first-entry line was sent
- *           key = "streak"       data = the longest streak already announced
+ *   state   key = "streak"       data = the longest streak already announced
+ *           (key "first" is left over from 1.0.0 and no longer read)
  */
 import { definePlugin, type Json, type Kit } from "../../sdk";
 import { copy } from "./copy";
@@ -52,13 +52,13 @@ async function allDays(kit: Kit): Promise<{ day: string; n: number }[]> {
 
 export default definePlugin({
   id: "journal",
-  version: "1.0.0",
+  version: "1.1.0",
   sdk: "1",
   name: "Journal",
   icon: "📓",
   tagline: "Write in WhatsApp, read on the web. Locked so only you can open it.",
   description:
-    "Every message in its WhatsApp group becomes a journal entry: words, photos, voice notes. Each one is read once to lock it with a key made from your passphrase, and after that nobody but you can open it, Zelfred included. Reading, searching and editing happen on the web page, after unlocking.",
+    "Every message in its WhatsApp group becomes a journal entry: words, photos, voice notes. Each one is locked as it arrives, and once you lock the journal with a key of your own nobody but you can open it, Zelfred included. Reading, searching and editing happen on the web page, after unlocking.",
   groupName: copy.groupName(),
   price: 0,
   // Photos, voice notes and video are kept, which is what costs.
@@ -70,7 +70,7 @@ export default definePlugin({
   unlisted: true,
   listing: {
     title: "Private Journal on WhatsApp: Locked Entries | Zelfred",
-    description: "Write your journal in WhatsApp and read it on the web. Entries are locked with your passphrase, so only you can open them. Photos too.",
+    description: "Write your journal in WhatsApp and read it on the web. Entries are locked with a key only you hold, so only you can open them. Photos too.",
     h1: "A private journal you write in WhatsApp",
   },
   welcome: copy.welcome(),
@@ -94,11 +94,6 @@ export default definePlugin({
     await kit.store.put("days", day, (await dayCount(kit, day)) + 1, day);
     // Nothing is said about an entry written on the page: there is no message to answer.
     if (event.source !== "whatsapp") return;
-    if (!(await kit.store.get("state", "first"))) {
-      await kit.store.put("state", "first", 1);
-      kit.send(copy.firstEntry());
-      return;
-    }
     const days = new Set((await allDays(kit)).map((d) => d.day));
     const streak = streakOf(days, kit.today, kit.time.shiftDay);
     const said = (await kit.store.get<number>("state", "streak")) ?? 0;
