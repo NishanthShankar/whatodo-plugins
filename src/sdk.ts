@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.20.1";
+export const SDK_VERSION = "1.21.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -44,10 +44,22 @@ export type Tier = 1 | 2 | 3;
  *   something happens (`api` on the plugin, `kit.emit`). Nothing is open until the person
  *   makes a key on the plugin's page; Zelfred checks the key, limits how often it is used
  *   and signs every callback. Since SDK 1.19.0.
+ * - "vault": nobody but the person can read what is written in the plugin's group, the plugin
+ *   and Zelfred included. Every message there is locked the moment it arrives, with a key only
+ *   the person's browser holds, and kept as a locked entry. The plugin is told that an entry
+ *   arrived, was edited or was removed (`onEntry`), with its id, what kind it is and when, and
+ *   never what it says. There are no typed commands in such a group: a message is always an
+ *   entry. So a vault plugin has no `onMessage`, no `understand` and no "links" or "members"
+ *   permission, and it can't take groups the person already had (`onGroup`). Reactions,
+ *   answers to `kit.ask` and schedules work as everywhere. Its `welcome` is pinned in the
+ *   group, since "help" can't be asked for. The person reads the entries on the plugin's page
+ *   after unlocking with their passphrase; that page is built by Zelfred, and the plugin's
+ *   `web.load` only ever returns what the plugin itself knows (counts and dates).
+ *   Since SDK 1.21.0.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -326,6 +338,30 @@ export interface AnswerEvent {
   sender?: Sender;
 }
 
+/**
+ * Something happened to a locked entry in a plugin with the "vault" permission. This is all a
+ * vault plugin ever learns about an entry: the plugin never sees its words, its file, or the
+ * locked bytes. Enough to count days, keep a streak, or say something after the first one.
+ * Since SDK 1.21.0.
+ */
+export interface EntryEvent {
+  /**
+   * "added": a new entry was stored (in WhatsApp: after Zelfred's 👍). "edited": its words were
+   * replaced. "removed": it is gone for good (❌ on the message, or deleted on the page).
+   */
+  change: "added" | "edited" | "removed";
+  /** The entry's id. The same on every event about this entry. Says nothing about its content. */
+  id: string;
+  /** What kind of thing it is. */
+  kind: "text" | "image" | "voice" | "audio" | "video" | "file" | "sticker" | "location" | "contact" | "other";
+  /** The moment the entry belongs to (ms): when it was sent, or the date given to it on the page. */
+  at: number;
+  /** Where it was written: in the WhatsApp group, or on the plugin's page. `kit.send` only makes sense to answer the first. */
+  source: "whatsapp" | "web";
+  /** Who wrote it. Always the person who added the plugin unless someone else got into the group. */
+  sender?: Sender;
+}
+
 /** A file that came with a hook request. Only Zelfred can read its bytes; the plugin keeps the id. */
 export interface HookFile {
   id: string;
@@ -553,6 +589,11 @@ export interface PluginDef {
    * "groups" permission. Since SDK 1.17.0.
    */
   onGroup?(event: GroupEvent, kit: Kit): Promise<void>;
+  /**
+   * An entry was added, edited or removed in this plugin's vault. Needs the "vault" permission,
+   * and is the only word a vault plugin gets about what people write. Since SDK 1.21.0.
+   */
+  onEntry?(event: EntryEvent, kit: Kit): Promise<void>;
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
   /** Called with the intent Zelfred found for an unclear message. Required with `understand`. */
@@ -603,6 +644,16 @@ export function definePlugin(def: PluginDef): PluginDef {
     throw new Error(`${def.id}: "members" and "lock-members" can't be used together`);
   }
   if (def.web?.loadFor && !def.permissions?.includes("members")) throw new Error(`${def.id}: web.loadFor needs the "members" permission`);
+  if (def.onEntry && !def.permissions?.includes("vault")) throw new Error(`${def.id}: onEntry needs the "vault" permission`);
+  if (def.permissions?.includes("vault")) {
+    // Nothing written in a vault plugin's group may reach the plugin or anything that reads.
+    if (def.onMessage) throw new Error(`${def.id}: a "vault" plugin can't have onMessage (it never sees what people write; use onEntry)`);
+    if (def.understand || def.onIntent) throw new Error(`${def.id}: a "vault" plugin can't have understand (nothing written there is read)`);
+    if (def.onGroup) throw new Error(`${def.id}: a "vault" plugin can't take groups the person already had (onGroup)`);
+    for (const p of ["links", "members"] as const) {
+      if (def.permissions.includes(p)) throw new Error(`${def.id}: "vault" and "${p}" can't be used together`);
+    }
+  }
   if (def.onGroup && !def.permissions?.includes("groups")) throw new Error(`${def.id}: onGroup needs the "groups" permission`);
   if (def.api) {
     if (!def.permissions?.includes("api")) throw new Error(`${def.id}: api needs the "api" permission`);

@@ -26,7 +26,7 @@ Plugins in this repo are first-party code bundled into Zelfred; the boundary tod
 
 When a plugin calls `kit.unsure()` and declares `understand`, Zelfred (not the plugin) sends that one message's text, the plugin's intent descriptions and its target labels to its intent model (jev, by TypeSafe, through OpenRouter) to be classified. Zelfred keeps only the model's answer, token counts and cost, never the text.
 
-Anything beyond a plugin's own group and data is a permission it must list (`permissions`: `hooks`, `groups`, `replies`, `lock-members`, `members`, `links`), shown to the person before they add it. See [sdk-reference.md](sdk-reference.md#permissions).
+Anything beyond a plugin's own group and data is a permission it must list (`permissions`: `hooks`, `groups`, `replies`, `lock-members`, `members`, `links`, `api`, `vault`), shown to the person before they add it. See [sdk-reference.md](sdk-reference.md#permissions).
 
 With `"links"`, Zelfred's servers open each link a person sends in the plugin's group, as a link preview would. The site sees a request from Zelfred, not from the person or their phone. Zelfred keeps nothing from the page; what the plugin stores is the plugin's choice and belongs in its README.
 

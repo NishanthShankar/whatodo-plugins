@@ -32,6 +32,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
 | `onAnswer` | `(event: AnswerEvent, kit) => Promise<void>` | no | Someone answered a question asked with `kit.ask`. See [Asking a question](#asking-a-question). Since SDK 1.9.0. |
 | `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
+| `onEntry` | `(event: EntryEvent, kit) => Promise<void>` | no | An entry was added, edited or removed in a `"vault"` plugin's group. The plugin never sees what it says. See [A vault](#a-vault-entries-nobody-else-can-read). Since SDK 1.21.0. |
 | `onGroup` | `(event: GroupEvent, kit) => Promise<void>` | no | The person handed the plugin a WhatsApp group they already had, or took it back. Having it is what makes the plugin a choice for existing groups. Needs `"groups"`. Since SDK 1.17.0. |
 | `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`, `"lock-members"`, `"members"`. See [Permissions](#permissions). Since SDK 1.6.0. |
 | `unlisted` | boolean | no | Left out of the store and the public site; only people Zelfred allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
@@ -80,6 +81,7 @@ interface Sender        { id: string; name: string | null; owner: boolean }   //
 interface HookEvent     { key: string; fields: Record<string, string>; files: HookFile[]; origin: string | null }
 interface HookFile      { id: string; field: string; name: string; type: string; size: number }
 interface GroupEvent    { kind: "joined" | "left"; key: string; name: string }   // since SDK 1.17.0
+interface EntryEvent    { change: "added" | "edited" | "removed"; id: string; kind: string; at: number; source: "whatsapp" | "web"; sender?: Sender }   // "vault" plugins; since SDK 1.21.0
 ```
 
 - `text` is trimmed by Zelfred; it is never empty.
@@ -141,8 +143,39 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"lock-members"` | Block adding members: its groups (the main one and any extra ones) are made with Zelfred as the only admin and set so only admins can add people. For plugins whose group must stay between the person and Zelfred. | Reserved (SDK 1.7.0): Zelfred doesn't enforce it yet. |
 | `"members"` | Hear everyone in its groups, not only the person who added it. Each message, reaction and intent says who sent it in `event.sender`. Can't be combined with `"lock-members"`. | Built (SDK 1.8.0) |
 | `"links"` | Get the public details of links people send: `event.links`. Zelfred opens the link, not the plugin. | Built (SDK 1.10.0) |
+| `"vault"` | Nothing: it takes reading away. What is written in the plugin's group is locked on arrival with a key only the person's browser holds. The plugin gets `onEntry` and never a message. See [A vault](#a-vault-entries-nobody-else-can-read). | Built (SDK 1.21.0), unlisted plugins only until the locking is reviewed |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
+
+## A vault: entries nobody else can read
+
+For a plugin where people write things only they should read (a journal). With `"vault"` in `permissions`:
+
+- **Every message in the group is an entry.** It is locked the moment it arrives, before Zelfred's backend sees it, with a public key made in the person's browser. Zelfred stores the locked entry and reacts 👍 once it is stored and confirmed. Nobody can open it without the person's passphrase: not the plugin, not Zelfred.
+- **The plugin hears `onEntry` and nothing else about it.**
+
+  ```ts
+  interface EntryEvent {
+    change: "added" | "edited" | "removed";
+    id: string;       // the same on every event about this entry
+    kind: "text" | "image" | "voice" | "audio" | "video" | "file" | "sticker" | "location" | "contact" | "other";
+    at: number;       // the moment it belongs to (ms)
+    source: "whatsapp" | "web";
+    sender?: Sender;
+  }
+  ```
+
+  Count days, keep a streak, say one line after the first entry. `kit.send` in `onEntry` posts in the group; for an entry written on the page there is no message to answer, so say nothing.
+- **No typed commands.** Nothing typed is read, so `help` is an entry like any other. `definePlugin` refuses a vault plugin with `onMessage`, `understand`, `onGroup`, `"links"` or `"members"`. Settings are changed on the page (`web.actions`) or with `kit.ask`, whose answers stay readable.
+- **The `welcome` is pinned** in the group and is also the group's description. Keep it to what the person must know: what can and can't be read, and at most three instructions. `help` is never sent.
+- **❌ on a message removes its entry**, and an edit replaces its words. Zelfred does both; the plugin hears `"removed"` or `"edited"`.
+- **The page is Zelfred's.** The person unlocks it with a passphrase and the entries are opened in their browser. `web.load` still runs and returns only what the plugin knows (counts, dates, settings).
+- **Reactions, `kit.ask`, schedules and `kit.send` work as everywhere.** What the plugin sends is not locked: never put anything in a message that should be private. A poll answer is readable by Zelfred.
+- **The group is made only after the person has set a passphrase** on the website, since there is nothing to lock with before that.
+
+What to tell people: Zelfred reads each message once, to lock it, and can't open it after that. Never write "end to end encrypted"; it isn't. The chat on the phone, and WhatsApp's own backup, still hold the readable message.
+
+Test with `t.entry(plugin, { id, change?, kind?, at?, source? })`.
 
 ## Links
 
