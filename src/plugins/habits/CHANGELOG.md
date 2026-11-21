@@ -2,6 +2,13 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [4.1.0] - 2026-11-21
+
+### Added
+- A check-in in your own Habits group moves to the hour you usually answer it. Once you have answered it on five of the last seven days, it goes out at the middle one of those hours instead of 6am or 8pm: between 5am and 10am for the morning one, between 6pm and 10pm for the evening one. `habits` shows the hours in use.
+- It follows people who answer later. It can't tell that someone would like it earlier than it comes, since nobody answers a poll before it is sent.
+- Groups with other people in them keep to 6am and 8pm: there the poll is everyone's.
+
 ## [4.0.0] - 2026-11-21
 
 ### Changed

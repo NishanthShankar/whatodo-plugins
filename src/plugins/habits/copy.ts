@@ -126,6 +126,7 @@ const MARK: Record<Batch, string> = { morning: "🌅", evening: "🌙" };
 const clock = (hour: number | null) => (hour === null ? "" : `  ${hour < 12 ? MARK.morning : MARK.evening}`);
 /** When the two check-ins go out, as shown to people. */
 const AT: Record<Batch, string> = { morning: fixed("6am"), evening: fixed("8pm") };
+const hourLabel = (h: number) => `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "am" : "pm"}`;
 const calendar = (days: Days) => (days?.length ? `  📅 ${daysLabel(days)}` : "");
 const streakLine = (p: Streaker) => `${someone(p.name)}  🔥 ${p.streak}`;
 
@@ -192,7 +193,7 @@ export const copy = {
       "",
       `*With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _${SAY.habits}_ shows everyone's streaks`,
       "",
-      `Twice a day I send one poll with the habits that are due: morning habits at ${AT.morning}, evening ones at ${AT.evening}. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with ${YES} or ${NO}.`,
+      `Twice a day I send one poll with the habits that are due: morning habits at ${AT.morning}, evening ones at ${AT.evening}. Once I see when you usually answer, I send it around then. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with ${YES} or ${NO}.`,
     ].join("\n"),
   ]),
 
@@ -203,8 +204,8 @@ export const copy = {
 
   // The person's own habits
   noHabits: msg([`No habits yet. Add one: _${SAY.addMeditate}_`]),
-  summary: msg<{ days: number; habits: OwnHabit[]; extra: GroupHabit[]; checkinHour: number | null }>([
-    ({ days, habits, extra, checkinHour }) => {
+  summary: msg<{ days: number; habits: OwnHabit[]; extra: GroupHabit[]; checkinHour: number | null; at: Record<Batch, number> }>([
+    ({ days, habits, extra, checkinHour, at }) => {
       const lines = [habits.length ? `*Your habits* (last ${days} days)` : "*Habits*"];
       for (const [i, h] of habits.entries()) {
         lines.push("", `${i + 1}. *${h.name}*${h.streak ? `  🔥 ${h.streak}` : ""}${clock(h.hour)}${calendar(h.days)}`, squares(h.cells));
@@ -215,7 +216,7 @@ export const copy = {
       lines.push(
         "",
         checkinHour !== null
-          ? `_I ask at ${AT.morning} about morning habits (${MARK.morning}) and at ${AT.evening} about evening ones (${MARK.evening}). A habit without a mark is asked about in the ${checkinHour < 12 ? "morning" : "evening"}._`
+          ? `_I ask at ${hourLabel(at.morning)} about morning habits (${MARK.morning}) and at ${hourLabel(at.evening)} about evening ones (${MARK.evening}). A habit without a mark is asked about in the ${checkinHour < 12 ? "morning" : "evening"}._`
           : `_Polls are off for habits without a mark (${MARK.morning} morning, ${MARK.evening} evening). Send ${SAY.timeEvening} to turn them on._`,
       );
       return lines.join("\n");

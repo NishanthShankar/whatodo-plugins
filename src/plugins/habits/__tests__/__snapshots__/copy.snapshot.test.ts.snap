@@ -4157,7 +4157,7 @@ _groups_ lists yours, _close group gym buddies_ ends one
 
 *With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks
 
-Twice a day I send one poll with the habits that are due: morning habits at 6am, evening ones at 8pm. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with Yes or No.",
+Twice a day I send one poll with the habits that are due: morning habits at 6am, evening ones at 8pm. Once I see when you usually answer, I send it around then. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with Yes or No.",
       },
     ],
     "step": "owner: help (straight to the plugin)",
@@ -4252,7 +4252,7 @@ _groups_ lists yours, _close group gym buddies_ ends one
 
 *With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks
 
-Twice a day I send one poll with the habits that are due: morning habits at 6am, evening ones at 8pm. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with Yes or No.",
+Twice a day I send one poll with the habits that are due: morning habits at 6am, evening ones at 8pm. Once I see when you usually answer, I send it around then. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with Yes or No.",
       },
     ],
     "step": "owner means help: how does this work",
@@ -4529,7 +4529,7 @@ _groups_ lists yours, _close group gym buddies_ ends one
 
 *With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks
 
-Twice a day I send one poll with the habits that are due: morning habits at 6am, evening ones at 8pm. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with Yes or No.",
+Twice a day I send one poll with the habits that are due: morning habits at 6am, evening ones at 8pm. Once I see when you usually answer, I send it around then. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with Yes or No.",
   "welcome": "🌱 You've installed *Habits*.
 
 Tell me a habit you want to build, in your own words, or send _add meditate_. Every day I'll send a poll with your habits, in the evening (8pm): tick the ones you did.

@@ -266,6 +266,37 @@ describe("habits", () => {
     expect(t.asked.map((a) => a.open)).toEqual([false, true]);
   });
 
+  it("moves a check-in to the hour its person usually answers, once that is seen on five days", async () => {
+    const t = createTestKit({ today: "2026-11-01", hour: 20 });
+    await t.message(habits, "add meditate");
+    await t.message(habits, "add read");
+    const sentAt: number[] = [];
+    const day = async (n: number, answerAt: number | null) => {
+      t.setToday(`2026-11-${String(n).padStart(2, "0")}`);
+      for (let hour = 18; hour <= 23; hour++) {
+        t.setHour(hour);
+        const before = t.asked.length;
+        await t.schedule(habits, "checkin");
+        if (t.asked.length > before) sentAt.push(hour);
+        if (hour === answerAt) await t.answer(habits, t.asked.at(-1)!.ref, [0]);
+      }
+    };
+    // Four days answered at 10pm: not enough yet, it still comes at 8pm.
+    for (let n = 1; n <= 4; n++) await day(n, 22);
+    await day(5, 22);
+    expect(sentAt).toEqual([20, 20, 20, 20, 20]);
+    // From the sixth day it comes at 10pm. An answer at 11pm is outside the evening and isn't learned from.
+    await day(6, 23);
+    await day(7, 22);
+    expect(sentAt.slice(5)).toEqual([22, 22]);
+    await t.message(habits, "habits");
+    expect(t.sent.at(-1)!.text).toContain("at 10pm about evening ones");
+    // With a friend taking part it is everyone's poll, and goes back to the set hour.
+    await t.message(habits, "join meditate", null, null, { id: "asha", name: "Asha", owner: false, profile: true });
+    await day(8, null);
+    expect(sentAt.at(-1)).toBe(20);
+  });
+
   it("splits more than twelve habits over polls of even size", async () => {
     const t = createTestKit({ hour: 20 });
     for (let i = 1; i <= 13; i++) await t.message(habits, `add habit ${i}`);
