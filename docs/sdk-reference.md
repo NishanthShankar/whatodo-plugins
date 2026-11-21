@@ -228,6 +228,13 @@ async onAnswer(event, kit) {
 
 **A question that stays** (`keep: true`): for an answer the person may want to correct, like a daily check-in. The poll is not deleted and no confirm line is posted; the poll shows the answer. Every change counts while the question is open and arrives as `onAnswer` with `changed: true`. Removing the tick is not an answer: the last one stays. Close it with `kit.close(ref)` or by asking the same ref again; the poll stays in the chat, and Zelfred says once that it is closed if someone changes it later. Since SDK 1.11.0.
 
+**A tick list** (`multiple: true`): one poll where each person ticks everything that applies, like the habits they did today. 2 to 12 options. It always works like `keep`. `onAnswer` gets `event.choices` (everything that person has ticked now, in the options' order), `event.added` and `event.removed` (what this change did); `event.choice` is the first ticked option, or -1 when nothing is. Here taking a tick away is an answer, and so is taking them all away (`choices` is empty). Since SDK 1.23.0.
+
+```ts
+kit.ask("Tick what you did today", ["Meditate", "Read", "Gym"], { multiple: true, ref: { day: kit.today } });
+// onAnswer: for (const i of event.added ?? []) ...; for (const i of event.removed ?? []) ...
+```
+
 **Several people in the group** (the `"members"` permission): the poll stays where everyone can see it. Each person's first answer counts and arrives as its own `onAnswer`. A person may change their answer once, ever: it arrives again with `changed: true`, and Zelfred tells them later changes won't count. After that a change is refused and they are told so. Keep the answer per `sender.id`. Nothing settles the question until the plugin calls `kit.close(ref)`, which deletes the polls.
 
 **Limits.** 2 to 100 different options, up to 100 characters each; the question up to 255. A poll holds 12 options, so a longer list goes out as several polls, at most three at a time. When there are more, the last option is "See more" and the next ones follow when someone picks it. An answer in any of them answers the question, and all of them are deleted together.

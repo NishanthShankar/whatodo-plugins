@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.23.0] - 2026-11-21
+
+### Added
+- `kit.ask(question, options, { multiple: true })`: a tick list. One poll where each person ticks every option that applies (2 to 12 options). It works like `keep`: the poll stays, no confirm line is posted, and every change counts while the question is open. `onAnswer` gets `choices` (everything that person has ticked now), `added` and `removed` (what this change did); `choice` is the first ticked option, or -1 when nothing is. Taking every tick away arrives too.
+- Test kit: `t.answer(plugin, ref, [0, 2])` answers a tick list with what is ticked now. `t.asked[n].multiple`.
+
 ## [1.22.0] - 2026-11-20
 
 ### Added
