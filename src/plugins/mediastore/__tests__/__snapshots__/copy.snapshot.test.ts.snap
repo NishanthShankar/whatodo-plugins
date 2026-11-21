@@ -642,6 +642,7 @@ exports[`mediastore copy: moving a link > asking which group, and every answer 1
       "intro": null,
       "keep": false,
       "mention": null,
+      "multiple": false,
       "open": false,
       "options": [
         "recipes",
@@ -662,6 +663,7 @@ exports[`mediastore copy: moving a link > asking which group, and every answer 1
       "intro": null,
       "keep": false,
       "mention": null,
+      "multiple": false,
       "open": false,
       "options": [
         "MediaStore",
@@ -682,6 +684,7 @@ exports[`mediastore copy: moving a link > asking which group, and every answer 1
       "intro": null,
       "keep": false,
       "mention": null,
+      "multiple": false,
       "open": false,
       "options": [
         "MediaStore",
@@ -702,6 +705,7 @@ exports[`mediastore copy: moving a link > asking which group, and every answer 1
       "intro": null,
       "keep": false,
       "mention": null,
+      "multiple": false,
       "open": false,
       "options": [
         "recipes",
@@ -722,6 +726,7 @@ exports[`mediastore copy: moving a link > asking which group, and every answer 1
       "intro": null,
       "keep": false,
       "mention": null,
+      "multiple": false,
       "open": false,
       "options": [
         "recipes",
