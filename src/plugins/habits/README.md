@@ -25,6 +25,8 @@ Anything else goes to Zelfred's intent model, so plain sentences work too: "I wa
 
 Check-ins: twice a day, at 6am (morning) and 8pm (evening) in the person's own time. Each sends one poll listing the habits of that check-in that are due and not yet done: "🌱 Evening habits. Tick the ones you did today." with one line per habit, like "Read  🔥 5" (with simple messages on the question is just "Evening habits"). A tick logs the habit for that day; taking it back is no answer. More than twelve go out as polls of even size. When only one habit is due it is asked with Yes and No: "🌱 Did you Read today?  🔥 5".
 
+When it goes out: 6am and 8pm to start with. In a group where only its owner answers, each check-in then moves to the hour they usually answer it: the middle one of the hours they first answered on the last seven days, once there are five, kept between 5am and 10am (morning) or 6pm and 10pm (evening). First answers are kept in `answered` (key `<morning|evening>:<day>`, data the hour) for a month. With anyone else taking part, and in groups kept with other people, the hours stay 6am and 8pm.
+
 How the poll behaves (the owner's decisions, 2026-11-18 and 2026-11-21):
 - The poll is not deleted when answered, and no line is posted. The answer can be changed as often as you like.
 - It closes when the same check-in goes out the next day. The old poll stays in the chat; a change on it is refused.

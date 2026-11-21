@@ -128,6 +128,28 @@ export function batchOf(hour: number | null | undefined): Batch | null {
   return hour < 12 ? "morning" : "evening";
 }
 
+/**
+ * A check-in moves to the hour its person usually answers it, inside these hours (first and
+ * last, the person's time). An answer outside them says when a habit got done, not when a
+ * poll is welcome, so it isn't learned from.
+ */
+export const BATCH_WINDOW: Record<Batch, [number, number]> = { morning: [5, 10], evening: [18, 22] };
+/** Answers on this many of the last days are needed before a check-in moves. */
+export const USUAL_NEEDS = 5;
+export const USUAL_DAYS = 7;
+
+/**
+ * The hour a check-in goes out for someone, from the hours they first answered it on the last
+ * days: the middle one, once there are enough. Otherwise its set hour.
+ */
+export function usualHour(batch: Batch, hours: number[]): number {
+  const [from, to] = BATCH_WINDOW[batch];
+  const seen = hours.filter((h) => h >= from && h <= to).slice(-USUAL_DAYS);
+  if (seen.length < USUAL_NEEDS) return BATCH_HOUR[batch];
+  const sorted = [...seen].sort((a, b) => a - b);
+  return sorted[Math.floor((sorted.length - 1) / 2)];
+}
+
 /** "morning", "evening" (also "night", "mornings") → its hour; null for anything else. */
 export function batchWord(text: string): number | null {
   const t = text.trim().toLowerCase();

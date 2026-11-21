@@ -1,7 +1,7 @@
 import { definePlugin, type AnswerEvent, type Json, type Kit } from "../../sdk";
 import { CHECKIN_OPTIONS, copy, LOGGED, SAVED, type OwnHabit } from "./copy";
 import { askBatch, askOne, closePact, createPact, dueInGroup, existingGroup, extraHabits, ownerChange, ownerDay, ownerJoin, forFriend, forPoll, friendAnswer, friendIntent, friendMessage, friendTick, groupTick, hasFriends, isBatchRef, isOfferRef, isPactRef, MAIN, oneQuestion, openBatch, OWNER, sentBatch, type BatchRef, type Due, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, POLL_LIMIT, privatePact, standings, type Tools } from "./pact";
-import { BATCH_HOUR, batchOf, batchWord, bestStreak, cells, cleanName, isOn, parseDays, scanDays, streak, type Batch } from "./streaks";
+import { BATCH_HOUR, BATCH_WINDOW, batchOf, batchWord, usualHour, bestStreak, cells, cleanName, isOn, parseDays, scanDays, streak, type Batch } from "./streaks";
 
 /**
  * Habits: two check-ins a day, morning (6am) and evening (8pm). Each is one poll listing the
@@ -20,6 +20,8 @@ import { BATCH_HOUR, batchOf, batchWord, bestStreak, cells, cleanName, isOn, par
  *           closed, it counts like no answer for streaks, and that day isn't asked again)
  *   asked   key = habit id   data = the day of its latest check-in (before 4.0.0; read once
  *           more to close that poll, then removed)
+ *   answered key = "<morning|evening>:<day>"   data = the hour the owner first answered that
+ *           day's check-in in this group   sort = day   (how its usual hour is learned)
  *   batches key = "<group key>:<morning|evening>"   data = the day that check-in last went out
  *           and the refs of its polls ("" is this group; see pact.ts)
  */
@@ -217,7 +219,7 @@ async function summary(kit: Kit): Promise<string> {
     });
   }
   const hour = kit.settings.checkinHour;
-  return copy.summary({ days: SUMMARY_DAYS, habits, extra, checkinHour: typeof hour === "number" ? hour : null });
+  return copy.summary({ days: SUMMARY_DAYS, habits, extra, checkinHour: typeof hour === "number" ? hour : null, at: { morning: await sendHour(kit, "morning"), evening: await sendHour(kit, "evening") } });
 }
 
 /** One help text for this run: the listing, the "help" command and the help intent all send it. */
@@ -233,6 +235,41 @@ function checkDays(days: unknown): number[] | null {
   const set = [...new Set(days as number[])].sort((a, b) => a - b);
   if (!set.length) throw new Error("Pick at least one day.");
   return set.length === 7 ? null : set;
+}
+
+/** Does anyone besides the owner take part in this group? Then its check-ins keep to their set hours: they are everyone's. */
+async function crowded(kit: Kit): Promise<boolean> {
+  if ((await extraHabits(kit)).length) return true;
+  for (const { id } of await active(kit)) if (await hasFriends(kit, id)) return true;
+  return false;
+}
+
+/**
+ * The hour a check-in goes out in the person's own group. It starts at its set hour and moves
+ * to the hour they usually answer it (the owner, 2026-11-21: "I like 3 too"). It can't learn
+ * that someone would like it earlier than it comes, since nobody answers a poll before it is
+ * sent; it follows people who answer later, up to the end of its window.
+ */
+async function sendHour(kit: Kit, batch: Batch): Promise<number> {
+  if (await crowded(kit)) return BATCH_HOUR[batch];
+  const rows = await kit.store.list<number>("answered", { prefix: `${batch}:` });
+  const from = kit.time.shiftDay(kit.today, -14);
+  const hours = rows.filter((r) => r.key.slice(batch.length + 1) >= from).sort((a, b) => (a.key < b.key ? -1 : 1)).map((r) => r.data);
+  return usualHour(batch, hours);
+}
+
+/** The owner answered a check-in of today for the first time: remember the hour. */
+async function noteAnswer(kit: Kit, batch: Batch | null, day: string) {
+  if (!batch || day !== kit.today) return;
+  const key = `${batch}:${day}`;
+  if ((await kit.store.get("answered", key)) !== null) return;
+  const hour = kit.time.hour(kit.now);
+  const [from, to] = BATCH_WINDOW[batch];
+  if (hour < from || hour > to) return;
+  await kit.store.put("answered", key, hour, day);
+  // A month is more than is ever read.
+  const old = kit.time.shiftDay(kit.today, -30);
+  for (const r of await kit.store.list("answered", { prefix: `${batch}:` })) if (r.key.slice(batch.length + 1) < old) await kit.store.delete("answered", r.key);
 }
 
 /** One of the owner's own habits that a check-in asks about today. */
@@ -325,6 +362,7 @@ async function batchAnswer(event: AnswerEvent, kit: Kit, ref: BatchRef) {
       else await friendTick(kit, sender, id, ref.day, done);
     } else if (sender) await groupTick(kit, ref.group, id, sender, ref.day, done);
   };
+  if (owner && !ref.group) await noteAnswer(kit, ref.batch, ref.day);
   for (const i of event.added ?? []) await change(i, true);
   for (const i of event.removed ?? []) await change(i, false);
   // A 👍 on the poll says it landed, once. With other people in it nothing is posted back.
@@ -333,7 +371,7 @@ async function batchAnswer(event: AnswerEvent, kit: Kit, ref: BatchRef) {
 
 export default definePlugin({
   id: "habits",
-  version: "4.0.0",
+  version: "4.1.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
@@ -605,6 +643,8 @@ export default definePlugin({
       if (h && !h.archived) await friendAnswer(event, kit, ref.habitId, ref.day);
       return;
     }
+    const asked = await kit.store.get<Habit>("habits", ref.habitId);
+    if (asked) await noteAnswer(kit, batchOf(hourOf(asked, kit)), ref.day);
     await setDay(kit, ref.habitId, ref.day, event.choice === 0 ? "done" : "missed");
     // A 👍 on the poll says it landed. Once is enough, and a deleted poll has its own line.
     // With friends in the habit nothing is posted back: the poll shows who answered what.
@@ -615,10 +655,12 @@ export default definePlugin({
     if (event.id !== "checkin" && event.id !== "nightly") return;
     const now = kit.time.hour(kit.now);
     // "nightly" is the schedule of before 1.1.0: it means the evening one.
-    const batch: Batch | null = event.id === "nightly" || now === BATCH_HOUR.evening ? "evening" : now === BATCH_HOUR.morning ? "morning" : null;
-    if (!batch) return;
-    await mainCheckin(kit, batch);
-    await pactCheckins(kit, batch);
+    // The person's own group: at the hour they usually answer, once that is known. Groups kept
+    // with other people keep to the set hours.
+    for (const batch of ["morning", "evening"] as Batch[]) {
+      if ((event.id === "nightly" && batch === "evening") || now === (await sendHour(kit, batch))) await mainCheckin(kit, batch);
+      if ((event.id === "nightly" && batch === "evening") || now === BATCH_HOUR[batch]) await pactCheckins(kit, batch);
+    }
   },
 
   web: {
