@@ -2,6 +2,20 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [4.0.0] - 2026-11-21
+
+### Changed
+- Two check-ins a day instead of a poll per habit: one poll in the morning (6am) and one in the evening (8pm), each listing the habits that are due. Tick what you did. A tick can be added or taken back until the next day's poll goes out. A habit left unticked simply wasn't answered; there is no "No" on a list (the owner's decisions, 2026-11-21).
+- A habit is in the morning or the evening check-in. One that had its own time before noon is in the morning one, every other habit in the evening one. `time meditate morning` and `time meditate evening` move one, `time morning` / `time evening` choose where habits without a mark go, `time off` still stops them. A clock time (`time meditate 7am`, `add read at 10pm`) is still understood and means morning or evening.
+- The same in groups kept with other people, and for habits friends add to your own group: one poll per group per check-in, where everyone ticks what they did and the poll shows who did what.
+- When only one habit is due, it is asked with Yes or No as before (a poll needs two choices), with everything that had: the streak in the question, simple messages, delete polls.
+- The list shows 🌅 or 🌙 beside a habit that was put in the morning or the evening by hand, where it showed ⏰ and an hour.
+- More than twelve habits due at once go out as two or more polls of even size.
+- Needs SDK 1.23.0 (`kit.ask` with `multiple`).
+
+### Removed
+- A habit's own check-in hour. The hour is still kept with the habit, and only says morning or evening now.
+
 ## [3.6.2] - 2026-11-19
 
 ### Changed

@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.22.0";
+export const SDK_VERSION = "1.23.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -167,9 +167,15 @@ export interface Kit {
    * `{{mention}}` in the intro where that person should be tagged; they are notified. A
    * mention needs the "members" permission. Where no poll can go, the intro and the question
    * go out as one message. Since SDK 1.16.0.
+   *
+   * `multiple: true` makes it a tick list: one poll where each person ticks every option that
+   * applies, like a day's habits. It takes 2 to 12 options. It always works like `keep` (the
+   * poll stays, no confirm line, every change counts while it is open), and `onAnswer` gets
+   * the whole of what the person has ticked now in `choices`, with what this change `added`
+   * and `removed`. Taking every tick away arrives too, with `choices` empty. Since SDK 1.23.0.
    * Since SDK 1.9.0.
    */
-  ask(question: string, options: string[], opts?: { ref?: Json; group?: string; confirm?: string | false; keep?: boolean; intro?: string; mention?: string }): void;
+  ask(question: string, options: string[], opts?: { ref?: Json; group?: string; confirm?: string | false; keep?: boolean; multiple?: boolean; intro?: string; mention?: string }): void;
   /**
    * The question asked with `ref` is settled: its polls are deleted (left in place for a
    * question asked with `keep`) and no more answers are taken. Call it when a message that wasn't one of the options answered the question ("3
@@ -333,10 +339,16 @@ export interface ReactionEvent {
 export interface AnswerEvent {
   /** The ref given to `kit.ask`; null when there was none. */
   ref: Json | null;
-  /** Which option they chose, counting from 0 in the order given to `kit.ask`. */
+  /** Which option they chose, counting from 0 in the order given to `kit.ask`. On a tick list: the first one ticked, or -1 when nothing is. */
   choice: number;
-  /** The text of that option. */
+  /** The text of that option; "" when nothing is ticked on a tick list. */
   option: string;
+  /** Only on a question asked with `multiple`: every option this person has ticked now, in the options' order. Since SDK 1.23.0. */
+  choices?: number[];
+  /** Only with `multiple`: what this change ticked. */
+  added?: number[];
+  /** Only with `multiple`: what this change took the tick off. */
+  removed?: number[];
   /** True when this replaces an earlier answer from the same person. */
   changed?: boolean;
   /** The key of the extra group the question is in; null or unset for the main group. */
@@ -619,7 +631,7 @@ export function compareVersions(a: string, b: string): number {
 }
 
 /** The limits of a question (`kit.ask`), shared by Zelfred and the test kit. Throws a plain sentence when one is broken. */
-export function checkAsk(question: string, options: string[], opts?: { intro?: string; mention?: string }): void {
+export function checkAsk(question: string, options: string[], opts?: { intro?: string; mention?: string; multiple?: boolean }): void {
   if (opts?.intro !== undefined) {
     if (typeof opts.intro !== "string" || !opts.intro.trim()) throw new Error("kit.ask: the intro is empty");
     if (opts.intro.length > 1000) throw new Error("kit.ask: the intro is longer than 1000 characters");
@@ -631,6 +643,7 @@ export function checkAsk(question: string, options: string[], opts?: { intro?: s
   if (typeof question !== "string" || !question.trim()) throw new Error("kit.ask: give a question");
   if (question.length > 255) throw new Error("kit.ask: the question is longer than 255 characters");
   if (!Array.isArray(options) || options.length < 2 || options.length > 100) throw new Error("kit.ask: give 2 to 100 options");
+  if (opts?.multiple === true && options.length > 12) throw new Error("kit.ask: a tick list (multiple) takes at most 12 options");
   for (const o of options) {
     if (typeof o !== "string" || !o.trim()) throw new Error("kit.ask: an option is empty");
     if (o.length > 100) throw new Error("kit.ask: an option is longer than 100 characters");

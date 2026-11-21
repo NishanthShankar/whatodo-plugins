@@ -1,12 +1,13 @@
 import type { AnswerEvent, IntentEvent, Json, Kit, MessageEvent, Sender } from "../../sdk";
 import { CHECKIN_OPTIONS, copy, LOGGED, OFFER_OPTIONS, SAVED, type GroupHabit, type Streaker } from "./copy";
-import { bestStreak, cleanName, isOn, parseDays, scanDays, streak } from "./streaks";
+import { batchOf, batchWord, bestStreak, cleanName, isOn, parseDays, scanDays, streak, type Batch } from "./streaks";
 
 /**
  * Pacts: a habit kept together. A pact is its own WhatsApp group (one of the install's extra
  * groups) that the person adds friends, a study partner or a partner to. Anyone there can add
- * a habit, and every day each habit gets one poll for the whole group. WhatsApp shows who
- * tapped what, so the poll is the scoreboard and nothing is posted per answer.
+ * a habit, and twice a day (morning and evening) the habits that are due go out as one poll
+ * for the whole group, where everyone ticks what they did. WhatsApp shows who ticked what, so
+ * the poll is the scoreboard and nothing is posted per answer.
  *
  * Whose answers are kept: the person who made the pact, and anyone with a Zelfred profile.
  * Someone without one is offered a profile on their first answer ("Good start Asha. Let me create an
@@ -21,7 +22,10 @@ import { bestStreak, cleanName, isOn, parseDays, scanDays, streak } from "./stre
  *   pmissed  key = "<habitId>:<personId>:<day>"   data = 1            sort = day   (said they didn't)
  *   pwait    key = "<personId>:<habitId>"         data = 1            (answered before deciding on a profile)
  *   people   key = person id                      data = Person
- *   pasked   key = habit id                       data = the day of its latest check-in
+ *   pasked   key = habit id                       data = the day of its latest check-in (before 4.0.0;
+ *            read once more to close that poll, then removed)
+ *   batches  key = "<group key>:<morning|evening>" data = Sent: the day that check-in last went
+ *            out there and the refs of its polls ("" is the main group)
  */
 
 export interface Pact {
@@ -35,7 +39,7 @@ export interface PactHabit {
   name: string;
   createdDay: string;
   archived: boolean;
-  /** Its own check-in hour; unset: the default check-in time. */
+  /** An hour that says which check-in it is in (before noon: morning, else evening); unset: the default one. */
   hour?: number | null;
   /** Weekdays it's due on, 0 Sunday to 6 Saturday; unset or null: every day. */
   days?: number[] | null;
@@ -68,6 +72,29 @@ export interface PactRef {
 }
 interface OfferRef {
   offer: string;
+}
+
+/**
+ * A check-in with several habits: one poll (or more, twelve habits each) where every habit done
+ * is ticked. `ids` are the habits in the order of the poll's options: "h:<id>" one of the
+ * owner's own, "p:<id>" one kept in a group. `group`: the pact's key, "" for the main group.
+ */
+export interface BatchRef {
+  batch: Batch;
+  day: string;
+  group: string;
+  part: number;
+  ids: string[];
+  /** Someone besides the owner takes part: nothing is posted back, the poll shows who did what. */
+  shared: boolean;
+}
+export const isBatchRef = (r: unknown): r is BatchRef =>
+  !!r && typeof r === "object" && typeof (r as BatchRef).batch === "string" && typeof (r as BatchRef).day === "string" && Array.isArray((r as BatchRef).ids);
+
+/** What a check-in last sent to a group: the day, and its polls' refs (closed when the next one goes). */
+export interface Sent {
+  day: string;
+  refs: Json[];
 }
 
 export const isPactRef = (r: unknown): r is PactRef =>
@@ -335,12 +362,12 @@ async function habitCommands(kit: Kit, pact: string, sender: Sender, text: strin
     await leave(kit, h.id, sender.id);
     return kit.react(SAVED), true;
   }
-  const tm = text.match(/^(?:time|check[- ]?in|reminder)\s+(.+?)\s+(?:at\s+)?(default|reset|\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)$/i);
+  const tm = text.match(/^(?:time|check[- ]?in|reminder)\s+(.+?)\s+(?:at\s+|in the\s+)?(default|reset|mornings?|evenings?|nights?|\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm)?)$/i);
   if (tm) {
     const h = find(list, tm[1].trim());
     if (!h) return missing(tm[1].trim()), true;
     if (!may(h.habit, sender)) return kit.send(copy.notYoursTime({ habit: h.habit.name, owner: first(kit.person.name) })), true;
-    const hour = /^(default|reset)$/i.test(tm[2]) ? null : tools.parseHour(tm[2]);
+    const hour = /^(default|reset)$/i.test(tm[2]) ? null : (batchWord(tm[2]) ?? tools.parseHour(tm[2]));
     if (hour === null && !/^(default|reset)$/i.test(tm[2])) return kit.send(copy.giveHabitTimeFor({ habit: h.habit.name })), true;
     await kit.store.put("phabits", h.id, { ...h.habit, hour } as unknown as Json);
     return kit.react(SAVED), true;
@@ -437,7 +464,7 @@ export async function friendMessage(event: MessageEvent, kit: Kit, tools: Tools,
     await kit.store.delete("pwait", `${sender.id}:${h.id}`);
     return kit.react(SAVED);
   }
-  m = text.match(/^(?:time|check[- ]?in|reminder)\s+(.+?)\s+(?:at\s+)?(?:default|reset|\d.*)$/i);
+  m = text.match(/^(?:time|check[- ]?in|reminder)\s+(.+?)\s+(?:at\s+|in the\s+)?(?:default|reset|mornings?|evenings?|nights?|\d.*)$/i);
   h = m ? pick(m[1].trim()) : undefined;
   if (m && h) return kit.send(copy.ownersHabit({ habit: h.name, owner: first(kit.person.name) }));
   // Adding one that is already here means doing it too.
@@ -511,6 +538,95 @@ export async function friendAnswer(event: AnswerEvent, kit: Kit, habitId: string
   const sender = event.sender!;
   await involve(kit, null, habitId, sender, day);
   await setDay(kit, habitId, sender.id, day, event.choice === 0 ? "done" : "missed");
+}
+
+/** Someone ticked one of the owner's own habits on a shared poll, or took the tick back: they are doing it too. */
+export async function friendTick(kit: Kit, sender: Sender, habitId: string, day: string, done: boolean): Promise<void> {
+  if (done) await involve(kit, null, habitId, sender, day);
+  await setDay(kit, habitId, sender.id, day, done ? "done" : null);
+}
+
+/** A tick on a habit kept in a group (a pact's, or one a friend added to the main group), or the tick taken back. */
+export async function groupTick(kit: Kit, group: string, habitId: string, sender: Sender, day: string, done: boolean): Promise<void> {
+  const habit = await kit.store.get<PactHabit>("phabits", habitId);
+  if (!habit || habit.archived || habit.pact !== group) return;
+  if (done) await involve(kit, group || null, habitId, sender, day);
+  await setDay(kit, habitId, sender.id, day, done ? "done" : null);
+}
+
+/** One habit of a check-in: what its tick is stored under, and how it reads on the poll. */
+export interface Due {
+  /** "h:<id>" or "p:<id>", as in a BatchRef. */
+  id: string;
+  name: string;
+  label: string;
+}
+
+/** The habits kept in a group that this check-in asks about today. */
+export async function dueInGroup(kit: Kit, group: string, batch: Batch): Promise<Due[]> {
+  const fallback = typeof kit.settings.checkinHour === "number" ? kit.settings.checkinHour : null;
+  const out: Due[] = [];
+  for (const { id, habit } of await habitsOf(kit, group)) {
+    if (batchOf(typeof habit.hour === "number" ? habit.hour : fallback) !== batch) continue;
+    if (!isOn(habit.days, kit.today)) continue;
+    // The poll of before 4.0.0, one per habit, stops taking answers now.
+    const old = await kit.store.get<string>("pasked", id);
+    if (old) {
+      if (old !== kit.today) kit.close({ pact: group, habitId: id, day: old });
+      await kit.store.delete("pasked", id);
+    }
+    const s = await standings(kit, id, habit.days);
+    out.push({ id: `p:${id}`, name: habit.name, label: copy.checkinOption({ habit: habit.name, streak: null, together: s.people.length > 1 ? s.together : null }) });
+  }
+  return out;
+}
+
+/** Options can't repeat on a poll: a second habit that reads the same gets a number. */
+export function distinct(labels: string[]): string[] {
+  const seen = new Map<string, number>();
+  return labels.map((l) => {
+    const k = l.trim().toLowerCase();
+    const n = (seen.get(k) ?? 0) + 1;
+    seen.set(k, n);
+    return n === 1 ? l : `${l.slice(0, 96)} (${n})`;
+  });
+}
+
+/**
+ * Send a check-in's polls for several habits: twelve to a poll. Returns their refs, to close
+ * when the next one goes out.
+ */
+export function askBatch(kit: Kit, group: string, batch: Batch, due: Due[], shared: boolean): Json[] {
+  const refs: Json[] = [];
+  // Split evenly, so no poll is left with a single habit (a poll needs two options).
+  const parts = Math.ceil(due.length / 12);
+  const size = Math.ceil(due.length / parts);
+  for (let i = 0; i < parts; i++) {
+    const page = due.slice(i * size, (i + 1) * size);
+    const ref: BatchRef = { batch, day: kit.today, group, part: i, ids: page.map((d) => d.id), shared };
+    kit.ask(copy.checkinBatch({ batch, simple: kit.settings.quickLog === true, part: i + 1, parts }), distinct(page.map((d) => d.label)), {
+      multiple: true,
+      ref: ref as unknown as Json,
+      ...(group ? { group } : {}),
+    });
+    refs.push(ref as unknown as Json);
+  }
+  return refs;
+}
+
+/**
+ * Has this check-in gone out to the group today? If not, the polls of the last one stop
+ * taking answers (they stay in the chat) and the caller sends today's.
+ */
+export async function openBatch(kit: Kit, group: string, batch: Batch): Promise<boolean> {
+  const last = await kit.store.get<Sent>("batches", `${group}:${batch}`);
+  if (last?.day === kit.today) return false;
+  for (const ref of last?.refs ?? []) kit.close(ref);
+  return true;
+}
+
+export async function sentBatch(kit: Kit, group: string, batch: Batch, refs: Json[]): Promise<void> {
+  await kit.store.put("batches", `${group}:${batch}`, { day: kit.today, refs } as unknown as Json, kit.today);
 }
 
 /** Does anyone besides the owner take part in this habit? */
@@ -617,27 +733,28 @@ export async function pactAnswer(event: AnswerEvent, kit: Kit): Promise<void> {
   await setDay(kit, ref.habitId, sender.id, ref.day, event.choice === 0 ? "done" : "missed");
 }
 
-/** The hourly check-in for pacts: one poll per habit that is due now, for the whole group. */
-export async function pactCheckins(kit: Kit, hourNow: number, all: boolean): Promise<void> {
-  const fallback = typeof kit.settings.checkinHour === "number" ? kit.settings.checkinHour : null;
-  const groups = [{ key: MAIN, closed: false }, ...(await kit.store.list<Pact>("pacts")).map((p) => ({ key: p.key, closed: !!p.data.closed }))];
-  for (const p of groups) {
-    if (p.closed) continue;
-    for (const { id, habit } of await habitsOf(kit, p.key)) {
-      const hour = typeof habit.hour === "number" ? habit.hour : fallback;
-      if (!all && hour !== hourNow) continue;
-      if (!isOn(habit.days, kit.today)) continue;
-      // Yesterday's poll for this habit stops taking answers now. It stays in the chat.
-      const last = await kit.store.get<string>("pasked", id);
-      if (last === kit.today) continue;
-      if (last) kit.close({ pact: p.key, habitId: id, day: last });
-      await kit.store.put("pasked", id, kit.today, kit.today);
-      const s = await standings(kit, id, habit.days);
-      const question = copy.checkinTogether({ habit: habit.name, ...forPoll(s), limit: POLL_LIMIT });
-      const ref: PactRef = { pact: p.key, habitId: id, day: kit.today };
-      // Always kept: the poll is how everyone sees who did it.
-      kit.ask(question, CHECKIN_OPTIONS, { ref: ref as unknown as Json, ...(p.key ? { group: p.key } : {}), keep: true });
-    }
+/** One habit of a group on its own: a poll needs two options, so it is asked with Yes or No. */
+export function askOne(kit: Kit, group: string, habitId: string, question: string): Json {
+  const ref: PactRef = { pact: group, habitId, day: kit.today };
+  // Always kept: the poll is how everyone sees who did it.
+  kit.ask(question, CHECKIN_OPTIONS, { ref: ref as unknown as Json, ...(group ? { group } : {}), keep: true });
+  return ref as unknown as Json;
+}
+
+/** A group habit's Yes or No question, with how everyone stands. */
+export async function oneQuestion(kit: Kit, id: string): Promise<string> {
+  const habit = (await kit.store.get<PactHabit>("phabits", id))!;
+  return copy.checkinTogether({ habit: habit.name, ...forPoll(await standings(kit, id, habit.days)), limit: POLL_LIMIT });
+}
+
+/** A check-in for the pacts: each group gets one poll with its habits that are due. */
+export async function pactCheckins(kit: Kit, batch: Batch): Promise<void> {
+  for (const p of await kit.store.list<Pact>("pacts")) {
+    if (p.data.closed) continue;
+    if (!(await openBatch(kit, p.key, batch))) continue;
+    const due = await dueInGroup(kit, p.key, batch);
+    const refs = due.length > 1 ? askBatch(kit, p.key, batch, due, true) : due.length ? [askOne(kit, p.key, due[0].id.slice(2), await oneQuestion(kit, due[0].id.slice(2)))] : [];
+    await sentBatch(kit, p.key, batch, refs);
   }
 }
 

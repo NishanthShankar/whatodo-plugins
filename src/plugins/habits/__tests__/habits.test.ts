@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import habits from "..";
 import { createTestKit } from "../../../testing";
 
+const habitRows = (t: ReturnType<typeof createTestKit>) =>
+  Object.entries(t.dump())
+    .filter(([k]) => k.startsWith("habits/"))
+    .map(([k, v]) => ({ id: k.slice(7), ...(v as { name: string; days: number[] | null; hour: number | null; archived: boolean }) }));
+
 describe("habits", () => {
   it("adds, logs, and shows streaks", async () => {
     const t = createTestKit();
@@ -23,7 +28,7 @@ describe("habits", () => {
   });
 
   it("with simple messages on, the check-in is just the habit's name", async () => {
-    const t = createTestKit();
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add Read");
     await t.message(habits, "simple on");
     expect(t.kit.settings.quickLog).toBe(true);
@@ -60,7 +65,7 @@ describe("habits", () => {
   });
 
   it("checks in and logs from a reaction, and undoes when it's removed", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
     expect(t.asked).toHaveLength(1);
@@ -72,7 +77,7 @@ describe("habits", () => {
   });
 
   it("acknowledges every reaction with a 👍 and takes it back when theirs is removed", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
     await t.react(habits, "✅", t.asked[0].ref);
@@ -83,7 +88,7 @@ describe("habits", () => {
   });
 
   it("❌ means didn't do it: no streak, and the day is closed", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
     await t.react(habits, "✅", t.asked[0].ref);
@@ -92,21 +97,20 @@ describe("habits", () => {
     expect(await load()).toMatchObject({ streak: 0, total: 0 });
     const ref = t.asked[0].ref as { habitId: string; day: string };
     expect(t.dump()).toHaveProperty([`missed/${ref.habitId}:${ref.day}`]);
-    // Not asked again that day, even if its check-in time comes round again.
+    // Not asked again that day.
     await t.schedule(habits, "checkin");
     expect(t.asked).toHaveLength(1);
     // Removing the ❌ reopens the day.
     await t.react(habits, null, t.asked[0].ref);
-    await t.schedule(habits, "checkin");
-    expect(t.asked).toHaveLength(2);
+    expect(t.dump()).not.toHaveProperty([`missed/${ref.habitId}:${ref.day}`]);
     // Logging it later still counts.
-    await t.react(habits, "❌", t.asked[1].ref);
+    await t.react(habits, "❌", t.asked[0].ref);
     await t.message(habits, "done read");
     expect(await load()).toMatchObject({ streak: 1, total: 1 });
   });
 
   it("a no reply closes the day too", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
     await t.message(habits, "no", t.asked[0].ref);
@@ -116,18 +120,21 @@ describe("habits", () => {
 
   it("adds a habit for some days only and asks only on those days", async () => {
     // createTestKit's today is fixed; find its weekday and pick days around it.
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     const wd = new Date(`${t.kit.today}T00:00:00Z`).getUTCDay();
     const names = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
     await t.message(habits, `add gym on ${names[(wd + 1) % 7]} and ${names[(wd + 3) % 7]} at 9pm`);
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
     expect(t.asked.map((x) => x.question.match(/Did you (.+?) today/)![1])).toEqual(["Read"]);
-    await t.message(habits, `days gym ${names[wd]}`);
+    // The day after is one of gym's days: both are due, so they go out as one list to tick.
+    await t.message(habits, `days gym ${names[(wd + 1) % 7]}`);
+    t.setToday(new Date(Date.parse(`${t.kit.today}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10));
     await t.schedule(habits, "checkin");
-    expect(t.asked.at(-1)!.question).toContain("Gym");
+    expect(t.asked.at(-1)!.multiple).toBe(true);
+    expect([...t.asked.at(-1)!.options].sort()).toEqual(["Gym  🔥 0", "Read  🔥 0"]);
     await t.message(habits, "habits");
-    expect(t.sent.at(-1)!.text).toMatch(/\*Gym\*.*⏰ 9pm  📅 (Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/m);
+    expect(t.sent.at(-1)!.text).toMatch(/\*Gym\*.*🌙  📅 (Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/m);
   });
 
   it("parses days in add and days commands", async () => {
@@ -149,7 +156,7 @@ describe("habits", () => {
   });
 
   it("days off don't break a streak", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add gym");
     const id = Object.keys(t.dump()).find((k) => k.startsWith("habits/"))!.slice(7);
     const today = t.kit.today;
@@ -169,7 +176,7 @@ describe("habits", () => {
   });
 
   it("skips habits already done today", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.message(habits, "done read");
     await t.schedule(habits, "checkin");
@@ -177,7 +184,7 @@ describe("habits", () => {
   });
 
   it("logs from a yes/no reply to a check-in", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
     await t.message(habits, "yes", t.asked[0].ref);
@@ -186,23 +193,90 @@ describe("habits", () => {
     expect(((await t.load(habits)) as { habits: { streak: number }[] }).habits[0].streak).toBe(0);
   });
 
-  it("asks each habit at its own time, else the default", async () => {
+  it("asks about morning habits at 6am and the rest at 8pm, and at no other hour", async () => {
     const t = createTestKit();
     await t.message(habits, "add meditate at 7am");
     await t.message(habits, "add read");
     const asked = () => t.asked.map((s) => s.question.match(/Did you (.+?) today/)![1]);
-    t.setHour(7);
+    for (const hour of [5, 7, 12, 19, 21]) {
+      t.setHour(hour);
+      await t.schedule(habits, "checkin");
+    }
+    expect(asked()).toEqual([]);
+    t.setHour(6);
     await t.schedule(habits, "checkin");
     expect(asked()).toEqual(["Meditate"]);
-    t.setHour(21);
+    t.setHour(20);
     await t.schedule(habits, "checkin");
     expect(asked()).toEqual(["Meditate", "Read"]);
-    await t.message(habits, "time read 6am");
+    await t.message(habits, "time read morning");
     await t.message(habits, "time meditate default");
     const page = (await t.load(habits)) as { habits: { name: string; hour: number | null }[] };
     expect(page.habits.map((h) => [h.name, h.hour])).toEqual([["Meditate", null], ["Read", 6]]);
     await t.message(habits, "habits");
-    expect(t.sent.at(-1)!.text).toContain("*Read*  ⏰ 6am");
+    expect(t.sent.at(-1)!.text).toContain("*Read*  🌅");
+    await t.message(habits, "time read evening");
+    await t.message(habits, "add stretch in the morning");
+    expect(((await t.load(habits)) as typeof page).habits.map((h) => [h.name, h.hour]).sort()).toEqual([["Meditate", null], ["Read", 20], ["Stretch", 6]]);
+  });
+
+  it("puts every habit of a check-in in one poll, and a tick logs it", async () => {
+    const t = createTestKit({ hour: 20 });
+    for (const name of ["meditate", "read", "gym"]) await t.message(habits, `add ${name}`);
+    await t.message(habits, "done gym");
+    t.reactions.length = 0;
+    await t.schedule(habits, "checkin");
+    // One poll. Gym is done already, so it isn't on it.
+    expect(t.asked).toHaveLength(1);
+    const q = t.asked[0];
+    expect(q).toMatchObject({ question: "🌱 Evening habits. Tick the ones you did today.", options: ["Meditate  🔥 0", "Read  🔥 0"], multiple: true, keep: true, group: null });
+    const [meditate, read, gym] = habitRows(t);
+    const logged = () => Object.keys(t.dump()).filter((k) => k.startsWith("logs/")).sort();
+    await t.answer(habits, q.ref, [0, 1]);
+    expect(t.reactions).toEqual(["👍"]);
+    expect(logged()).toEqual([`logs/${gym.id}:${t.kit.today}`, `logs/${meditate.id}:${t.kit.today}`, `logs/${read.id}:${t.kit.today}`].sort());
+    // Taking a tick back is no answer for that habit. Nothing is marked as missed, and no second 👍.
+    await t.answer(habits, q.ref, [1]);
+    expect(logged()).not.toContain(`logs/${meditate.id}:${t.kit.today}`);
+    expect(Object.keys(t.dump()).filter((k) => k.startsWith("missed/"))).toEqual([]);
+    expect(t.reactions).toEqual(["👍"]);
+    expect(t.sent).toEqual([]);
+    // A habit logged another way isn't undone by a tick on a different one.
+    await t.message(habits, "done meditate");
+    await t.answer(habits, q.ref, []);
+    expect(logged()).toEqual([`logs/${gym.id}:${t.kit.today}`, `logs/${meditate.id}:${t.kit.today}`].sort());
+  });
+
+  it("closes a check-in's poll when the next day's goes out, and sends it once a day", async () => {
+    const t = createTestKit({ today: "2026-11-14", hour: 20 });
+    await t.message(habits, "add meditate");
+    await t.message(habits, "add read");
+    await t.schedule(habits, "checkin");
+    await t.schedule(habits, "checkin");
+    expect(t.asked).toHaveLength(1);
+    // The morning check-in has nothing in it, and leaves the evening poll alone.
+    t.setToday("2026-11-15");
+    t.setHour(6);
+    await t.schedule(habits, "checkin");
+    expect(t.asked[0].open).toBe(true);
+    await t.answer(habits, t.asked[0].ref, [0]);
+    expect(Object.keys(t.dump()).filter((k) => k.startsWith("logs/"))).toEqual([`logs/${habitRows(t)[0].id}:2026-11-14`]);
+    t.setHour(20);
+    await t.schedule(habits, "checkin");
+    expect(t.asked.map((a) => a.open)).toEqual([false, true]);
+  });
+
+  it("splits more than twelve habits over polls of even size", async () => {
+    const t = createTestKit({ hour: 20 });
+    for (let i = 1; i <= 13; i++) await t.message(habits, `add habit ${i}`);
+    await t.schedule(habits, "checkin");
+    expect(t.asked.map((a) => [a.question, a.options.length])).toEqual([
+      ["🌱 Evening habits. Tick the ones you did today. (1 of 2)", 7],
+      ["🌱 Evening habits. Tick the ones you did today. (2 of 2)", 6],
+    ]);
+    await t.answer(habits, t.asked[1].ref, [0]);
+    const ticked = habitRows(t).find((h) => `${h.name}  🔥 0` === t.asked[1].options[0])!;
+    expect(Object.keys(t.dump()).filter((k) => k.startsWith("logs/"))).toEqual([`logs/${ticked.id}:${t.kit.today}`]);
   });
 
   it("changes and turns off the default time", async () => {
@@ -241,7 +315,7 @@ describe("habits", () => {
   });
 
   it("upgrading from 1.0.0 keeps existing habits working", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.kit.store.put("habits", "old1", { name: "Stretch", createdDay: "2026-11-01", archived: false }, 1);
     await t.upgrade(habits, "1.0.0");
     await t.schedule(habits, "checkin");
@@ -250,11 +324,6 @@ describe("habits", () => {
 });
 
 describe("habits: unclear messages", () => {
-  const habitRows = (t: ReturnType<typeof createTestKit>) =>
-    Object.entries(t.dump())
-      .filter(([k]) => k.startsWith("habits/"))
-      .map(([k, v]) => ({ id: k.slice(7), ...(v as { name: string; days: number[] | null; hour: number | null; archived: boolean }) }));
-
   it("hands what it can't read to Zelfred with a fallback, instead of answering", async () => {
     const t = createTestKit();
     await t.message(habits, "I want to start going to the gym on mondays and thursdays");
@@ -286,7 +355,7 @@ describe("habits: unclear messages", () => {
   });
 
   it("acts on one habit, by the model's target or by name in the text", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add gym");
     await t.message(habits, "add read");
     const [gym, read] = habitRows(t);
@@ -341,7 +410,7 @@ describe("check-in polls", () => {
   const streakOf = async (t: ReturnType<typeof createTestKit>) => ((await t.load(habits)) as { habits: { streak: number }[] }).habits[0].streak;
 
   it("logs Yes and No from the poll, and the answer can be changed while it stays", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     t.reactions.length = 0;
     await t.schedule(habits, "checkin");
@@ -361,7 +430,7 @@ describe("check-in polls", () => {
   });
 
   it("shows the streak in the question", async () => {
-    const t = createTestKit({ today: "2026-11-14", hour: 21 });
+    const t = createTestKit({ today: "2026-11-14", hour: 20 });
     await t.message(habits, "add read");
     await t.message(habits, "done read");
     t.setToday("2026-11-15");
@@ -376,7 +445,7 @@ describe("check-in polls", () => {
   });
 
   it("closes a habit's earlier check-in when its next one goes out", async () => {
-    const t = createTestKit({ today: "2026-11-14", hour: 21 });
+    const t = createTestKit({ today: "2026-11-14", hour: 20 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
     const first = t.asked[0].ref;
@@ -389,7 +458,7 @@ describe("check-in polls", () => {
   });
 
   it("with delete polls on, the answer settles it and a line says what was chosen", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.message(habits, "delete polls on");
     expect(t.kit.settings.deletePolls).toBe(true);
@@ -409,7 +478,7 @@ describe("check-in polls", () => {
   });
 
   it("ignores an answer whose ref isn't a check-in's", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     t.kit.ask("Other?", ["Yes", "No"], { ref: { other: 1 } });
     await t.answer(habits, { other: 1 }, 0);

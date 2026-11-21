@@ -110,3 +110,28 @@ export function cleanName(name: string): string {
   const n = name.trim().replace(/\s+/g, " ").replace(/^[:\-\s]+|[.\s]+$/g, "").slice(0, 60);
   return n.charAt(0).toUpperCase() + n.slice(1);
 }
+
+// ── The two check-ins of a day ──
+
+/** A day has two check-ins: one poll in the morning, one in the evening. */
+export type Batch = "morning" | "evening";
+/** The hour (0-23, the person's time) each one goes out. */
+export const BATCH_HOUR: Record<Batch, number> = { morning: 6, evening: 20 };
+
+/**
+ * Which check-in a habit is in, from the hour kept with it (its own, else the default). Hours
+ * before noon are the morning one, the rest the evening one; null: it isn't asked about.
+ * Habits from before 4.0.0 had an hour of their own, and land where that hour falls.
+ */
+export function batchOf(hour: number | null | undefined): Batch | null {
+  if (typeof hour !== "number") return null;
+  return hour < 12 ? "morning" : "evening";
+}
+
+/** "morning", "evening" (also "night", "mornings") → its hour; null for anything else. */
+export function batchWord(text: string): number | null {
+  const t = text.trim().toLowerCase();
+  if (/^(?:in the |every )?mornings?$/.test(t)) return BATCH_HOUR.morning;
+  if (/^(?:in the |every |at )?(?:evenings?|nights?)$/.test(t)) return BATCH_HOUR.evening;
+  return null;
+}

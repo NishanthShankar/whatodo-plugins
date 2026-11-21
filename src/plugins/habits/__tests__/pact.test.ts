@@ -19,7 +19,7 @@ const web = async (t: T) => ((await t.load(habits)) as unknown as { groups: { ke
 
 describe("a group the person already had", () => {
   it("becomes a habit group with its own name, and stops when they choose something else", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.group(habits, "joined", "x-fam", "Family");
     expect(t.sent.at(-1)).toMatchObject({ group: "x-fam" });
     expect(t.sent.at(-1)!.text).toContain("keeping habits in this group");
@@ -44,7 +44,7 @@ describe("a group the person already had", () => {
 
 describe("starting a pact", () => {
   it("makes a group for it, and a habit added there belongs to the pact, not the private list", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "new pact Gym Buddies");
     expect(t.groups.get(P)).toMatchObject({ name: "🌱 Gym Buddies" });
     expect(t.sent.at(-1)!.text).toContain("called *Gym Buddies*");
@@ -75,7 +75,7 @@ describe("starting a pact", () => {
   });
 
   it("a friend can add a habit in the main group, as their own", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.message(habits, "add yoga at 7am", null, null, ravi);
     expect(t.reactions.at(-1)).toBe("👍");
@@ -109,7 +109,7 @@ describe("starting a pact", () => {
   });
 
   it("asks about a friend's habit in the main group every day", async () => {
-    const t = createTestKit({ hour: 7 });
+    const t = createTestKit({ hour: 6 });
     await t.message(habits, "add yoga at 7am", null, null, ravi);
     await t.schedule(habits, "checkin");
     const q = t.asked.at(-1)!;
@@ -121,7 +121,7 @@ describe("starting a pact", () => {
 
 describe("checking in together", () => {
   it("asks once for the whole group with a poll that stays, and posts nothing per answer", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await pact(t);
     await t.schedule(habits, "checkin");
     const q = checkin(t);
@@ -136,7 +136,7 @@ describe("checking in together", () => {
   });
 
   it("the together streak needs everyone, and a No breaks it", async () => {
-    const t = createTestKit({ today: "2026-11-10", hour: 21 });
+    const t = createTestKit({ today: "2026-11-10", hour: 20 });
     await pact(t);
     for (const [day, raviSays] of [["2026-11-10", 0], ["2026-11-11", 0], ["2026-11-12", 1], ["2026-11-13", 0]] as const) {
       t.setToday(day);
@@ -155,7 +155,7 @@ describe("checking in together", () => {
   });
 
   it("closes yesterday's poll when today's goes out, and an answer can change until then", async () => {
-    const t = createTestKit({ today: "2026-11-10", hour: 21 });
+    const t = createTestKit({ today: "2026-11-10", hour: 20 });
     await pact(t);
     await t.schedule(habits, "checkin");
     const first = checkin(t);
@@ -169,7 +169,7 @@ describe("checking in together", () => {
   });
 
   it("someone silent for a week stops holding the together streak back", async () => {
-    const t = createTestKit({ today: "2026-11-01", hour: 21 });
+    const t = createTestKit({ today: "2026-11-01", hour: 20 });
     await pact(t);
     await t.schedule(habits, "checkin");
     await t.answer(habits, checkin(t).ref, 0);
@@ -183,7 +183,7 @@ describe("checking in together", () => {
   });
 
   it("asks nothing for a closed pact or a stopped habit", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await pact(t);
     await t.message(habits, "stop gym", null, P);
     await t.schedule(habits, "checkin");
@@ -193,7 +193,7 @@ describe("checking in together", () => {
 
 describe("a friend without a profile", () => {
   it("is counted from their first answer, and offered a profile once", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await pact(t);
     await t.schedule(habits, "checkin");
     await t.answer(habits, checkin(t).ref, 0, asha);
@@ -220,7 +220,7 @@ describe("a friend without a profile", () => {
   });
 
   it("on not now, keeps their streak, makes no profile and never asks again", async () => {
-    const t = createTestKit({ today: "2026-11-10", hour: 21 });
+    const t = createTestKit({ today: "2026-11-10", hour: 20 });
     await pact(t);
     await t.schedule(habits, "checkin");
     await t.answer(habits, checkin(t).ref, 0, asha);
@@ -243,7 +243,7 @@ describe("a friend without a profile", () => {
   });
 
   it("understands being asked to set someone up in their own words", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await pact(t);
     await t.intent(habits, "ok can you set it up for me now", "set_me_up", null, 1, asha, P);
     expect(t.signedUp).toEqual(["asha"]);
@@ -253,7 +253,7 @@ describe("a friend without a profile", () => {
   });
 
   it("someone who already has a profile is counted straight away, with no offer", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await pact(t);
     await t.schedule(habits, "checkin");
     await t.answer(habits, checkin(t).ref, 0, ravi);
@@ -337,7 +337,7 @@ describe("a friend in the private Habits group", () => {
   const streaks = async (t: T) => ((await t.load(habits)) as unknown as { habits: { streak: number }[] }).habits.map((h) => h.streak);
 
   it("takes part by answering the check-in, with their own streak, and the poll then stays for everyone", async () => {
-    const t = createTestKit({ today: "2026-11-10", hour: 21 });
+    const t = createTestKit({ today: "2026-11-10", hour: 20 });
     await t.message(habits, "add read");
     await t.message(habits, "delete polls on");
     await t.schedule(habits, "checkin");
@@ -360,7 +360,7 @@ describe("a friend in the private Habits group", () => {
   });
 
   it("is offered a profile on their first answer there too", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.schedule(habits, "checkin");
     await t.answer(habits, t.asked[0].ref, 0, asha);
@@ -403,7 +403,7 @@ describe("a friend in the private Habits group", () => {
   });
 
   it("sees only what they take part in on their own page", async () => {
-    const t = createTestKit({ hour: 21 });
+    const t = createTestKit({ hour: 20 });
     await t.message(habits, "add read");
     await t.message(habits, "add walk");
     await pact(t);

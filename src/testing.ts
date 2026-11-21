@@ -36,6 +36,8 @@ export interface Asked {
   confirm: string | false;
   /** Asked with `keep`: the poll stays, and answers can change until it is closed. */
   keep: boolean;
+  /** Asked with `multiple`: a tick list. */
+  multiple: boolean;
   /** The message posted just before the poll, as written (`{{mention}}` not filled in); null for none. */
   intro: string | null;
   /** The sender id tagged in the intro; null for none. */
@@ -67,6 +69,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const asked: Asked[] = [];
   /** Who answered what, per question. */
   const answers = new Map<Asked, Map<string, number>>();
+  /** The same for tick lists: what each person has ticked. */
+  const ticked = new Map<Asked, Map<string, number[]>>();
   const reactions: string[] = [];
   /** Sender ids given to kit.signUp(), in order: people who agreed to a profile of their own. */
   const signedUp: string[] = [];
@@ -160,7 +164,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
       const ref = o?.ref === undefined ? null : clone(o.ref);
       // Asking again with the same ref replaces the earlier question.
       if (ref !== null) for (const a of asked) if (a.open && JSON.stringify(a.ref) === JSON.stringify(ref)) a.open = false;
-      asked.push({ question, options: [...options], ref, group: o?.group ?? here, confirm: o?.confirm ?? "{{question}}: {{option}}", keep: o?.keep === true, intro: o?.intro ?? null, mention: o?.mention ?? null, open: true });
+      asked.push({ question, options: [...options], ref, group: o?.group ?? here, confirm: o?.confirm ?? "{{question}}: {{option}}", keep: o?.keep === true || o?.multiple === true, multiple: o?.multiple === true, intro: o?.intro ?? null, mention: o?.mention ?? null, open: true });
     },
     close(ref) {
       for (const a of asked) if (a.open && JSON.stringify(a.ref) === JSON.stringify(ref)) a.open = false;
@@ -332,13 +336,46 @@ export function createTestKit(opts: TestKitOptions = {}) {
      * and a second, different answer from the same person arrives with `changed: true`.
      * A question asked with `keep` stays open and posts no confirm line, whoever is in the group.
      * Throws when no such question is open or the choice isn't one of its options.
+     *
+     * For a tick list (asked with `multiple`) give an array: everything that person has ticked
+     * now. An empty array takes every tick away.
      */
-    async answer(plugin: PluginDef, ref: Json | null, choice: number, from?: string | Partial<Sender>) {
+    async answer(plugin: PluginDef, ref: Json | null, choice: number | number[], from?: string | Partial<Sender>) {
       withDefaults(plugin);
       const sender = senderOf(plugin, from);
       const want = JSON.stringify(ref);
       const q = [...asked].reverse().find((a) => a.open && JSON.stringify(a.ref) === want);
       if (!q) throw new Error(`${plugin.id}: no open question with ref ${want}`);
+      if (q.multiple !== Array.isArray(choice)) throw new Error(`${plugin.id}: ${q.multiple ? "a tick list is answered with an array of choices" : "this question takes one choice, not an array"}`);
+      if (Array.isArray(choice)) {
+        const now = [...new Set(choice)].sort((a, b) => a - b);
+        for (const c of now) if (!(Number.isInteger(c) && c >= 0 && c < q.options.length)) throw new Error(`${plugin.id}: choice ${c} isn't one of the ${q.options.length} options`);
+        if (!sender.owner) crowded.add(q.group);
+        const ticks = (ticked.get(q) ?? ticked.set(q, new Map()).get(q))!;
+        const before = ticks.get(sender.id);
+        if (JSON.stringify(before ?? []) === JSON.stringify(now) && (before !== undefined || !now.length)) return;
+        ticks.set(sender.id, now);
+        here = q.group;
+        try {
+          await plugin.onAnswer?.(
+            {
+              ref: q.ref,
+              choice: now[0] ?? -1,
+              option: now.length ? q.options[now[0]] : "",
+              choices: now,
+              added: now.filter((c) => !(before ?? []).includes(c)),
+              removed: (before ?? []).filter((c) => !now.includes(c)),
+              group: q.group,
+              sender,
+              ...(before === undefined ? {} : { changed: true }),
+            },
+            kit,
+          );
+        } finally {
+          here = null;
+        }
+        return;
+      }
       if (!(Number.isInteger(choice) && choice >= 0 && choice < q.options.length)) {
         throw new Error(`${plugin.id}: choice ${choice} isn't one of the ${q.options.length} options`);
       }
