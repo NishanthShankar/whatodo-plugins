@@ -18,7 +18,7 @@ const P = "gym-buddies";
 
 /** Drives the plugin one step at a time and keeps what each step put on WhatsApp. */
 function drive(opts: TestKitOptions = {}) {
-  const t = createTestKit({ today: "2026-11-09", hour: 21, ...opts });
+  const t = createTestKit({ today: "2026-11-09", hour: 20, ...opts });
   const log: unknown[] = [];
   let s = 0;
   let a = 0;
@@ -54,7 +54,7 @@ function drive(opts: TestKitOptions = {}) {
       step(`${who(o.from)}${where(o.group)}: ${text}`, () => t.message(habits, text, o.quoted ?? null, o.group ?? null, o.from)),
     mean: (intent: string, text: string, o: { from?: Sender; group?: string | null; target?: string | null } = {}) =>
       step(`${who(o.from)}${where(o.group)} means ${intent}: ${text}`, () => t.intent(habits, text, intent, o.target ?? null, 1, o.from, o.group ?? null)),
-    vote: (label: string, ref: Json, choice: number, from?: Sender) => step(`${who(from)} votes ${choice} on ${label}`, () => t.answer(habits, ref, choice, from)),
+    vote: (label: string, ref: Json, choice: number | number[], from?: Sender) => step(`${who(from)} ${Array.isArray(choice) ? `ticks [${choice.join(", ")}]` : `votes ${choice}`} on ${label}`, () => t.answer(habits, ref, choice, from)),
     tick: (id = "checkin") => step(`schedule ${id} on ${t.kit.today} at ${t.kit.time.hour(t.kit.now)}`, () => t.schedule(habits, id)),
     groups: () => Object.fromEntries(t.groups),
   };
@@ -171,25 +171,27 @@ describe("habits: every reply, word for word", () => {
     await vote("Meditate", { habitId: med, day: "2026-11-09" }, 0);
     await vote("Meditate", { habitId: med, day: "2026-11-09" }, 1);
     await vote("Meditate", { habitId: med, day: "2026-11-09" }, 0);
-    t.setHour(7);
+    // Tuesday: Read alone in the morning, then Meditate and Gym together in the evening.
+    t.setHour(6);
     t.setToday("2026-11-10");
     await tick();
-    t.setHour(21);
+    t.setHour(20);
     await tick();
-    await vote("Meditate", { habitId: med, day: "2026-11-10" }, 0);
-    await vote("Gym", { habitId: await idOf(t, "Gym"), day: "2026-11-10" }, 1);
+    const evening = () => lastAsk(t, (r) => Array.isArray(r.ids));
+    await vote("the evening poll", evening(), [0, 1]);
+    await vote("the evening poll", evening(), [1]);
+    await vote("the evening poll", evening(), []);
     t.setToday("2026-11-11");
     await say("simple on");
     await tick();
     await say("delete polls on");
     t.setToday("2026-11-12");
     await tick();
-    await vote("Meditate", { habitId: med, day: "2026-11-12" }, 0);
-    await vote("Gym", { habitId: await idOf(t, "Gym"), day: "2026-11-12" }, 1);
+    await vote("the evening poll", evening(), [0]);
     await say("simple off");
     t.setToday("2026-11-13");
     await tick("nightly");
-    await vote("Read", { habitId: await idOf(t, "Read"), day: "2026-11-13" }, 1);
+    await vote("Meditate", { habitId: med, day: "2026-11-13" }, 1);
     expect(d.log).toMatchSnapshot();
   });
 
@@ -248,10 +250,12 @@ describe("habits: every reply, word for word", () => {
     await seed(t, "ghost", "", "Ghost");
     await say("habits");
     await tick();
-    const med = await idOf(t, "Meditate");
-    await vote("Meditate", { habitId: med, day: "2026-11-09" }, 0);
-    await vote("Meditate", { habitId: med, day: "2026-11-09" }, 0, asha);
-    await vote("Yoga", lastAsk(t, (r) => r.pact === "" && r.day === "2026-11-09"), 0, { id: "tara", name: "Tara", owner: false, profile: false });
+    // Meditate, and the two that friends added, in one poll for everyone.
+    const evening = lastAsk(t, (r) => Array.isArray(r.ids) && r.group === "");
+    await vote("the evening poll", evening, [0]);
+    await vote("the evening poll", evening, [0, 1], asha);
+    await vote("the evening poll", evening, [0], asha);
+    await vote("the evening poll", evening, [1, 2], { id: "tara", name: "Tara", owner: false, profile: false });
     t.setToday("2026-11-10");
     await say("simple on");
     await tick();
@@ -409,24 +413,36 @@ describe("habits: every reply, word for word", () => {
     t.setToday("2026-11-10");
     t.setHour(6);
     await tick();
-    t.setHour(21);
+    t.setHour(20);
     await tick();
     // A crowd: the standings stop where the poll's 255 characters do.
     for (let i = 1; i <= 14; i++) await say("join gym", { ...g, from: { id: `p${i}`, name: `Participant${String(i).padStart(2, "0")} Surname`, owner: false, profile: true } });
     t.setToday("2026-11-11");
     await tick("nightly");
+    // Two habits due in the evening: one poll for the group, where everyone ticks what they did.
+    await say("add plank", { ...g, from: asha });
+    t.setToday("2026-11-12");
+    await tick();
+    const both = lastAsk(t, (r) => Array.isArray(r.ids) && r.group === P);
+    await vote("the group's evening poll", both, [0, 1], asha);
+    await vote("the group's evening poll", both, [1], asha);
+    await vote("the group's evening poll", both, [0]);
+    await vote("the group's evening poll", both, [0], { id: "tara", name: "Tara", owner: false, profile: false });
     await say("habits", g);
     expect(d.log).toMatchSnapshot();
   });
 
   it("a Habits group where only friends have habits", async () => {
     const d = drive();
-    const { say, tick } = d;
+    const { t, say, tick } = d;
     await say("add yoga at 6am", { from: ravi });
     await say("habits");
     await say("time off");
     await say("habits", { from: ravi });
     await tick("nightly");
+    t.setToday("2026-11-10");
+    t.setHour(6);
+    await tick();
     expect(d.log).toMatchSnapshot();
   });
 

@@ -7,7 +7,7 @@
  * that the parser reads back, is written with `fixed` and has one wording.
  */
 import { fixed, msg } from "../../sdk";
-import type { Cell, Days } from "./streaks";
+import type { Batch, Cell, Days } from "./streaks";
 
 // ── Words the parser reads ──
 
@@ -22,15 +22,15 @@ export const SAY = {
   groups: fixed("groups"),
   addMeditate: fixed("add meditate"),
   addGym: fixed("add gym"),
-  addReadAt: fixed("add read at 10pm"),
+  addReadAt: fixed("add stretch in the morning"),
   addGymOn: fixed("add gym on mon wed fri"),
   doneMeditate: fixed("done meditate"),
   undoMeditate: fixed("undo meditate"),
   stopMeditate: fixed("stop meditate"),
-  time9pm: fixed("time 9pm"),
-  time10pm: fixed("time 10pm"),
+  timeEvening: fixed("time evening"),
+  timeMorning: fixed("time morning"),
   timeOff: fixed("time off"),
-  timeMeditate: fixed("time meditate 7am"),
+  timeMeditate: fixed("time meditate morning"),
   timeMeditateDefault: fixed("time meditate default"),
   daysGym: fixed("days gym mon wed fri"),
   daysGymTueThu: fixed("days gym tue thu"),
@@ -44,7 +44,7 @@ export const SAY = {
 };
 
 /** The same commands for a habit the person has, by its name. Read back by the same parsers. */
-const sayTime = (habit: string) => `time ${habit.toLowerCase()} 7am`;
+const sayTime = (habit: string) => `time ${habit.toLowerCase()} morning`;
 const sayDays = (habit: string) => `days ${habit.toLowerCase()} mon wed fri`;
 
 // ── Poll choices ──
@@ -86,7 +86,7 @@ export interface Streaker {
 /** A habit in a group: one in a group kept with others, or one a friend added to the main group. */
 export interface GroupHabit {
   name: string;
-  /** Its own check-in hour (0-23); null: the default time. */
+  /** The hour kept with it (0-23), which says morning or evening; null: the default one. */
   hour: number | null;
   days: Days;
   together: number;
@@ -97,7 +97,7 @@ export interface GroupHabit {
 export interface OwnHabit {
   name: string;
   streak: number;
-  /** Its own check-in hour (0-23); null: the default time. */
+  /** The hour kept with it (0-23), which says morning or evening; null: the default one. */
   hour: number | null;
   days: Days;
   /** The last days, oldest first. */
@@ -105,8 +105,6 @@ export interface OwnHabit {
   /** Friends taking part in it (the person themself left out); null when there are none. */
   friends: { together: number; people: Streaker[] } | null;
 }
-
-const hourLabel = (h: number) => `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "am" : "pm"}`;
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -123,7 +121,11 @@ function daysLabel(days: Days): string {
 const squares = (cells: Cell[]) => cells.map((c) => (c === "done" ? "🟩" : c === "due" ? "⬜" : "▫️")).join("");
 
 const someone = (name: string | null) => name ?? "Someone";
-const clock = (hour: number | null) => (hour === null ? "" : `  ⏰ ${hourLabel(hour)}`);
+/** The mark of a habit that was put in the morning or the evening check-in by hand. */
+const MARK: Record<Batch, string> = { morning: "🌅", evening: "🌙" };
+const clock = (hour: number | null) => (hour === null ? "" : `  ${hour < 12 ? MARK.morning : MARK.evening}`);
+/** When the two check-ins go out, as shown to people. */
+const AT: Record<Batch, string> = { morning: fixed("6am"), evening: fixed("8pm") };
 const calendar = (days: Days) => (days?.length ? `  📅 ${daysLabel(days)}` : "");
 const streakLine = (p: Streaker) => `${someone(p.name)}  🔥 ${p.streak}`;
 
@@ -167,7 +169,7 @@ export const copy = {
   // The listing
   groupName: msg(["🌱 Habits"]),
   welcome: msg([
-    `🌱 You've installed *Habits*.\n\nTell me a habit you want to build, in your own words, or send _${SAY.addMeditate}_. Every day I'll ask about each one with a poll: tap ${YES} if you did it, ${NO} if you didn't.\n\nSend _${SAY.help}_ any time.`,
+    `🌱 You've installed *Habits*.\n\nTell me a habit you want to build, in your own words, or send _${SAY.addMeditate}_. Every day I'll send a poll with your habits, in the evening (${AT.evening}): tick the ones you did.\n\nSend _${SAY.help}_ any time.`,
   ]),
   help: msg([
     [
@@ -177,20 +179,20 @@ export const copy = {
       `_${SAY.habits}_ shows your streaks`,
       `_${SAY.doneMeditate}_ logs it for today, _${SAY.undoMeditate}_ takes it back`,
       `_${SAY.stopMeditate}_ stops tracking it`,
-      `_${SAY.time10pm}_ sets the default check-in time, _${SAY.timeOff}_ turns it off`,
-      `_${SAY.timeMeditate}_ gives one habit its own time, _${SAY.timeMeditateDefault}_ puts it back`,
-      `_${SAY.addReadAt}_ adds a habit with its own time`,
+      `_${SAY.timeMeditate}_ moves a habit to the morning poll (${AT.morning}), _${SAY.timeMeditateDefault}_ puts it back`,
+      `_${SAY.addReadAt}_ adds a habit to the morning poll`,
+      `_${SAY.timeMorning}_ asks about every habit in the morning unless it is marked otherwise, _${SAY.timeEvening}_ in the evening, _${SAY.timeOff}_ stops the polls`,
       `_${SAY.addGymOn}_ adds a habit for some days only`,
       `_${SAY.daysGymTueThu}_ changes its days, _${SAY.daysGymEveryDay}_ puts it back`,
       `_${SAY.simpleOn}_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _${SAY.simpleOff}_ turns it off`,
-      `_${SAY.deletePollsOn}_ deletes each check-in poll once you answer it. _${SAY.deletePollsOff}_ keeps it`,
+      `_${SAY.deletePollsOn}_ deletes a one-habit poll once you answer it. _${SAY.deletePollsOff}_ keeps it`,
       "",
       `*More groups:* _${SAY.newGroup}_ makes another Habits group, for a different set of habits or of people`,
       `_${SAY.groups}_ lists yours, _${SAY.closeGroup}_ ends one`,
       "",
       `*With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _${SAY.habits}_ shows everyone's streaks`,
       "",
-      `Every day I send one poll per habit. Tap ${YES} if you did it, ${NO} if you didn't. You can change your answer until that habit's next check-in.`,
+      `Twice a day I send one poll with the habits that are due: morning habits at ${AT.morning}, evening ones at ${AT.evening}. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with ${YES} or ${NO}.`,
     ].join("\n"),
   ]),
 
@@ -213,8 +215,8 @@ export const copy = {
       lines.push(
         "",
         checkinHour !== null
-          ? `_I check in at ${hourLabel(checkinHour)} unless a habit has its own time (⏰)._`
-          : `_The default check-in is off; habits with their own time (⏰) still get one. Send ${SAY.time9pm} to turn it on._`,
+          ? `_I ask at ${AT.morning} about morning habits (${MARK.morning}) and at ${AT.evening} about evening ones (${MARK.evening}). A habit without a mark is asked about in the ${checkinHour < 12 ? "morning" : "evening"}._`
+          : `_Polls are off for habits without a mark (${MARK.morning} morning, ${MARK.evening} evening). Send ${SAY.timeEvening} to turn them on._`,
       );
       return lines.join("\n");
     },
@@ -224,11 +226,11 @@ export const copy = {
   whatToCallIt: msg([`What should I call it? Like _${SAY.addGymOn}_.`]),
   whichHabit: msg([`Which habit? Send _${SAY.habits}_ to see them.`]),
   noHabitsToPick: msg([`You don't have any habits yet. Start with _${SAY.addMeditate}_.`]),
-  giveHabitTime: msg([`Give me a time like _${SAY.timeMeditate}_.`]),
-  giveHabitTimeFor: msg<{ habit: string }>([({ habit }) => `Give me a time like _${sayTime(habit)}_.`]),
-  giveDefaultTime: msg([`Give me a time like _${SAY.time10pm}_.`]),
-  whatTimeFor: msg<{ habit: string }>([({ habit }) => `What time? Like _${sayTime(habit)}_.`]),
-  whatDefaultTime: msg([`What time? Like _${SAY.time9pm}_, or _${SAY.timeOff}_.`]),
+  giveHabitTime: msg([`Say morning or evening, like _${SAY.timeMeditate}_.`]),
+  giveHabitTimeFor: msg<{ habit: string }>([({ habit }) => `Say morning or evening, like _${sayTime(habit)}_.`]),
+  giveDefaultTime: msg([`Say _${SAY.timeMorning}_ or _${SAY.timeEvening}_.`]),
+  whatTimeFor: msg<{ habit: string }>([({ habit }) => `Morning or evening? Like _${sayTime(habit)}_.`]),
+  whatDefaultTime: msg([`Morning or evening? Like _${SAY.timeEvening}_, or _${SAY.timeOff}_.`]),
   tellDays: msg([`Tell me the habit and the days, like _${SAY.daysGym}_ or _${SAY.daysGymEveryDay}_.`]),
   whichDaysFor: msg<{ habit: string }>([({ habit }) => `Which days? Like _${sayDays(habit)}_.`]),
 
@@ -238,6 +240,21 @@ export const copy = {
   checkinTogether: msg<SharedCheckin>([({ habit, limit, ...s }) => withStandings(didYou(habit), s, limit)]),
   checkinTogetherSimple: msg<SharedCheckin>([({ habit, limit, ...s }) => withStandings(habit, s, limit)]),
   checkinConfirm: msg<{ habit: string }>([({ habit }) => `*${habit}*: ${OPTION}`]),
+  /** The question of a check-in with more than one habit: a poll where each habit done is ticked. */
+  checkinBatch: msg<{ batch: Batch; simple: boolean; part: number; parts: number }>([
+    ({ batch, simple, part, parts }) => {
+      const title = batch === "morning" ? "Morning habits" : "Evening habits";
+      const ask = simple ? title : batch === "morning" ? `🌱 ${title}. Tick each one you do today.` : `🌱 ${title}. Tick the ones you did today.`;
+      return parts > 1 ? `${ask} (${part} of ${parts})` : ask;
+    },
+  ]),
+  /** One habit as a line to tick. `streak`: the person's own; `together`: the shared one, when others do it too. Never longer than a poll's option. */
+  checkinOption: msg<{ habit: string; streak: number | null; together: number | null }>([
+    ({ habit, streak, together }) => {
+      const tail = together !== null ? `  Together 🔥 ${together}` : streak !== null ? `  🔥 ${streak}` : "";
+      return `${habit.slice(0, 100 - tail.length)}${tail}`;
+    },
+  ]),
 
   // Habits in a group, from anyone in it
   cantFindHere: msg<{ which: string }>([({ which }) => `I can't find "${which}" here. Send _${SAY.habits}_ to see them.`]),

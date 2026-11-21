@@ -20,10 +20,10 @@ exports[`habits: every reply, word for word > a Habits group where only friends 
         "ref": null,
         "text": "*Habits*
 
-1. *Yoga*  ⏰ 6am
+1. *Yoga*  🌅
 Ravi  🔥 0
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: habits",
@@ -47,13 +47,20 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
         "ref": null,
         "text": "*Habits*
 
-1. *Yoga*  ⏰ 6am
+1. *Yoga*  🌅
 Ravi  🔥 0
 
-_The default check-in is off; habits with their own time (⏰) still get one. Send time 9pm to turn it on._",
+_Polls are off for habits without a mark (🌅 morning, 🌙 evening). Send time evening to turn them on._",
       },
     ],
     "step": "ravi: habits",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule nightly on 2026-11-09 at 20",
     "unsures": [],
   },
   {
@@ -64,13 +71,14 @@ _The default check-in is off; habits with their own time (⏰) still get one. Se
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "No",
         ],
         "question": "🌱 Did you Yoga today?  Ravi 🔥 0",
         "ref": {
-          "day": "2026-11-09",
+          "day": "2026-11-10",
           "habitId": "id1",
           "pact": "",
         },
@@ -78,7 +86,7 @@ _The default check-in is off; habits with their own time (⏰) still get one. Se
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule nightly on 2026-11-09 at 21",
+    "step": "schedule checkin on 2026-11-10 at 6",
     "unsures": [],
   },
 ]
@@ -103,6 +111,7 @@ exports[`habits: every reply, word for word > a crowd in the person's own habit,
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -185,7 +194,7 @@ Asha Rao  🔥 1
 2. *Yoga*
 Ravi  🔥 0
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: habits",
@@ -194,42 +203,33 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
   {
     "asked": [
       {
-        "confirm": "*Meditate*: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": true,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "🌱 Did you Meditate today?  Together 🔥 0 · Asha 🔥 1 · Someone 🔥 0",
-        "ref": {
-          "day": "2026-11-09",
-          "habitId": "id1",
-        },
-      },
-      {
         "confirm": "{{question}}: {{option}}",
         "group": null,
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": true,
         "options": [
-          "Yes",
-          "No",
+          "Meditate  Together 🔥 0",
+          "Yoga",
         ],
-        "question": "🌱 Did you Yoga today?  Ravi 🔥 0",
+        "question": "🌱 Evening habits. Tick the ones you did today.",
         "ref": {
+          "batch": "evening",
           "day": "2026-11-09",
-          "habitId": "id2",
-          "pact": "",
+          "group": "",
+          "ids": [
+            "h:id1",
+            "p:id2",
+          ],
+          "part": 0,
+          "shared": true,
         },
       },
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-09 at 21",
+    "step": "schedule checkin on 2026-11-09 at 20",
     "unsures": [],
   },
   {
@@ -249,7 +249,7 @@ Asha Rao  🔥 1
 2. *Yoga*
 Ravi  🔥 0
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "asha means list: how is it going",
@@ -384,42 +384,33 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
   {
     "asked": [
       {
-        "confirm": "*Meditate*: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": true,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "🌱 Did you Meditate today?  Together 🔥 0 · Asha 🔥 1 · Someone 🔥 0 · Participant01 🔥 0 · Participant02 🔥 0 · Participant03 🔥 0 · Participant04 🔥 0 · Participant05 🔥 0 · Participant06 🔥 0 · Participant07 🔥 0 · Participant08 🔥 0",
-        "ref": {
-          "day": "2026-11-10",
-          "habitId": "id1",
-        },
-      },
-      {
         "confirm": "{{question}}: {{option}}",
         "group": null,
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": true,
         "options": [
-          "Yes",
-          "No",
+          "Meditate  Together 🔥 0",
+          "Yoga",
         ],
-        "question": "🌱 Did you Yoga today?  Ravi 🔥 0",
+        "question": "🌱 Evening habits. Tick the ones you did today.",
         "ref": {
+          "batch": "evening",
           "day": "2026-11-10",
-          "habitId": "id2",
-          "pact": "",
+          "group": "",
+          "ids": [
+            "h:id1",
+            "p:id2",
+          ],
+          "part": 0,
+          "shared": true,
         },
       },
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-10 at 21",
+    "step": "schedule checkin on 2026-11-10 at 20",
     "unsures": [],
   },
   {
@@ -434,42 +425,33 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
   {
     "asked": [
       {
-        "confirm": "*Meditate*: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": true,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "Meditate  Together 🔥 0 · Someone 🔥 0 · Asha 🔥 0 · Participant01 🔥 0 · Participant02 🔥 0 · Participant03 🔥 0 · Participant04 🔥 0 · Participant05 🔥 0 · Participant06 🔥 0 · Participant07 🔥 0 · Participant08 🔥 0 · Participant09 🔥 0",
-        "ref": {
-          "day": "2026-11-11",
-          "habitId": "id1",
-        },
-      },
-      {
         "confirm": "{{question}}: {{option}}",
         "group": null,
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": true,
         "options": [
-          "Yes",
-          "No",
+          "Meditate  Together 🔥 0",
+          "Yoga",
         ],
-        "question": "🌱 Did you Yoga today?  Ravi 🔥 0",
+        "question": "Evening habits",
         "ref": {
+          "batch": "evening",
           "day": "2026-11-11",
-          "habitId": "id2",
-          "pact": "",
+          "group": "",
+          "ids": [
+            "h:id1",
+            "p:id2",
+          ],
+          "part": 0,
+          "shared": true,
         },
       },
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-11 at 21",
+    "step": "schedule checkin on 2026-11-11 at 20",
     "unsures": [],
   },
   {
@@ -503,7 +485,7 @@ Participant14 Surname  🔥 0
 2. *Yoga*
 Ravi  🔥 0
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: habits",
@@ -557,7 +539,7 @@ exports[`habits: every reply, word for word > a friend's plain sentences in the 
 1. *Meditate*
 ⬜
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "asha means list: how is it going",
@@ -575,7 +557,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
 1. *Meditate*
 ⬜
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "asha means help: what can I do here",
@@ -602,6 +584,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -691,10 +674,10 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
 Together 🔥 0
 Asha Rao  🔥 1
 
-2. *Yoga*  ⏰ 6am
+2. *Yoga*  🌅
 Asha Rao  🔥 0
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "asha means set_time: move yoga to 7",
@@ -770,6 +753,7 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "No",
@@ -784,7 +768,7 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-09 at 21",
+    "step": "schedule checkin on 2026-11-09 at 20",
     "unsures": [],
   },
   {
@@ -802,6 +786,7 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -825,6 +810,7 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -914,6 +900,7 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -950,6 +937,7 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "No",
@@ -975,6 +963,7 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "No",
@@ -989,7 +978,7 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-10 at 21",
+    "step": "schedule checkin on 2026-11-10 at 20",
     "unsures": [],
   },
   {
@@ -1126,6 +1115,7 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "No",
@@ -1140,7 +1130,93 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule nightly on 2026-11-11 at 21",
+    "step": "schedule nightly on 2026-11-11 at 20",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [],
+    "step": "asha in gym-buddies: add plank",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": "{{question}}: {{option}}",
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": true,
+        "mention": null,
+        "multiple": true,
+        "options": [
+          "Gym  Together 🔥 0",
+          "Plank",
+        ],
+        "question": "🌱 Evening habits. Tick the ones you did today.",
+        "ref": {
+          "batch": "evening",
+          "day": "2026-11-12",
+          "group": "gym-buddies",
+          "ids": [
+            "p:id1",
+            "p:id3",
+          ],
+          "part": 0,
+          "shared": true,
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "schedule checkin on 2026-11-12 at 20",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "asha ticks [0, 1] on the group's evening poll",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "asha ticks [1] on the group's evening poll",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner ticks [0] on the group's evening poll",
+    "unsures": [],
+  },
+  {
+    "asked": [
+      {
+        "confirm": false,
+        "group": "gym-buddies",
+        "intro": null,
+        "keep": false,
+        "mention": null,
+        "multiple": false,
+        "options": [
+          "Yes",
+          "Not now",
+        ],
+        "question": "Good start Tara. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up.",
+        "ref": {
+          "offer": "tara",
+        },
+      },
+    ],
+    "reactions": [],
+    "sent": [],
+    "step": "tara ticks [0] on the group's evening poll",
     "unsures": [],
   },
   {
@@ -1153,6 +1229,8 @@ exports[`habits: every reply, word for word > a habit group's daily check-in, it
         "text": "🌱 *gym buddies*
 
 1. *Gym*  Together 🔥 0
+Tara  🔥 1
+Test Person  🔥 1
 Someone  🔥 0
 Asha Rao  🔥 0
 Meera Nair  🔥 0
@@ -1171,10 +1249,12 @@ Participant12 Surname  🔥 0
 Participant13 Surname  🔥 0
 Participant14 Surname  🔥 0
 Ravi  🔥 0
+
+2. *Run*  🌅  📅 Tue, Thu
 Test Person  🔥 0
 
-2. *Run*  ⏰ 6am  📅 Tue, Thu
-Test Person  🔥 0",
+3. *Plank*
+Asha Rao  🔥 1",
       },
     ],
     "step": "owner in gym-buddies: habits",
@@ -1228,6 +1308,7 @@ exports[`habits: every reply, word for word > everyone in a habit group 1`] = `
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -1262,6 +1343,7 @@ exports[`habits: every reply, word for word > everyone in a habit group 1`] = `
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -1293,7 +1375,7 @@ Asha Rao  🔥 1
 Someone  🔥 0
 Test Person  🔥 0
 
-2. *Run*  ⏰ 6am  📅 weekdays
+2. *Run*  🌅  📅 weekdays
 Ravi  🔥 0",
       },
     ],
@@ -1314,7 +1396,7 @@ Asha Rao  🔥 1
 Someone  🔥 0
 Test Person  🔥 0
 
-2. *Run*  ⏰ 6am  📅 weekdays
+2. *Run*  🌅  📅 weekdays
 Ravi  🔥 0",
       },
     ],
@@ -1534,7 +1616,7 @@ Ravi  🔥 0",
       {
         "group": "gym-buddies",
         "ref": null,
-        "text": "Give me a time like _time run 7am_.",
+        "text": "Say morning or evening, like _time run morning_.",
       },
     ],
     "step": "ravi in gym-buddies: time run 25",
@@ -1627,6 +1709,7 @@ Ravi  🔥 0",
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -1750,10 +1833,10 @@ exports[`habits: every reply, word for word > friends in the person's own Habits
 1. *Meditate*
 ⬜
 
-2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+2. *Gym*  🌅  📅 Mon, Wed, Fri
 ⬜
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "asha: habits",
@@ -1767,6 +1850,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -1792,6 +1876,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -1826,6 +1911,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -1975,12 +2061,12 @@ Asha Rao  🔥 1
 Ravi  🔥 1
 Someone  🔥 0
 
-2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+2. *Gym*  🌅  📅 Mon, Wed, Fri
 ⬜
 Together 🔥 0
 Meera Nair  🔥 0
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: habits",
@@ -2002,12 +2088,12 @@ Asha Rao  🔥 1
 Ravi  🔥 1
 Someone  🔥 0
 
-2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+2. *Gym*  🌅  📅 Mon, Wed, Fri
 ⬜
 Together 🔥 0
 Meera Nair  🔥 0
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "asha: habits",
@@ -2144,7 +2230,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
       {
         "group": null,
         "ref": null,
-        "text": "Give me a time like _time stretch 7am_.",
+        "text": "Say morning or evening, like _time stretch morning_.",
       },
     ],
     "step": "ravi: time stretch 25",
@@ -2351,7 +2437,7 @@ Asha Rao  🔥 1
 Ravi  🔥 1
 Someone  🔥 0
 
-2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+2. *Gym*  🌅  📅 Mon, Wed, Fri
 ⬜
 Together 🔥 0
 Meera Nair  🔥 0
@@ -2363,10 +2449,10 @@ _Nobody has answered yet._
 Test Person  🔥 1
 Asha Rao  🔥 0
 
-5. *Stretch*  ⏰ 9am  📅 Tue, Thu
+5. *Stretch*  🌅  📅 Tue, Thu
 Ravi  🔥 0
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: habits",
@@ -2375,73 +2461,56 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
   {
     "asked": [
       {
-        "confirm": "*Meditate*: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": true,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "🌱 Did you Meditate today?  Together 🔥 0 · Asha 🔥 1 · Ravi 🔥 1 · Test 🔥 1 · Someone 🔥 0",
-        "ref": {
-          "day": "2026-11-09",
-          "habitId": "id1",
-        },
-      },
-      {
         "confirm": "{{question}}: {{option}}",
         "group": null,
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": true,
         "options": [
-          "Yes",
-          "No",
+          "Meditate  Together 🔥 0",
+          "Ghost",
+          "Yoga  Together 🔥 0",
         ],
-        "question": "🌱 Did you Ghost today?",
+        "question": "🌱 Evening habits. Tick the ones you did today.",
         "ref": {
+          "batch": "evening",
           "day": "2026-11-09",
-          "habitId": "ghost",
-          "pact": "",
-        },
-      },
-      {
-        "confirm": "{{question}}: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": true,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "🌱 Did you Yoga today?  Together 🔥 0 · Test 🔥 1 · Asha 🔥 0",
-        "ref": {
-          "day": "2026-11-09",
-          "habitId": "id4",
-          "pact": "",
+          "group": "",
+          "ids": [
+            "h:id1",
+            "p:ghost",
+            "p:id4",
+          ],
+          "part": 0,
+          "shared": true,
         },
       },
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-09 at 21",
+    "step": "schedule checkin on 2026-11-09 at 20",
     "unsures": [],
   },
   {
     "asked": [],
     "reactions": [],
     "sent": [],
-    "step": "owner votes 0 on Meditate",
+    "step": "owner ticks [0] on the evening poll",
     "unsures": [],
   },
   {
     "asked": [],
     "reactions": [],
     "sent": [],
-    "step": "asha votes 0 on Meditate",
+    "step": "asha ticks [0, 1] on the evening poll",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "asha ticks [0] on the evening poll",
     "unsures": [],
   },
   {
@@ -2452,6 +2521,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -2464,7 +2534,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
     ],
     "reactions": [],
     "sent": [],
-    "step": "tara votes 0 on Yoga",
+    "step": "tara ticks [1, 2] on the evening poll",
     "unsures": [],
   },
   {
@@ -2479,59 +2549,35 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
   {
     "asked": [
       {
-        "confirm": "*Meditate*: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": true,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "Meditate  Together 🔥 0 · Asha 🔥 1 · Ravi 🔥 1 · Test 🔥 1 · Someone 🔥 0",
-        "ref": {
-          "day": "2026-11-10",
-          "habitId": "id1",
-        },
-      },
-      {
         "confirm": "{{question}}: {{option}}",
         "group": null,
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": true,
         "options": [
-          "Yes",
-          "No",
+          "Meditate  Together 🔥 0",
+          "Ghost  Together 🔥 0",
+          "Yoga  Together 🔥 0",
         ],
-        "question": "🌱 Did you Ghost today?",
+        "question": "Evening habits",
         "ref": {
+          "batch": "evening",
           "day": "2026-11-10",
-          "habitId": "ghost",
-          "pact": "",
-        },
-      },
-      {
-        "confirm": "{{question}}: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": true,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "🌱 Did you Yoga today?  Together 🔥 0 · Tara 🔥 1 · Test 🔥 1 · Asha 🔥 0",
-        "ref": {
-          "day": "2026-11-10",
-          "habitId": "id4",
-          "pact": "",
+          "group": "",
+          "ids": [
+            "h:id1",
+            "p:ghost",
+            "p:id4",
+          ],
+          "part": 0,
+          "shared": true,
         },
       },
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-10 at 21",
+    "step": "schedule checkin on 2026-11-10 at 20",
     "unsures": [],
   },
   {
@@ -2550,23 +2596,24 @@ Asha Rao  🔥 1
 Ravi  🔥 1
 Someone  🔥 0
 
-2. *Gym*  ⏰ 7am  📅 Mon, Wed, Fri
+2. *Gym*  🌅  📅 Mon, Wed, Fri
 ⬜▫️
 Together 🔥 0
 Meera Nair  🔥 0
 
-3. *Ghost*
-_Nobody has answered yet._
+3. *Ghost*  Together 🔥 0
+Tara  🔥 1
+Asha Rao  🔥 0
 
 4. *Yoga*  Together 🔥 0
 Tara  🔥 1
 Test Person  🔥 1
 Asha Rao  🔥 0
 
-5. *Stretch*  ⏰ 9am  📅 Tue, Thu
+5. *Stretch*  🌅  📅 Tue, Thu
 Ravi  🔥 0
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: habits",
@@ -3153,6 +3200,7 @@ exports[`habits: every reply, word for word > plain sentences in a habit group 1
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "Not now",
@@ -3228,7 +3276,7 @@ exports[`habits: every reply, word for word > plain sentences in a habit group 1
         "ref": null,
         "text": "🌱 *gym buddies*
 
-1. *Gym*  Together 🔥 0  ⏰ 7am  📅 weekdays
+1. *Gym*  Together 🔥 0  🌅  📅 weekdays
 Meera Nair  🔥 1
 Asha Rao  🔥 0
 Ravi  🔥 0
@@ -3249,7 +3297,7 @@ Test Person  🔥 0",
         "ref": null,
         "text": "🌱 *gym buddies*
 
-1. *Gym*  Together 🔥 0  ⏰ 7am  📅 weekdays
+1. *Gym*  Together 🔥 0  🌅  📅 weekdays
 Meera Nair  🔥 1
 Asha Rao  🔥 0
 Ravi  🔥 0
@@ -3314,6 +3362,7 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "No",
@@ -3327,7 +3376,7 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-09 at 21",
+    "step": "schedule checkin on 2026-11-09 at 20",
     "unsures": [],
   },
   {
@@ -3361,6 +3410,7 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "No",
@@ -3374,47 +3424,39 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-10 at 7",
+    "step": "schedule checkin on 2026-11-10 at 6",
     "unsures": [],
   },
   {
     "asked": [
       {
-        "confirm": "*Meditate*: {{option}}",
+        "confirm": "{{question}}: {{option}}",
         "group": null,
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": true,
         "options": [
-          "Yes",
-          "No",
+          "Meditate  🔥 1",
+          "Gym  🔥 0",
         ],
-        "question": "🌱 Did you Meditate today?  🔥 1",
+        "question": "🌱 Evening habits. Tick the ones you did today.",
         "ref": {
+          "batch": "evening",
           "day": "2026-11-10",
-          "habitId": "id1",
-        },
-      },
-      {
-        "confirm": "*Gym*: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": true,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "🌱 Did you Gym today?  🔥 0",
-        "ref": {
-          "day": "2026-11-10",
-          "habitId": "id3",
+          "group": "",
+          "ids": [
+            "h:id1",
+            "h:id3",
+          ],
+          "part": 0,
+          "shared": false,
         },
       },
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-10 at 21",
+    "step": "schedule checkin on 2026-11-10 at 20",
     "unsures": [],
   },
   {
@@ -3423,16 +3465,21 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
       "👍",
     ],
     "sent": [],
-    "step": "owner votes 0 on Meditate",
+    "step": "owner ticks [0, 1] on the evening poll",
     "unsures": [],
   },
   {
     "asked": [],
-    "reactions": [
-      "👍",
-    ],
+    "reactions": [],
     "sent": [],
-    "step": "owner votes 1 on Gym",
+    "step": "owner ticks [1] on the evening poll",
+    "unsures": [],
+  },
+  {
+    "asked": [],
+    "reactions": [],
+    "sent": [],
+    "step": "owner ticks [] on the evening poll",
     "unsures": [],
   },
   {
@@ -3452,11 +3499,12 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
         "intro": null,
         "keep": true,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "No",
         ],
-        "question": "Meditate  🔥 2",
+        "question": "Meditate  🔥 0",
         "ref": {
           "day": "2026-11-11",
           "habitId": "id1",
@@ -3465,7 +3513,7 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-11 at 21",
+    "step": "schedule checkin on 2026-11-11 at 20",
     "unsures": [],
   },
   {
@@ -3480,67 +3528,42 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
   {
     "asked": [
       {
-        "confirm": "*Meditate*: {{option}}",
+        "confirm": "{{question}}: {{option}}",
         "group": null,
         "intro": null,
-        "keep": false,
+        "keep": true,
         "mention": null,
+        "multiple": true,
         "options": [
-          "Yes",
-          "No",
+          "Meditate  🔥 0",
+          "Gym  🔥 0",
         ],
-        "question": "Meditate  🔥 0",
+        "question": "Evening habits",
         "ref": {
+          "batch": "evening",
           "day": "2026-11-12",
-          "habitId": "id1",
-        },
-      },
-      {
-        "confirm": "*Gym*: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": false,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "Gym  🔥 0",
-        "ref": {
-          "day": "2026-11-12",
-          "habitId": "id3",
+          "group": "",
+          "ids": [
+            "h:id1",
+            "h:id3",
+          ],
+          "part": 0,
+          "shared": false,
         },
       },
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule checkin on 2026-11-12 at 21",
+    "step": "schedule checkin on 2026-11-12 at 20",
     "unsures": [],
   },
   {
     "asked": [],
-    "reactions": [],
-    "sent": [
-      {
-        "group": null,
-        "ref": null,
-        "text": "*Meditate*: Yes",
-      },
+    "reactions": [
+      "👍",
     ],
-    "step": "owner votes 0 on Meditate",
-    "unsures": [],
-  },
-  {
-    "asked": [],
-    "reactions": [],
-    "sent": [
-      {
-        "group": null,
-        "ref": null,
-        "text": "*Gym*: No",
-      },
-    ],
-    "step": "owner votes 1 on Gym",
+    "sent": [],
+    "step": "owner ticks [0] on the evening poll",
     "unsures": [],
   },
   {
@@ -3560,6 +3583,7 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
         "intro": null,
         "keep": false,
         "mention": null,
+        "multiple": false,
         "options": [
           "Yes",
           "No",
@@ -3570,26 +3594,10 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
           "habitId": "id1",
         },
       },
-      {
-        "confirm": "*Read*: {{option}}",
-        "group": null,
-        "intro": null,
-        "keep": false,
-        "mention": null,
-        "options": [
-          "Yes",
-          "No",
-        ],
-        "question": "🌱 Did you Read today?  🔥 0",
-        "ref": {
-          "day": "2026-11-13",
-          "habitId": "id2",
-        },
-      },
     ],
     "reactions": [],
     "sent": [],
-    "step": "schedule nightly on 2026-11-13 at 21",
+    "step": "schedule nightly on 2026-11-13 at 20",
     "unsures": [],
   },
   {
@@ -3599,10 +3607,10 @@ exports[`habits: every reply, word for word > the daily check-in and its answers
       {
         "group": null,
         "ref": null,
-        "text": "*Read*: No",
+        "text": "*Meditate*: No",
       },
     ],
-    "step": "owner votes 1 on Read",
+    "step": "owner votes 1 on Meditate",
     "unsures": [],
   },
 ]
@@ -3762,16 +3770,16 @@ exports[`habits: every reply, word for word > the person's own commands 1`] = `
         "ref": null,
         "text": "*Your habits* (last 14 days)
 
-1. *Read*  ⏰ 7am
+1. *Read*  🌅
 🟩⬜⬜⬜🟩⬜⬜
 
 2. *Gym*  🔥 1  📅 Mon, Wed, Fri
 🟩▫️⬜▫️🟩▫️▫️
 
-3. *Meditate*  ⏰ 6am
+3. *Meditate*  🌅
 🟩🟩🟩⬜⬜⬜⬜
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: habits",
@@ -3786,16 +3794,16 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
         "ref": null,
         "text": "*Your habits* (last 14 days)
 
-1. *Read*  ⏰ 7am
+1. *Read*  🌅
 🟩⬜⬜⬜🟩⬜⬜
 
 2. *Gym*  🔥 1  📅 Mon, Wed, Fri
 🟩▫️⬜▫️🟩▫️▫️
 
-3. *Meditate*  ⏰ 6am
+3. *Meditate*  🌅
 🟩🟩🟩⬜⬜⬜⬜
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: streaks",
@@ -3847,7 +3855,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
       {
         "group": null,
         "ref": null,
-        "text": "Give me a time like _time meditate 7am_.",
+        "text": "Say morning or evening, like _time meditate morning_.",
       },
     ],
     "step": "owner: time meditate 25",
@@ -3887,7 +3895,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
       {
         "group": null,
         "ref": null,
-        "text": "Give me a time like _time 10pm_.",
+        "text": "Say _time morning_ or _time evening_.",
       },
     ],
     "step": "owner: time 25",
@@ -3920,7 +3928,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
 3. *Read*
 🟩⬜⬜⬜🟩⬜⬜
 
-_I check in at 10pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: habits",
@@ -3953,7 +3961,7 @@ _I check in at 10pm unless a habit has its own time (⏰)._",
 3. *Read*
 🟩⬜⬜⬜🟩⬜⬜
 
-_The default check-in is off; habits with their own time (⏰) still get one. Send time 9pm to turn it on._",
+_Polls are off for habits without a mark (🌅 morning, 🌙 evening). Send time evening to turn them on._",
       },
     ],
     "step": "owner: habits",
@@ -4081,7 +4089,7 @@ _The default check-in is off; habits with their own time (⏰) still get one. Se
 2. *Read*
 🟩⬜⬜⬜🟩⬜⬜
 
-_The default check-in is off; habits with their own time (⏰) still get one. Send time 9pm to turn it on._",
+_Polls are off for habits without a mark (🌅 morning, 🌙 evening). Send time evening to turn them on._",
       },
     ],
     "step": "owner: habits",
@@ -4136,20 +4144,20 @@ _add meditate_ starts a habit
 _habits_ shows your streaks
 _done meditate_ logs it for today, _undo meditate_ takes it back
 _stop meditate_ stops tracking it
-_time 10pm_ sets the default check-in time, _time off_ turns it off
-_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back
-_add read at 10pm_ adds a habit with its own time
+_time meditate morning_ moves a habit to the morning poll (6am), _time meditate default_ puts it back
+_add stretch in the morning_ adds a habit to the morning poll
+_time morning_ asks about every habit in the morning unless it is marked otherwise, _time evening_ in the evening, _time off_ stops the polls
 _add gym on mon wed fri_ adds a habit for some days only
 _days gym tue thu_ changes its days, _days gym every day_ puts it back
 _simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off
-_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it
+_delete polls on_ deletes a one-habit poll once you answer it. _delete polls off_ keeps it
 
 *More groups:* _new group gym buddies_ makes another Habits group, for a different set of habits or of people
 _groups_ lists yours, _close group gym buddies_ ends one
 
 *With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks
 
-Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
+Twice a day I send one poll with the habits that are due: morning habits at 6am, evening ones at 8pm. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with Yes or No.",
       },
     ],
     "step": "owner: help (straight to the plugin)",
@@ -4231,20 +4239,20 @@ _add meditate_ starts a habit
 _habits_ shows your streaks
 _done meditate_ logs it for today, _undo meditate_ takes it back
 _stop meditate_ stops tracking it
-_time 10pm_ sets the default check-in time, _time off_ turns it off
-_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back
-_add read at 10pm_ adds a habit with its own time
+_time meditate morning_ moves a habit to the morning poll (6am), _time meditate default_ puts it back
+_add stretch in the morning_ adds a habit to the morning poll
+_time morning_ asks about every habit in the morning unless it is marked otherwise, _time evening_ in the evening, _time off_ stops the polls
 _add gym on mon wed fri_ adds a habit for some days only
 _days gym tue thu_ changes its days, _days gym every day_ puts it back
 _simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off
-_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it
+_delete polls on_ deletes a one-habit poll once you answer it. _delete polls off_ keeps it
 
 *More groups:* _new group gym buddies_ makes another Habits group, for a different set of habits or of people
 _groups_ lists yours, _close group gym buddies_ ends one
 
 *With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks
 
-Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
+Twice a day I send one poll with the habits that are due: morning habits at 6am, evening ones at 8pm. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with Yes or No.",
       },
     ],
     "step": "owner means help: how does this work",
@@ -4303,13 +4311,13 @@ Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. Yo
         "ref": null,
         "text": "*Your habits* (last 14 days)
 
-1. *Run*  ⏰ 6am
+1. *Run*  🌅
 ⬜
 
 2. *Meditate*  📅 weekdays
 ⬜
 
-_I check in at 9pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner means list: how am I doing",
@@ -4331,7 +4339,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
       {
         "group": null,
         "ref": null,
-        "text": "What time? Like _time 9pm_, or _time off_.",
+        "text": "Morning or evening? Like _time evening_, or _time off_.",
       },
     ],
     "step": "owner means default_time: change when you ask me",
@@ -4424,7 +4432,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
       {
         "group": null,
         "ref": null,
-        "text": "What time? Like _time run 7am_.",
+        "text": "Morning or evening? Like _time run morning_.",
       },
     ],
     "step": "owner means set_time: change the time for run",
@@ -4463,7 +4471,7 @@ _I check in at 9pm unless a habit has its own time (⏰)._",
 2. *Run*  📅 weekends
 ▫️
 
-_I check in at 8pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner means list: how am I doing",
@@ -4490,7 +4498,7 @@ _I check in at 8pm unless a habit has its own time (⏰)._",
 1. *Meditate*  📅 weekdays
 ⬜
 
-_I check in at 8pm unless a habit has its own time (⏰)._",
+_I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). A habit without a mark is asked about in the evening._",
       },
     ],
     "step": "owner: habits",
@@ -4508,23 +4516,23 @@ _add meditate_ starts a habit
 _habits_ shows your streaks
 _done meditate_ logs it for today, _undo meditate_ takes it back
 _stop meditate_ stops tracking it
-_time 10pm_ sets the default check-in time, _time off_ turns it off
-_time meditate 7am_ gives one habit its own time, _time meditate default_ puts it back
-_add read at 10pm_ adds a habit with its own time
+_time meditate morning_ moves a habit to the morning poll (6am), _time meditate default_ puts it back
+_add stretch in the morning_ adds a habit to the morning poll
+_time morning_ asks about every habit in the morning unless it is marked otherwise, _time evening_ in the evening, _time off_ stops the polls
 _add gym on mon wed fri_ adds a habit for some days only
 _days gym tue thu_ changes its days, _days gym every day_ puts it back
 _simple on_ makes my check-in just the habit's name and streak, and lets you send just the name to log it. _simple off_ turns it off
-_delete polls on_ deletes each check-in poll once you answer it. _delete polls off_ keeps it
+_delete polls on_ deletes a one-habit poll once you answer it. _delete polls off_ keeps it
 
 *More groups:* _new group gym buddies_ makes another Habits group, for a different set of habits or of people
 _groups_ lists yours, _close group gym buddies_ ends one
 
 *With other people:* add anyone to any Habits group. They can answer a habit's poll to do it with you, or add habits of their own. Everyone sees who did what on the poll, and _habits_ shows everyone's streaks
 
-Every day I send one poll per habit. Tap Yes if you did it, No if you didn't. You can change your answer until that habit's next check-in.",
+Twice a day I send one poll with the habits that are due: morning habits at 6am, evening ones at 8pm. Tick what you did. You can tick more, or take a tick back, until the next day's poll. When only one habit is due I ask about it with Yes or No.",
   "welcome": "🌱 You've installed *Habits*.
 
-Tell me a habit you want to build, in your own words, or send _add meditate_. Every day I'll ask about each one with a poll: tap Yes if you did it, No if you didn't.
+Tell me a habit you want to build, in your own words, or send _add meditate_. Every day I'll send a poll with your habits, in the evening (8pm): tick the ones you did.
 
 Send _help_ any time.",
 }

@@ -1,25 +1,34 @@
-import { definePlugin, type Kit } from "../../sdk";
+import { definePlugin, type AnswerEvent, type Json, type Kit } from "../../sdk";
 import { CHECKIN_OPTIONS, copy, LOGGED, SAVED, type OwnHabit } from "./copy";
-import { closePact, createPact, existingGroup, extraHabits, ownerChange, ownerDay, ownerJoin, forFriend, forPoll, friendAnswer, friendIntent, friendMessage, hasFriends, isOfferRef, isPactRef, OWNER, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, POLL_LIMIT, privatePact, standings, type Tools } from "./pact";
-import { bestStreak, cells, cleanName, isOn, parseDays, scanDays, streak } from "./streaks";
+import { askBatch, askOne, closePact, createPact, dueInGroup, existingGroup, extraHabits, ownerChange, ownerDay, ownerJoin, forFriend, forPoll, friendAnswer, friendIntent, friendMessage, friendTick, groupTick, hasFriends, isBatchRef, isOfferRef, isPactRef, MAIN, oneQuestion, openBatch, OWNER, sentBatch, type BatchRef, type Due, ownerOnExtra, pactAnswer, pactCheckins, pactIntent, pactMessage, pactsForWeb, POLL_LIMIT, privatePact, standings, type Tools } from "./pact";
+import { BATCH_HOUR, batchOf, batchWord, bestStreak, cells, cleanName, isOn, parseDays, scanDays, streak, type Batch } from "./streaks";
 
 /**
- * Habits: one poll per habit every day: tap Yes if you did it, No if you didn't. The poll stays
- * and the answer can be changed until that habit's next check-in goes out.
+ * Habits: two check-ins a day, morning (6am) and evening (8pm). Each is one poll listing the
+ * habits of that check-in that are due: tick what you did. A tick can be added or taken back
+ * until the next day's poll goes out; a habit left unticked simply wasn't answered. When only
+ * one habit is due it can't be a list (a poll needs two options), so it is asked with Yes or No.
+ *
+ * Which check-in a habit is in comes from its `hour` (before noon: morning, else evening), or
+ * from the default hour in the settings when it has none. The hours themselves are from before
+ * 4.0.0, when every habit had its own poll at its own time.
  *
  * Storage
  *   habits  key = habit id   data = { name, createdDay, archived, hour?, days? }   sort = createdAt
  *   logs    key = "<habitId>:<day>"   data = 1   sort = day   (did it)
  *   missed  key = "<habitId>:<day>"   data = 1   sort = day   (said they didn't: the day is
  *           closed, it counts like no answer for streaks, and that day isn't asked again)
- *   asked   key = habit id   data = the day of its latest check-in   sort = that day
+ *   asked   key = habit id   data = the day of its latest check-in (before 4.0.0; read once
+ *           more to close that poll, then removed)
+ *   batches key = "<group key>:<morning|evening>"   data = the day that check-in last went out
+ *           and the refs of its polls ("" is this group; see pact.ts)
  */
 
 interface Habit {
   name: string;
   createdDay: string;
   archived: boolean;
-  /** Its own check-in hour (0-23). Unset: the default check-in time. */
+  /** An hour that says which check-in it is in (before noon: morning, else evening). Unset: the default one. */
   hour?: number | null;
   /** Weekdays it's due on, 0 Sunday to 6 Saturday. Unset or null: every day. */
   days?: number[] | null;
@@ -83,6 +92,8 @@ const TIME = String.raw`(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?`;
 
 /** "7am", "19:00", "10 pm" → hour, or null when it isn't a time. */
 function parseHour(text: string): number | null {
+  const word = batchWord(text);
+  if (word !== null) return word;
   const m = text.trim().toLowerCase().match(new RegExp(`^${TIME}$`));
   return m ? to24(+m[1], m[3]) : null;
 }
@@ -100,7 +111,7 @@ function splitAdd(raw: string): { name: string; hour: number | null; days: numbe
   let hour: number | null = null;
   let days: number[] | null | undefined;
   for (let i = 0; i < 2; i++) {
-    const at = name.match(new RegExp(`\\s+(?:at|@|every day at|daily at)\\s+(${TIME})$`, "i"));
+    const at = name.match(new RegExp(`\\s+(?:at|@|every day at|daily at)\\s+(${TIME})$`, "i")) ?? name.match(/\s+((?:in the |every )?(?:mornings?|evenings?|nights?))$/i);
     if (at && parseHour(at[1]) !== null && hour === null) {
       hour = parseHour(at[1]);
       name = name.slice(0, at.index);
@@ -133,6 +144,9 @@ function scanHour(text: string): number | undefined {
   if (ampm) return to24(+ampm[1], ampm[3][0] === "p" ? "pm" : "am") ?? undefined;
   const at = t.match(/\b(?:at|@|by)\s+(\d{1,2})(?:[:.](\d{2}))?\b/);
   if (at) return to24(+at[1]) ?? undefined;
+  // No clock time, but a part of the day: that is all a check-in needs.
+  if (/\bmornings?\b/.test(t)) return BATCH_HOUR.morning;
+  if (/\b(?:evenings?|nights?)\b/.test(t)) return BATCH_HOUR.evening;
   return undefined;
 }
 
@@ -221,15 +235,111 @@ function checkDays(days: unknown): number[] | null {
   return set.length === 7 ? null : set;
 }
 
+/** One of the owner's own habits that a check-in asks about today. */
+interface OwnDue extends Due {
+  habit: Habit;
+  streak: number;
+  shared: boolean;
+}
+
+/** The owner's own habits this check-in asks about today. */
+async function dueOwn(kit: Kit, batch: Batch): Promise<OwnDue[]> {
+  const out: OwnDue[] = [];
+  for (const { id, habit } of await active(kit)) {
+    if (batchOf(hourOf(habit, kit)) !== batch) continue;
+    // The poll of before 4.0.0, one per habit, stops taking answers now.
+    const old = await kit.store.get<string>("asked", id);
+    if (old) {
+      if (old !== kit.today) kit.close({ habitId: id, day: old });
+      await kit.store.delete("asked", id);
+    }
+    if (!isOn(habit.days, kit.today)) continue; // not one of its days
+    const done = await doneDays(kit, id);
+    // With friends taking part it is asked even when the owner has answered: it is theirs too.
+    const shared = await hasFriends(kit, id);
+    if (!shared && done.has(kit.today)) continue;
+    if (!shared && (await kit.store.get("missed", `${id}:${kit.today}`))) continue; // they already said no
+    const s = streak(done, kit.today, habit.days);
+    const st = shared ? await standings(kit, id, habit.days, { name: kit.person.name, since: habit.createdDay, done }) : null;
+    out.push({ id: `h:${id}`, name: habit.name, habit, streak: s, shared, label: copy.checkinOption({ habit: habit.name, streak: st ? null : s, together: st ? st.together : null }) });
+  }
+  return out;
+}
+
+/** A check-in in the person's own Habits group: their habits, and the ones friends added there. */
+async function mainCheckin(kit: Kit, batch: Batch) {
+  if (!(await openBatch(kit, MAIN, batch))) return;
+  const own = await dueOwn(kit, batch);
+  const extra = await dueInGroup(kit, MAIN, batch);
+  const due: Due[] = [...own, ...extra];
+  let refs: Json[] = [];
+  if (due.length > 1) refs = askBatch(kit, MAIN, batch, due, extra.length > 0 || own.some((h) => h.shared));
+  else if (extra.length) refs = [askOne(kit, MAIN, extra[0].id.slice(2), await oneQuestion(kit, extra[0].id.slice(2)))];
+  else if (own.length) refs = [await askOwnOne(kit, own[0])];
+  await sentBatch(kit, MAIN, batch, refs);
+}
+
+/** One habit on its own: a poll needs two options, so it is asked with Yes or No. */
+async function askOwnOne(kit: Kit, h: OwnDue): Promise<Json> {
+  const id = h.id.slice(2);
+  // The streak is on every check-in, a zero included. Simple messages: just the habit's
+  // name and the streak.
+  const simple = kit.settings.quickLog === true;
+  const together = h.shared
+    ? { habit: h.name, ...forPoll(await standings(kit, id, h.habit.days, { name: kit.person.name, since: h.habit.createdDay, done: await doneDays(kit, id) })), limit: POLL_LIMIT }
+    : null;
+  const question = together
+    ? simple
+      ? copy.checkinTogetherSimple(together)
+      : copy.checkinTogether(together)
+    : simple
+      ? copy.checkinSimple({ habit: h.name, streak: h.streak })
+      : copy.checkin({ habit: h.name, streak: h.streak });
+  const ref: PromptRef = { habitId: id, day: kit.today };
+  kit.ask(question.slice(0, 255), CHECKIN_OPTIONS, {
+    ref: ref as unknown as Json,
+    // The poll stays so the answer can be corrected, unless they asked for it to be deleted.
+    // With friends it always stays: the poll is how everyone sees who did it.
+    keep: h.shared || kit.settings.deletePolls !== true,
+    confirm: copy.checkinConfirm({ habit: h.name }),
+  });
+  return ref as unknown as Json;
+}
+
+/**
+ * Ticks on a check-in with several habits. A tick means did it; taking it back means no
+ * answer. Only what this change ticked or unticked is touched, so a habit logged another way
+ * ("done meditate") isn't undone by ticking a different one.
+ */
+async function batchAnswer(event: AnswerEvent, kit: Kit, ref: BatchRef) {
+  const sender = event.sender;
+  const owner = !sender || sender.owner;
+  const change = async (index: number, done: boolean) => {
+    const entry = ref.ids[index];
+    if (typeof entry !== "string") return;
+    const id = entry.slice(2);
+    if (entry.startsWith("h:")) {
+      const h = await kit.store.get<Habit>("habits", id);
+      if (!h || h.archived) return;
+      if (owner) await setDay(kit, id, ref.day, done ? "done" : null);
+      else await friendTick(kit, sender, id, ref.day, done);
+    } else if (sender) await groupTick(kit, ref.group, id, sender, ref.day, done);
+  };
+  for (const i of event.added ?? []) await change(i, true);
+  for (const i of event.removed ?? []) await change(i, false);
+  // A 👍 on the poll says it landed, once. With other people in it nothing is posted back.
+  if (!event.changed && owner && !ref.shared) kit.react(SAVED);
+}
+
 export default definePlugin({
   id: "habits",
-  version: "3.6.2",
+  version: "4.0.0",
   sdk: "1",
   name: "Habits",
   icon: "🌱",
   tagline: "Build habits with a daily check-in and streaks.",
   description:
-    "Add the habits you want to keep, every day or only on the days you pick. On each habit's days you get a poll at the time you pick; tap Yes or No. Your streaks show as green squares, and the web page shows the last month.",
+    "Add the habits you want to keep, every day or only on the days you pick. Twice a day, morning and evening, you get one poll with the habits that are due; tick what you did. Your streaks show as green squares, and the web page shows the last month.",
   groupName: copy.groupName(),
   price: 0,
   tier: 1,
@@ -239,17 +349,19 @@ export default definePlugin({
   listing: {
     title: "Habit Tracker on WhatsApp: Daily Check-ins | Zelfred",
     description:
-      "Track habits on WhatsApp. Get a daily check-in, tap Yes or No and watch your streak grow. Free, in its own WhatsApp group. No app.",
+      "Track habits on WhatsApp. Get one poll in the morning and one in the evening, tick what you did and watch your streak grow. Free, no app.",
     h1: "Habit tracker on WhatsApp",
   },
   welcome: copy.welcome(),
   help: HELP,
   // quickLog ("simple messages"): the check-in is just the habit's name, and a message that is
   // only a habit's name logs it for today. Off unless turned on.
-  // deletePolls: the check-in poll is deleted once it is answered, and a line says what was
-  // chosen. Off unless turned on: the poll stays and the answer can be changed.
+  // deletePolls: a check-in for one habit (Yes or No) is deleted once it is answered, and a
+  // line says what was chosen. A list of several always stays. Off unless turned on.
+  // checkinHour: only whether it is before noon matters now: it says which check-in habits
+  // without an hour of their own are in. null: they aren't asked about.
   settings: { checkinHour: 21, quickLog: false, deletePolls: false },
-  // Hourly, so each habit can be asked at its own time (the default time otherwise).
+  // Hourly, because the two check-ins go by the person's own clock.
   schedules: [{ id: "checkin", hour: "hourly" }],
 
   async onMessage(event, kit) {
@@ -283,7 +395,7 @@ export default definePlugin({
     if (/^(habits|list|streaks?|show|my habits|status)$/i.test(lower)) return kit.send(await summary(kit));
 
     // "time meditate 7am" / "time meditate default": one habit's own time
-    const own = text.match(new RegExp(`^(?:time|check[- ]?in|reminder)\\s+(.+?)\\s+(?:at\\s+)?(default|reset|off|none|${TIME})$`, "i"));
+    const own = text.match(new RegExp(`^(?:time|check[- ]?in|reminder)\\s+(.+?)\\s+(?:at\\s+|in the\\s+)?(default|reset|off|none|mornings?|evenings?|nights?|${TIME})$`, "i"));
     if (own && parseHour(own[1]) === null) {
       const list0 = await active(kit);
       const h = find(list0, own[1].trim());
@@ -296,9 +408,9 @@ export default definePlugin({
       }
     }
 
-    const time = lower.match(/^(?:time|check[- ]?in|reminder)\s+(?:at\s+)?(off|none|stop|(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?)$/);
+    const time = lower.match(/^(?:time|check[- ]?in|reminder)\s+(?:at\s+|in the\s+)?(off|none|stop|mornings?|evenings?|nights?|(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?)$/);
     if (time) {
-      const hour = time[2] ? to24(+time[2], time[4]) : null;
+      const hour = batchWord(time[1]) ?? (time[2] ? to24(+time[2], time[4]) : null);
       if (time[2] && hour === null) return kit.send(copy.giveDefaultTime());
       await kit.setSettings({ checkinHour: hour });
       return kit.react(SAVED);
@@ -386,8 +498,8 @@ export default definePlugin({
       undo_done: "Take back a habit they marked done today by mistake",
       remove_habit: "Stop tracking one of their habits",
       set_days: "Change which days of the week one of their habits is on",
-      set_time: "Change the time of day one habit's check-in message is sent",
-      default_time: "Change the usual check-in time for all habits, or stop the check-ins",
+      set_time: "Move one habit to the morning or the evening check-in",
+      default_time: "Choose morning or evening as the usual check-in for all habits, or stop the check-ins",
       list: "See their habits, streaks or progress",
       set_me_up: "In a shared pact group: ask to be set up or hooked up with their own profile so their streak is kept, often after saying not now earlier",
       help: "Ask how this works or what they can say",
@@ -484,6 +596,7 @@ export default definePlugin({
     // A tap on a check-in poll: Yes did it, No didn't (closes the day). While the poll stays
     // they can change it, and the latest answer is the one that counts.
     if (isOfferRef(event.ref) || isPactRef(event.ref)) return pactAnswer(event, kit);
+    if (isBatchRef(event.ref)) return batchAnswer(event, kit, event.ref);
     const ref = event.ref as PromptRef | null;
     if (!ref || typeof ref !== "object" || typeof ref.habitId !== "string" || typeof ref.day !== "string") return;
     // A friend in the group answering one of the owner's check-ins: they are doing it too.
@@ -501,40 +614,11 @@ export default definePlugin({
   async onSchedule(event, kit) {
     if (event.id !== "checkin" && event.id !== "nightly") return;
     const now = kit.time.hour(kit.now);
-    for (const { id, habit } of await active(kit)) {
-      if (event.id === "checkin" && hourOf(habit, kit) !== now) continue;
-      if (!isOn(habit.days, kit.today)) continue; // not one of its days
-      const done = await doneDays(kit, id);
-      // With friends taking part the poll goes out even when the owner has answered: it is theirs too.
-      const shared = await hasFriends(kit, id);
-      if (!shared && done.has(kit.today)) continue;
-      if (!shared && (await kit.store.get("missed", `${id}:${kit.today}`))) continue; // they already said no
-      const s = streak(done, kit.today, habit.days);
-      // This habit's earlier check-in stops taking answers now that a new one goes out.
-      const last = await kit.store.get<string>("asked", id);
-      if (last && last !== kit.today) kit.close({ habitId: id, day: last });
-      await kit.store.put("asked", id, kit.today, kit.today);
-      // The streak is on every check-in, a zero included. Simple messages: just the habit's
-      // name and the streak.
-      const simple = kit.settings.quickLog === true;
-      const together = shared ? { habit: habit.name, ...forPoll(await standings(kit, id, habit.days, { name: kit.person.name, since: habit.createdDay, done })), limit: POLL_LIMIT } : null;
-      const question = together
-        ? simple
-          ? copy.checkinTogetherSimple(together)
-          : copy.checkinTogether(together)
-        : simple
-          ? copy.checkinSimple({ habit: habit.name, streak: s })
-          : copy.checkin({ habit: habit.name, streak: s });
-      kit.ask(question.slice(0, 255), CHECKIN_OPTIONS, {
-        ref: { habitId: id, day: kit.today },
-        // The poll stays so the answer can be corrected, unless they asked for it to be deleted.
-        // With friends it always stays: the poll is how everyone sees who did it.
-        keep: shared || kit.settings.deletePolls !== true,
-        confirm: copy.checkinConfirm({ habit: habit.name }),
-      });
-    }
-    // Pacts: one poll per due habit, for the whole group.
-    await pactCheckins(kit, now, event.id === "nightly");
+    // "nightly" is the schedule of before 1.1.0: it means the evening one.
+    const batch: Batch | null = event.id === "nightly" || now === BATCH_HOUR.evening ? "evening" : now === BATCH_HOUR.morning ? "morning" : null;
+    if (!batch) return;
+    await mainCheckin(kit, batch);
+    await pactCheckins(kit, batch);
   },
 
   web: {
