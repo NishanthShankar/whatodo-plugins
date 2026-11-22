@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.26.0] - 2026-11-23
+
+### Added
+- `kit.reactTo(ref, emoji)`: react to the person's own messages marked with that ref (`kit.mark`), from a page call, a schedule or another message. For showing in WhatsApp what changed elsewhere.
+- Test kit: `t.reactTos`.
+- Wishlist 1.3.0 is the first to use it.
+
 ## [1.25.0] - 2026-11-22
 
 ### Added

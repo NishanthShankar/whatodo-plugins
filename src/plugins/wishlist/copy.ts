@@ -32,6 +32,8 @@ export const READ_AGAIN = fixed("read again");
 
 /** On a message whose things were added. */
 export const SAVED = fixed("👍");
+/** On a thing's own message once it was marked bought somewhere else (the page). */
+export const TICK = fixed("✅");
 /** On a reply that changed something (a price, a note, a move, a delete). */
 export const DONE = fixed("👍");
 
@@ -95,7 +97,7 @@ export const copy = {
       `_${BOUGHT}_ shows what you already got`,
       `_${UNDO}_ removes the last thing you added`,
       "",
-      `On something you added: react ✅ once you've bought it, or with anything else (❤️, ⭐) to mark it your own way. Reply to it with a price, a note, a _#label_, _${MOVE}_ or _${DELETE}_. Reply _${READ_AGAIN}_ and I read its link once more.`,
+      `On something you added: react ✅ or 👍 once you've bought it, or with anything else (❤️, ⭐) to mark it your own way. Reply to it with a price, a note, a _#label_, _${MOVE}_ or _${DELETE}_. Reply _${READ_AGAIN}_ and I read its link once more.`,
       "",
       `_${NEW_LIST_EXAMPLE}_ starts another list in this chat. After that, _${LIST_NAME_EXAMPLE}_ before a link puts it there, and a link on its own goes to the list you used last.`,
       `_${NEW_GROUP_EXAMPLE}_ gives a list a WhatsApp group of its own`,
@@ -118,7 +120,7 @@ export const copy = {
       [
         priced ? "🎁 Added, with its price." : "🎁 Added. I couldn't find a price for this one, so reply to it with the price if you want it in the total.",
         "",
-        `React ✅ on it once you've bought it. Send _${LIST}_ to see what's left and what it adds up to.`,
+        `React ✅ or 👍 on it once you've bought it. Send _${LIST}_ to see what's left and what it adds up to.`,
         "From now on you'll just get a 👍.",
       ].join("\n"),
   ]),
@@ -130,7 +132,7 @@ export const copy = {
   // ── Showing ──
   nothingYet: msg([`Nothing on the list yet. Send a link to something you want, or type it: _${TYPED_EXAMPLE}_.`]),
   nothingLeft: msg<{ name: string }>([({ name }) => `Nothing left to buy on *${name}*.`]),
-  nothingBought: msg<{ name: string }>([({ name }) => `Nothing on *${name}* is bought yet. React ✅ on something once you have it.`]),
+  nothingBought: msg<{ name: string }>([({ name }) => `Nothing on *${name}* is bought yet. React ✅ or 👍 on something once you have it.`]),
   /** What is still to buy. `sum`: what it adds up to, null when nothing has a price. */
   left: msg<Listing & { count: number; sum: string | null }>([({ count, sum, ...list }) => listing(`🎁 *${list.name}*: ${things(count)} to buy${sum ? `, ${sum}` : ""}`, list)]),
   boughtList: msg<Listing & { count: number; sum: string | null }>([({ count, sum, ...list }) => listing(`✅ *${list.name}*: ${things(count)} bought${sum ? `, ${sum}` : ""}`, list)]),

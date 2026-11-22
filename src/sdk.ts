@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.25.0";
+export const SDK_VERSION = "1.26.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -210,6 +210,15 @@ export interface Kit {
    * they saved, a photo of a receipt). Since SDK 1.10.0.
    */
   mark(ref: Json): void;
+  /**
+   * React to the person's own messages you marked with this ref (`kit.mark`), from anywhere:
+   * a call from the page, a schedule, another message. For showing in WhatsApp something that
+   * changed elsewhere, like a ✅ on a thing ticked on the page. The ref must equal the one
+   * given to `kit.mark`. Zelfred holds one reaction a message, so this replaces the one put
+   * there before; pass "" to take it off. Nothing happens when no message carries the ref.
+   * Since SDK 1.26.0.
+   */
+  reactTo(ref: Json, emoji: string): void;
   /**
    * Say you couldn't read the message being handled (onMessage only). If the plugin declares
    * `understand`, Zelfred asks its intent model which of your intents the message means and

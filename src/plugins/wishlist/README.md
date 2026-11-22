@@ -32,7 +32,7 @@ On something you added (or on a single result the plugin posted):
 
 | You | What happens |
 |---|---|
-| react ✅ (also ☑️ ✔️ 🛒 🛍️) | Bought. |
+| react ✅ or 👍 (also ☑️ ✔️ 🛒 🛍️) | Bought. |
 | react with anything else (❤️ ⭐ 🔥) | Kept as the thing's mark: shown before its name, and the page can group by it. Only the reaction of the person who added Wishlist counts. |
 | change or remove your reaction | Takes back a "bought" the reaction set. Removing a mark's reaction clears the mark; a ✅ put over a mark leaves the mark in place. |
 | reply `bought` / `not bought` | Does that. 👍 |

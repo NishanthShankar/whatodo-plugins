@@ -489,6 +489,39 @@ describe("the page", () => {
     await expect(t.act(plugin, "add", { list: "main", text: "  " })).rejects.toThrow(/Paste a link/);
   });
 
+  it("ticks a thing's WhatsApp message when it is marked bought on the page", async () => {
+    const t = createTestKit();
+    await send(t, "https://example.com/mug", [mug]);
+    const [one] = items(t);
+    await t.act(plugin, "setBought", { id: one.id, on: true });
+    expect(t.reactTos).toEqual([{ ref: t.marks[0], emoji: "✅" }]);
+    await t.act(plugin, "setBought", { id: one.id, on: false });
+    expect(t.reactTos.at(-1)).toEqual({ ref: t.marks[0], emoji: "👍" });
+  });
+
+  it("ticks a message that brought several things once all of them are bought", async () => {
+    const t = createTestKit();
+    await send(t, "https://example.com/mug https://example.com/lamp", [mug, lamp]);
+    const [a, b] = items(t);
+    expect(a.msg).toEqual((t.marks[0] as { ids: string[] }).ids);
+    await t.act(plugin, "setBought", { id: a.id, on: true });
+    expect(t.reactTos.at(-1)).toEqual({ ref: t.marks[0], emoji: "👍" });
+    await t.act(plugin, "setBought", { id: b.id, on: true });
+    expect(t.reactTos.at(-1)).toEqual({ ref: t.marks[0], emoji: "✅" });
+  });
+
+  it("takes a 👍 on a thing as bought, like a ✅", async () => {
+    const t = createTestKit();
+    await send(t, "https://example.com/mug", [mug]);
+    await t.react(plugin, "👍", t.marks[0]);
+    expect(items(t)[0]).toMatchObject({ bought: true, reacted: true });
+    expect(items(t)[0].mark ?? null).toBeNull();
+    await t.react(plugin, null, t.marks[0]);
+    expect(items(t)[0].bought).toBe(false);
+    await t.react(plugin, "👍🏽", t.marks[0]);
+    expect(items(t)[0].bought).toBe(true);
+  });
+
   it("shares from the page, replaces the link and hands over words to send with it", async () => {
     const t = createTestKit();
     expect(await t.act(plugin, "share", { id: "main", on: true })).toEqual({ url: "https://share.test/main-1" });
