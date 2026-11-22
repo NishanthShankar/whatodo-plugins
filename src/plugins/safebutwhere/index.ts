@@ -1,5 +1,5 @@
 import { definePlugin, type Json, type Kit, type Photo, type Place } from "../../sdk";
-import { copy, COUNT, DELETE, RECENT, SAVED, TAGS, UNDO, type Shown } from "./copy";
+import { copy, COUNT, DELETE, GROUPS, RECENT, SAVED, TAGS, UNDO, type Shown } from "./copy";
 import { cleanTags, looksKept, MAX_WHAT, metres, rank, read, sayDay, searchWords, shortAsTag } from "./words";
 
 /**
@@ -25,6 +25,8 @@ export const SHOWN = 3;
 export const FOLLOW_MS = 10 * 60_000;
 /** Photos of one album arrive one after another: a caption on one covers those within this of it. */
 export const ALBUM_MS = 2 * 60_000;
+/** A group sent back in full up to SHOWN things; a longer one is a list of this many. */
+export const LISTED = 15;
 /** "Near here" reaches this far. */
 export const NEAR_M = 500;
 
@@ -35,6 +37,8 @@ export interface Thing {
   /** The id of its photo (kept by Zelfred), or null. */
   photo: string | null;
   place: Place | null;
+  /** The emoji they reacted to it with: the group it is in. Unset on things in no group. Since 1.1.0. */
+  reaction?: string | null;
   /** When it was kept, and when it was last changed. */
   at: number;
   changed?: number;
@@ -74,6 +78,7 @@ function shown(kit: Kit, t: Thing, away?: number): Shown {
   return {
     what: t.what,
     tags: t.tags,
+    reaction: t.reaction ?? null,
     day: sayDay(kit.time.day(t.at), kit.today),
     placeName: t.place ? (t.place.name ?? t.place.address) : null,
     mapUrl: t.place ? mapUrl(t.place) : null,
@@ -203,6 +208,36 @@ async function undo(kit: Kit) {
   kit.send(copy.undone({ what: last.thing.what }));
 }
 
+/**
+ * An emoji as a group's name: the first one in the text, without the marker some phones add.
+ * Null when the text is anything but emoji.
+ */
+export function emojiOf(text: string): string | null {
+  const t = text.replace(/\s+/g, "");
+  if (!t || t.length > 40 || /[\p{L}\p{N}#*]/u.test(t) || !/\p{Extended_Pictographic}/u.test(t)) return null;
+  const first = /\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?)*/u.exec(t);
+  return first ? first[0].replace(/\uFE0F/g, "") : null;
+}
+
+async function groupsOf(kit: Kit): Promise<{ emoji: string; count: number }[]> {
+  const counts = new Map<string, number>();
+  for (const { thing } of await allThings(kit)) if (thing.reaction) counts.set(thing.reaction, (counts.get(thing.reaction) ?? 0) + 1);
+  return [...counts].map(([emoji, count]) => ({ emoji, count })).sort((a, b) => b.count - a.count || (a.emoji < b.emoji ? -1 : 1));
+}
+
+/** An emoji sent on its own: the things in that group, newest first. */
+async function showGroup(kit: Kit, emoji: string) {
+  const found = (await allThings(kit)).filter((x) => x.thing.reaction === emoji).reverse();
+  if (!found.length) return kit.send(copy.emptyGroup({ emoji }));
+  if (found.length <= SHOWN) return answer(kit, found);
+  kit.send(copy.group({ emoji, rows: found.slice(0, LISTED).map((f) => shown(kit, f.thing)), total: found.length }));
+}
+
+async function groupList(kit: Kit) {
+  const groups = await groupsOf(kit);
+  kit.send(groups.length ? copy.groups({ groups: groups.slice(0, 40) }) : copy.noGroups());
+}
+
 /** The words after "find", "where is my" and the like; null when the message isn't a search. */
 function searchOf(text: string): string | null {
   const asked = /\?\s*$/.test(text);
@@ -266,6 +301,7 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string) {
 async function command(kit: Kit, lower: string): Promise<boolean> {
   if (new RegExp(`^(?:${RECENT}|latest|list|last|show all|all)$`).test(lower)) return (await recent(kit), true);
   if (new RegExp(`^(?:${TAGS}|my tags|labels)$`).test(lower)) return (await tagList(kit), true);
+  if (new RegExp(`^(?:${GROUPS}|my groups|reactions)$`).test(lower)) return (await groupList(kit), true);
   if (new RegExp(`^(?:${UNDO}|delete last|remove last)$`).test(lower)) return (await undo(kit), true);
   if (new RegExp(`^(?:${COUNT}|how many)$`).test(lower)) {
     const all = await allThings(kit);
@@ -277,7 +313,7 @@ async function command(kit: Kit, lower: string): Promise<boolean> {
 
 export default definePlugin({
   id: "safebutwhere",
-  version: "1.0.0",
+  version: "1.1.0",
   sdk: "1",
   name: "SafeButWhere",
   icon: "📍",
@@ -314,6 +350,9 @@ export default definePlugin({
 
     if (isRef(event.quotedRef)) return onReply(kit, event.quotedRef.ids, text, lower);
     if (await command(kit, lower)) return;
+    // An emoji on its own asks for its group.
+    const emoji = emojiOf(text);
+    if (emoji) return showGroup(kit, emoji);
 
     const query = searchOf(text);
     if (query !== null) return find(kit, query);
@@ -337,12 +376,29 @@ export default definePlugin({
     kit.unsure(searchWords(text).length ? copy.nothingOrKeep({ query: text.slice(0, 80) }) : copy.unsure());
   },
 
+  /**
+   * A reaction on a photo or a line of theirs, or on an answer: the thing joins that emoji's
+   * group. A thing is in one group at a time, the last emoji given. Taking the reaction off
+   * takes it out. Nothing is said: their own reaction is already showing on the message.
+   */
+  async onReaction(event, kit) {
+    if (!isRef(event.ref)) return;
+    const emoji = event.emoji ? emojiOf(event.emoji) : null;
+    if (event.emoji && !emoji) return;
+    for (const id of event.ref.ids) {
+      const t = await kit.store.get<Thing>("things", id);
+      if (!t || (t.reaction ?? null) === emoji) continue;
+      await kit.store.put("things", id, { ...t, reaction: emoji, changed: kit.now } as unknown as Json);
+    }
+  },
+
   understand: {
     intents: {
       find: "Find out where they kept or put something",
       keep: "Tell where they are putting or have put something, so it is remembered",
       recent: "See the last things they kept",
       tags: "See their tags",
+      groups: "See the groups they made by reacting with an emoji",
       undo: "Remove the last thing they kept",
       help: "Find out how this works or what they can send",
     },
@@ -360,6 +416,8 @@ export default definePlugin({
         return recent(kit);
       case "tags":
         return tagList(kit);
+      case "groups":
+        return groupList(kit);
       case "undo":
         return undo(kit);
       case "help":
@@ -379,8 +437,9 @@ export default definePlugin({
       return {
         total: all.length,
         max: MAX_THINGS,
-        things: all.slice(0, limit).map(({ id, thing }) => ({ id, what: thing.what, tags: thing.tags, photo: thing.photo, place: thing.place, at: thing.at, changed: thing.changed ?? null })),
+        things: all.slice(0, limit).map(({ id, thing }) => ({ id, what: thing.what, tags: thing.tags, reaction: thing.reaction ?? null, photo: thing.photo, place: thing.place, at: thing.at, changed: thing.changed ?? null })),
         tags: [...counts].map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count || (a.tag < b.tag ? -1 : 1)),
+        groups: await groupsOf(kit),
       } as unknown as Json;
     },
     actions: {
@@ -407,6 +466,13 @@ export default definePlugin({
         const next: Thing = { ...t, changed: kit.now };
         if (typeof args.what === "string") next.what = args.what.replace(/\s+/g, " ").trim().slice(0, MAX_WHAT) || null;
         if (Array.isArray(args.tags)) next.tags = cleanTags(args.tags.filter((x): x is string => typeof x === "string"));
+        // An emoji puts it in that group; null or "" takes it out.
+        if (args.reaction === null || args.reaction === "") next.reaction = null;
+        else if (typeof args.reaction === "string") {
+          const emoji = emojiOf(args.reaction);
+          if (!emoji) throw new Error("A group is one emoji.");
+          next.reaction = emoji;
+        }
         if (args.place === null) next.place = null;
         else if (args.place !== undefined) next.place = placeOf(args.place) ?? t.place;
         if (!next.what && !next.tags.length && !next.photo) throw new Error("A thing needs a photo or a few words.");

@@ -95,6 +95,25 @@ describe("safebutwhere copy: finding", () => {
   });
 });
 
+describe("safebutwhere copy: groups", () => {
+  it("none yet, an empty one, one in full, a long one as a list, and the list of groups", async () => {
+    const t = createTestKit();
+    await t.message(plugin, "groups");
+    await t.message(plugin, "🔑");
+    await sendPhoto(t, "p1", "spare key #keys");
+    await t.react(plugin, "🔑", t.marks.at(-1)!);
+    for (let i = 1; i <= 4; i++) {
+      await t.message(plugin, `charger ${i}, drawer ${i}`);
+      await t.react(plugin, "🔌", t.marks.at(-1)!);
+    }
+    await t.message(plugin, "🔑");
+    await t.message(plugin, "🔌");
+    await t.message(plugin, "groups");
+    await t.message(plugin, "recent");
+    expect(said(t)).toMatchSnapshot();
+  });
+});
+
 describe("safebutwhere copy: changing", () => {
   it("undo, a reply to something gone, a reply it can't read", async () => {
     const t = createTestKit();

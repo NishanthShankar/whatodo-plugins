@@ -204,6 +204,86 @@ exports[`safebutwhere copy: finding > recent, tags, count, and each when there i
 }
 `;
 
+exports[`safebutwhere copy: groups > none yet, an empty one, one in full, a long one as a list, and the list of groups 1`] = `
+{
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "No groups yet. React to a photo or a line of yours with any emoji, like 🔑, and it joins that group.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing is in 🔑 yet. React to a photo or a line of yours with 🔑 and it joins.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Kept. From now on a 👍 says the same.
+
+A photo works too. Words sent right after one go with it, and several photos sent together all get them.
+_#documents_ in your words is a tag. Share your location now, and I keep the position as well.
+React to it with any emoji, like 🔑, to put it in a group.
+
+When you can't find it, ask: _where is my passport_.",
+    },
+    {
+      "group": null,
+      "photo": "p1",
+      "ref": {
+        "ids": [
+          "id1",
+        ],
+        "kind": "thing",
+      },
+      "text": "🔑 spare key
+#keys #spare-key
+_Kept on 15 November._",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*🔌 · 4 things*
+
+1. charger 4, drawer 4 · 15 November
+2. charger 3, drawer 3 · 15 November
+3. charger 2, drawer 2 · 15 November
+4. charger 1, drawer 1 · 15 November",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your groups*
+
+🔌 · 4
+🔑 · 1
+
+Send an emoji on its own to see its group.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*The last 5 things you kept*
+
+1. 🔌 charger 4, drawer 4 · 15 November
+2. 🔌 charger 3, drawer 3 · 15 November
+3. 🔌 charger 2, drawer 2 · 15 November
+4. 🔌 charger 1, drawer 1 · 15 November
+5. 🔑 spare key #keys #spare-key · 15 November",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
 exports[`safebutwhere copy: keeping > full 1`] = `
 {
   "reactions": [],
@@ -231,6 +311,7 @@ exports[`safebutwhere copy: keeping > the first thing, as a photo with no words 
 
 Send a few words now and they go with the photo. Send several photos first, and they all get the words.
 _#documents_ in your words is a tag. Share your location now, and I keep the position as well.
+React to it with any emoji, like 🔑, to put it in a group.
 
 When you can't find it, ask: _where is my passport_.",
     },
@@ -253,6 +334,7 @@ exports[`safebutwhere copy: keeping > the first thing, as words 1`] = `
 
 A photo works too. Words sent right after one go with it, and several photos sent together all get them.
 _#documents_ in your words is a tag. Share your location now, and I keep the position as well.
+React to it with any emoji, like 🔑, to put it in a group.
 
 When you can't find it, ask: _where is my passport_.",
     },
@@ -279,6 +361,7 @@ Share your location right after, and the position is kept too.
 _where is my passport_ brings it back, photo and all
 _recent_ shows the last things you kept
 _tags_ shows your tags
+React to a photo or a line with any emoji, like 🔑, and it joins that group. Send the emoji on its own to see the group. _groups_ shows them all.
 _undo_ removes the last thing you kept
 Share your location on its own to see what you kept near there.
 
@@ -307,6 +390,7 @@ Share your location right after, and the position is kept too.
 _where is my passport_ brings it back, photo and all
 _recent_ shows the last things you kept
 _tags_ shows your tags
+React to a photo or a line with any emoji, like 🔑, and it joins that group. Send the emoji on its own to see the group. _groups_ shows them all.
 _undo_ removes the last thing you kept
 Share your location on its own to see what you kept near there.
 

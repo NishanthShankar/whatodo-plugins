@@ -18,6 +18,9 @@ export const RECENT = fixed("recent");
 export const TAGS = fixed("tags");
 export const UNDO = fixed("undo");
 export const COUNT = fixed("count");
+export const GROUPS = fixed("groups");
+/** An emoji used in the examples for groups. */
+export const GROUP_EXAMPLE = fixed("🔑");
 /** Sent as a reply to a thing. */
 export const DELETE = fixed("delete");
 
@@ -31,6 +34,8 @@ export interface Shown {
   /** Their own words about it; null when it is a photo with no words. */
   what: string | null;
   tags: string[];
+  /** The emoji they reacted to it with: the group it is in. Null when it is in none. */
+  reaction: string | null;
   /** "3 March". */
   day: string;
   /** The name of the position kept with it, and where to open it on a map. */
@@ -45,7 +50,7 @@ const far = (m: number) => (m < 1000 ? `${Math.max(10, Math.round(m / 10) * 10)}
 
 /** One thing, in full: the answer to "where is it". With a photo this is the photo's caption. */
 function thing(t: Shown): string {
-  const lines = [t.what ?? "_A photo with no words._"];
+  const lines = [`${t.reaction ? `${t.reaction} ` : ""}${t.what ?? "_A photo with no words._"}`];
   if (t.tags.length) lines.push(tagLine(t.tags));
   if (t.placeName || t.mapUrl) lines.push(["📍", t.placeName, t.mapUrl].filter(Boolean).join(" "));
   lines.push(`_Kept on ${t.day}${t.away !== undefined ? `, ${far(t.away)}` : ""}._`);
@@ -53,7 +58,7 @@ function thing(t: Shown): string {
 }
 
 /** One thing as a line in a list. */
-const row = (t: Shown, n: number) => `${n}. ${t.what ?? "A photo with no words"}${t.tags.length ? ` ${tagLine(t.tags)}` : ""} · ${t.day}`;
+const row = (t: Shown, n: number) => `${n}. ${t.reaction ? `${t.reaction} ` : ""}${t.what ?? "A photo with no words"}${t.tags.length ? ` ${tagLine(t.tags)}` : ""} · ${t.day}`;
 
 export const copy = {
   // ── What the plugin says about itself ──
@@ -73,6 +78,7 @@ export const copy = {
       `_${WHERE_EXAMPLE}_ brings it back, photo and all`,
       `_${RECENT}_ shows the last things you kept`,
       `_${TAGS}_ shows your tags`,
+      `React to a photo or a line with any emoji, like ${GROUP_EXAMPLE}, and it joins that group. Send the emoji on its own to see the group. _${GROUPS}_ shows them all.`,
       `_${UNDO}_ removes the last thing you kept`,
       "Share your location on its own to see what you kept near there.",
       "",
@@ -96,6 +102,7 @@ export const copy = {
           ? "Send a few words now and they go with the photo. Send several photos first, and they all get the words."
           : "A photo works too. Words sent right after one go with it, and several photos sent together all get them.",
         `_${TAG_EXAMPLE}_ in your words is a tag. Share your location now, and I keep the position as well.`,
+        `React to it with any emoji, like ${GROUP_EXAMPLE}, to put it in a group.`,
         "",
         `When you can't find it, ask: _${WHERE_EXAMPLE}_.`,
       ].join("\n"),
@@ -133,6 +140,14 @@ export const copy = {
   count: msg<{ total: number; photos: number }>([
     ({ total, photos }) => `${total} ${total === 1 ? "thing" : "things"} kept, ${photos} with a photo.`,
   ]),
+  // ── Groups: the emoji they reacted with ──
+  /** A group too long to send in full: its things as a list. */
+  group: msg<{ emoji: string; rows: Shown[]; total: number }>([
+    ({ emoji, rows, total }) => `*${emoji} · ${total} ${total === 1 ? "thing" : "things"}*\n\n${rows.map((r, i) => row({ ...r, reaction: null }, i + 1)).join("\n")}${total > rows.length ? `\n\n_${total - rows.length} more on app.whatodo.today._` : ""}`,
+  ]),
+  groups: msg<{ groups: { emoji: string; count: number }[] }>([({ groups }) => `*Your groups*\n\n${groups.map((g) => `${g.emoji} · ${g.count}`).join("\n")}\n\nSend an emoji on its own to see its group.`]),
+  noGroups: msg([`No groups yet. React to a photo or a line of yours with any emoji, like ${GROUP_EXAMPLE}, and it joins that group.`]),
+  emptyGroup: msg<{ emoji: string }>([({ emoji }) => `Nothing is in ${emoji} yet. React to a photo or a line of yours with ${emoji} and it joins.`]),
   /** Their location, shared with nothing to attach it to: what was kept near there. */
   nothingNear: msg(["Nothing kept near there.", "I have nothing kept around there."]),
 
