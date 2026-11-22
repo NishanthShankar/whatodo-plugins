@@ -40,6 +40,7 @@ On something you added (or on a single result the plugin posted):
 | reply `call it Blue kettle` | Names it. 👍 |
 | reply `move to diwali` | Moves it. 👍 |
 | reply `move` | A poll of the other lists (11 at most), last option "Leave it here". Only the person who asked decides. |
+| reply `read again` (also `refresh`, `check price`) | Its link is read once more: the name, picture and price it gives now replace the old ones. A price you typed stays. 👍 |
 | reply `delete` | Removed. 👍 |
 | reply with other words | Kept as its note. 👍 |
 
@@ -75,7 +76,7 @@ Limits: 2000 things, 500 on one list, 50 lists, 5 labels a thing, 500 characters
 
 ## Web page
 
-`web.load` returns the person's currency, every list (with how much is left, what it adds up to and its share link if it has one), the extra groups, and every thing, newest first. Actions: `add` (a link is read a moment later through `kit.links.read` and filled in by `onLink`), `edit`, `setBought`, `move`, `remove`, `createList`, `renameList`, `deleteList`, `share`, `replaceLink`, `setNotes`, `shareText`, `setCurrency`. The page can sit behind the person's PIN.
+`web.load` returns the person's currency, every list (with how much is left, what it adds up to and its share link if it has one), the extra groups, and every thing, newest first. Actions: `add` (a link is read a moment later through `kit.links.read` and filled in by `onLink`), `edit`, `readAgain`, `setBought`, `move`, `remove`, `createList`, `renameList`, `deleteList`, `share`, `replaceLink`, `setNotes`, `shareText`, `setCurrency`. The page can sit behind the person's PIN.
 
 `web.shared` is what a list's shared page shows: the list's name, the things still wanted and the ones already bought, each with its picture, where it is from, its labels and its price. Notes are left out unless the person turned them on for that list.
 

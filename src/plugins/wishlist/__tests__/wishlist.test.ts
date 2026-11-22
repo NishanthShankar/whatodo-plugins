@@ -298,6 +298,28 @@ describe("on something already added", () => {
     expect(items(t)).toEqual([]);
   });
 
+  it("reads its link again when asked, and keeps a price they typed", async () => {
+    const { t, ref } = await one();
+    await t.message(plugin, "read again", ref);
+    expect(items(t)[0].reading).toBe(true);
+    expect(t.reads).toEqual([{ url: mug.url, ref: { item: items(t)[0].id, again: true } }]);
+    await t.link(plugin, { ...mug, title: "Stoneware mug, blue", price: 450, currency: "INR" });
+    expect(items(t)[0]).toMatchObject({ reading: false, title: "Stoneware mug, blue", price: 450 });
+    // The price moved: a second read replaces the one read before.
+    await t.act(plugin, "readAgain", { id: items(t)[0].id });
+    await t.link(plugin, { ...mug, price: 399, currency: "INR" });
+    expect(items(t)[0].price).toBe(399);
+    // Their own price is never replaced.
+    await t.message(plugin, "500", ref);
+    await t.message(plugin, "refresh", ref);
+    await t.link(plugin, { ...mug, price: 350, currency: "INR" });
+    expect(items(t)[0]).toMatchObject({ price: 500, typed: true });
+    await t.message(plugin, "kettle 900");
+    await t.message(plugin, "read again", t.marks[1]);
+    expect(t.sent.at(-1)!.text).toMatch(/has no link/);
+    await expect(t.act(plugin, "readAgain", { id: items(t).find((i) => i.name === "kettle")!.id })).rejects.toThrow(/no link/);
+  });
+
   it("moves it to a named list, or asks which", async () => {
     const { t, ref } = await one();
     await t.message(plugin, "move", ref);

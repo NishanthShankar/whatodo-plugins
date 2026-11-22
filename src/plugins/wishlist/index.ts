@@ -592,6 +592,13 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
   }
   if (/^(bought|got it|got|done|purchased|ordered|bought it)$/.test(lower)) return each((i) => ({ ...i, bought: true, boughtAt: kit.now }));
   if (/^(not bought|unbuy|still want|not yet|didn'?t buy|returned)$/.test(lower)) return each((i) => ({ ...i, bought: false, boughtAt: null, reacted: false }));
+  if (/^(read again|read it again|reread|refresh|check again|check (?:the )?price|update(?: (?:the )?price)?)$/.test(lower)) {
+    // Have the link's page read once more: a new name, picture or price replaces what it gave before.
+    const linked = rows.filter((r) => r.item.url);
+    if (!linked.length) return kit.send(copy.noLink());
+    for (const r of linked) await again(kit, r.id, r.item);
+    return kit.react(DONE);
+  }
   if (/^(no price|remove price|clear price)$/.test(lower)) return each((i) => ({ ...i, price: null, currency: null, typed: false }));
   if (/^(no note|remove note|clear note)$/.test(lower)) return each((i) => ({ ...i, note: null }));
   if (/^(no labels?|no tags?|clear labels?|clear tags?)$/.test(lower)) return each((i) => ({ ...i, tags: [] }));
@@ -627,6 +634,13 @@ async function onReply(kit: Kit, ids: string[], text: string, lower: string, sen
   return each((i) => ({ ...i, note: text.slice(0, NOTE_CHARS) }));
 }
 
+/** Ask for a thing's link to be read once more. What comes back replaces what the page gave before (onLink). */
+async function again(kit: Kit, id: string, item: Item) {
+  if (!item.url) return;
+  await putItem(kit, id, { ...item, reading: true });
+  await kit.links.read(item.url, { item: id, again: true });
+}
+
 /** A thing as the shared page shows it. Notes only when the person turned them on for this list. */
 function card(kit: Kit, item: Item, notes: boolean): SharedItem {
   return {
@@ -642,7 +656,7 @@ function card(kit: Kit, item: Item, notes: boolean): SharedItem {
 
 export default definePlugin({
   id: "wishlist",
-  version: "1.0.0",
+  version: "1.1.0",
   sdk: "1",
   name: "Wishlist",
   icon: "🎁",
@@ -719,7 +733,9 @@ export default definePlugin({
     if (!item || !id) return;
     const l = event.link;
     const next: Item = { ...item, reading: false, canonical: l.canonical, site: l.site, title: l.found ? l.title : item.title, image: l.image ?? item.image };
-    if (!item.typed && item.price === null && l.price != null) Object.assign(next, { price: l.price, currency: l.currency ?? null });
+    // Read again on request: today's price replaces the one read before. A price they typed always stays.
+    const fresh = (event.ref as { again?: boolean } | null)?.again === true;
+    if (!item.typed && (item.price === null || fresh) && l.price != null) Object.assign(next, { price: l.price, currency: l.currency ?? null });
     await putItem(kit, id, next);
   },
 
@@ -917,6 +933,13 @@ export default definePlugin({
         if (Array.isArray(tags)) next.tags = readTags(tags.map((t) => `#${String(t).replace(/^#/, "")}`).join(" ")).tags;
         if (!next.name && !next.title && !next.url) throw new Error("Give it a name.");
         await putItem(kit, String(id), next);
+      },
+      /** Read the thing's link once more, for a page that gave nothing the first time or a price that has changed. */
+      async readAgain(kit, { id }) {
+        const item = await kit.store.get<Item>("items", String(id));
+        if (!item) return;
+        if (!item.url) throw new Error("This one has no link to read.");
+        await again(kit, String(id), item);
       },
       async setBought(kit, { id, on }) {
         const item = await kit.store.get<Item>("items", String(id));

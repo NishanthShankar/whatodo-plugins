@@ -217,6 +217,7 @@ exports[`wishlist copy: lists, moving and deleting > limits 1`] = `
   "That list isn't there any more.",
   "That isn't on a list any more.",
   "Only the person who added Wishlist here can do that. You can add things, tick them off and ask for the _list_.",
+  "That one has no link for me to read. Reply to it with the price to set it.",
 ]
 `;
 
@@ -447,7 +448,7 @@ _list_ shows what's left to buy, with the total
 _bought_ shows what you already got
 _undo_ removes the last thing you added
 
-On something you added: react ✅ once you've bought it. Reply to it with a price, a note, a _#label_, _move_ or _delete_.
+On something you added: react ✅ once you've bought it. Reply to it with a price, a note, a _#label_, _move_ or _delete_. Reply _read again_ and I read its link once more.
 
 _new list diwali_ starts another list in this chat. After that, _diwali_ before a link puts it there, and a link on its own goes to the list you used last.
 _new group diwali_ gives a list a WhatsApp group of its own
@@ -475,7 +476,7 @@ _list_ shows what's left to buy, with the total
 _bought_ shows what you already got
 _undo_ removes the last thing you added
 
-On something you added: react ✅ once you've bought it. Reply to it with a price, a note, a _#label_, _move_ or _delete_.
+On something you added: react ✅ once you've bought it. Reply to it with a price, a note, a _#label_, _move_ or _delete_. Reply _read again_ and I read its link once more.
 
 _new list diwali_ starts another list in this chat. After that, _diwali_ before a link puts it there, and a link on its own goes to the list you used last.
 _new group diwali_ gives a list a WhatsApp group of its own
