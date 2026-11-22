@@ -23,6 +23,8 @@ Send these in the SafeButWhere group. Every part of a thing is optional: a photo
 | a few plain words, like `passport` | A search. If nothing matches, Zelfred's intent model decides whether you meant to keep it. |
 | `recent` (also `latest`, `list`, `last`) | The last 5 things you kept. |
 | `tags` | Your tags and how many things each has. |
+| an emoji on its own, like `🔑` | The things in that emoji's group, newest first: up to 3 in full with their photos, a longer group as a list of 15. |
+| `groups` (also `reactions`) | Your groups and how many things each has. |
 | `count` | How many things, and how many with a photo. |
 | `undo` (also `delete last`) | Removes the last thing you kept, and its photo. |
 | `help` | The command list. |
@@ -31,35 +33,37 @@ On a photo or a line you sent, or on an answer:
 
 | You | What happens |
 |---|---|
+| react with any emoji | The thing joins that emoji's group. One group per thing: a new emoji moves it. Nothing is sent back, since your reaction is already showing. Reacting to the words you sent for several photos groups all of them. |
+| take your reaction off | The thing leaves its group. |
 | reply with words | They replace that thing's words. 👍 |
 | reply with a `#tag` | The tag is added. 👍 |
 | reply `delete` (also `remove`, `forget`) | Removed, with its photo. 👍 |
 
 Words are told from a search like this: a line with a comma, a colon, a tag or a place word ("in", "under", "behind", "drawer", "shelf") is something to keep. A line that starts with `find` or `where`, or ends in `?`, is a search. A few plain words are searched first.
 
-Anything else goes to Zelfred's intent model, so plain sentences work: "any idea where I left my passport". Intents: `find`, `keep`, `recent`, `tags`, `undo`, `help`. No targets.
+Anything else goes to Zelfred's intent model, so plain sentences work: "any idea where I left my passport". Intents: `find`, `keep`, `recent`, `tags`, `groups`, `undo`, `help`. No targets.
 
 Search is plain word matching, weighted: tags first, then your words, then the name of the position. A thing must match as many of your words as the best match does. It costs nothing to run.
 
 Limits: 1500 things, 500 characters of words, 12 tags per thing.
 
-These choices are the plugin author's and were not confirmed by the owner: each photo being its own thing, the ten minute and two minute windows, a short line doubling as a tag, three answers in full, 500 m for "near", and a few plain words being a search.
+These choices are the plugin author's and were not confirmed by the owner: a thing being in one group at a time, any emoji at all being a group (the 👍 included), each photo being its own thing, the ten minute and two minute windows, a short line doubling as a tag, three answers in full, 500 m for "near", and a few plain words being a search.
 
 ## Data
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `things` | thing id | `{ what, tags, photo, place, at, changed? }` | kept time (ms) |
+| `things` | thing id | `{ what, tags, photo, place, reaction?, at, changed? }` | kept time (ms) |
 | `state` | `intro` | `1` once the first-keep note was sent | none |
 | `state` | `last`, `last:<group>` | `{ ids, at, open, words? }`: what was kept just now, so the next words or position go with it | none |
 
-`what` is the person's own words, or null for a photo with no words. `photo` is the id of a picture Zelfred keeps, never the picture. `place` is `{ lat, lng, name, address }` or null. Refs: `{ kind: "thing", ids }` on the person's own photo or line (through `kit.mark`) and on each answer.
+`what` is the person's own words, or null for a photo with no words. `photo` is the id of a picture Zelfred keeps, never the picture. `place` is `{ lat, lng, name, address }` or null. `reaction` is the emoji the person reacted with, which is the group the thing is in (unset on things in no group, and on everything kept before 1.1.0). Refs: `{ kind: "thing", ids }` on the person's own photo or line (through `kit.mark`) and on each answer.
 
 ## Web page
 
-Lockable. `load({ limit? })` returns `{ total, max, things: [{ id, what, tags, photo, place, at, changed }], tags: [{ tag, count }] }`, newest first, 600 things unless `limit` says otherwise (1000 at most). The page shows each photo through Zelfred by its id.
+Lockable. `load({ limit? })` returns `{ total, max, things: [{ id, what, tags, reaction, photo, place, at, changed }], tags: [{ tag, count }], groups: [{ emoji, count }] }`, newest first, 600 things unless `limit` says otherwise (1000 at most). The page shows each photo through Zelfred by its id.
 
-Actions: `add { what?, tags?, photo?, place? }` (`photo` is the id Zelfred returns when the page adds a picture; it needs a photo, words or a tag), `edit { id, what?, tags?, place? }` (`place: null` takes the position off), `remove { id }` (deletes the photo too).
+Actions: `add { what?, tags?, photo?, place? }` (`photo` is the id Zelfred returns when the page adds a picture; it needs a photo, words or a tag), `edit { id, what?, tags?, place?, reaction? }` (`place: null` takes the position off; `reaction` is one emoji, or null to take the thing out of its group), `remove { id }` (deletes the photo too).
 
 ## Privacy
 

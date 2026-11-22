@@ -2,6 +2,17 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-11-22
+
+### Added
+- Groups by reaction. React to a photo or a line of yours, or to an answer, with any emoji and the thing joins that emoji's group. A thing is in one group at a time: the last emoji given. Taking the reaction off takes it out.
+- An emoji sent on its own shows its group: up to 3 things in full, a longer group as a list.
+- `groups` lists your groups with how many things each has.
+- The page gets each thing's group and the list of groups, and `edit` takes `reaction`.
+
+### Data
+- `things`: a new optional field `reaction` (the emoji). Things kept before have none and are in no group.
+
 ## [1.0.0] - 2026-11-22
 
 ### Added

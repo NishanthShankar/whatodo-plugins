@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createTestKit, photo } from "../../../testing";
-import plugin, { ALBUM_MS, MAX_THINGS, NEAR_M, type Thing } from "../index";
+import plugin, { ALBUM_MS, emojiOf, LISTED, MAX_THINGS, NEAR_M, type Thing } from "../index";
 import type { Place } from "../../../sdk";
 import { looksKept, metres, rank, read, sayDay, shortAsTag } from "../words";
 
@@ -262,6 +262,91 @@ describe("safebutwhere: changing", () => {
     await t.message(plugin, "undo");
     expect(things(t)).toHaveLength(0);
     expect(t.removedFiles).toEqual(["p1"]);
+  });
+});
+
+describe("safebutwhere: groups by reaction", () => {
+  it("reads an emoji, and nothing else, as a group's name", () => {
+    expect(emojiOf("🔑")).toBe("🔑");
+    expect(emojiOf(" ❤️ ")).toBe("❤");
+    expect(emojiOf("👍🏽")).toBe("👍🏽");
+    expect(emojiOf("🔑🔑")).toBe("🔑");
+    expect(emojiOf("key 🔑")).toBeNull();
+    expect(emojiOf("123")).toBeNull();
+    expect(emojiOf("#")).toBeNull();
+  });
+
+  it("a reaction puts a thing in that emoji's group, the last one wins, and taking it off takes it out", async () => {
+    const t = createTestKit();
+    await sendPhoto(t, "p1", "spare key");
+    const ref = t.marks.at(-1)!;
+    const before = t.sent.length;
+    await t.react(plugin, "🔑", ref);
+    expect(things(t)[0].reaction).toBe("🔑");
+    await t.react(plugin, "⭐", ref);
+    expect(things(t)[0].reaction).toBe("⭐");
+    await t.react(plugin, null, ref);
+    expect(things(t)[0].reaction).toBeNull();
+    // Nothing is said and nothing is reacted back: their own reaction is the record.
+    expect(t.sent).toHaveLength(before);
+    expect(t.reactions).toEqual(["👍"]);
+  });
+
+  it("a reaction on the words sent for several photos groups all of them", async () => {
+    const t = createTestKit();
+    await sendPhoto(t, "p1");
+    await sendPhoto(t, "p2");
+    await t.message(plugin, "jewellery");
+    await t.react(plugin, "💍", t.marks.at(-1)!);
+    expect(things(t).map((x) => x.reaction)).toEqual(["💍", "💍"]);
+  });
+
+  it("an emoji on its own shows its group: in full when small, as a list when long", async () => {
+    const t = createTestKit();
+    await sendPhoto(t, "p1", "spare key");
+    await t.react(plugin, "🔑", t.marks.at(-1)!);
+    await t.message(plugin, "locker key, red pouch");
+    await t.react(plugin, "🔑", t.marks.at(-1)!);
+    t.sent.length = 0;
+    await t.message(plugin, "🔑");
+    expect(t.sent).toHaveLength(2);
+    expect(t.sent.some((s) => s.photo === "p1")).toBe(true);
+    await t.message(plugin, "🧦");
+    expect(t.sent[2].text).toContain("Nothing is in 🧦");
+
+    for (let i = 0; i < LISTED + 3; i++) {
+      await t.message(plugin, `charger ${i}, drawer ${i}`);
+      await t.react(plugin, "🔌", t.marks.at(-1)!);
+    }
+    t.sent.length = 0;
+    await t.message(plugin, "🔌");
+    expect(t.sent).toHaveLength(1);
+    expect(t.sent[0].text).toContain(`${LISTED + 3} things`);
+    expect(t.sent[0].text).toContain("3 more");
+  });
+
+  it("lists the groups, and the page gets them and can change one", async () => {
+    const t = createTestKit();
+    await t.message(plugin, "groups");
+    expect(t.sent.at(-1)!.text).toContain("No groups yet");
+    await t.message(plugin, "spare key under the pot");
+    await t.react(plugin, "🔑", t.marks.at(-1)!);
+    await t.message(plugin, "groups");
+    expect(t.sent.at(-1)!.text).toContain("🔑 · 1");
+    const data = (await t.load(plugin)) as { things: { id: string; reaction: string | null }[]; groups: { emoji: string; count: number }[] };
+    expect(data.groups).toEqual([{ emoji: "🔑", count: 1 }]);
+    await t.act(plugin, "edit", { id: data.things[0].id, reaction: "🏠" });
+    expect(things(t)[0].reaction).toBe("🏠");
+    await expect(t.act(plugin, "edit", { id: data.things[0].id, reaction: "home" })).rejects.toThrow("one emoji");
+    await t.act(plugin, "edit", { id: data.things[0].id, reaction: null });
+    expect(things(t)[0].reaction).toBeNull();
+  });
+
+  it("a reaction to something that isn't a thing, or is gone, does nothing", async () => {
+    const t = createTestKit();
+    await t.react(plugin, "🔑", { kind: "other" });
+    await t.react(plugin, "🔑", { kind: "thing", ids: ["gone"] });
+    expect(things(t)).toHaveLength(0);
   });
 });
 
