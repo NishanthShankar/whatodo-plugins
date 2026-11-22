@@ -29,14 +29,14 @@ _list_ here shows what's left to buy.",
     {
       "group": null,
       "ref": null,
-      "text": "Nothing on *Wishlist* is bought yet. React ✅ on something once you have it.",
+      "text": "Nothing on *Wishlist* is bought yet. React ✅ or 👍 on something once you have it.",
     },
     {
       "group": null,
       "ref": null,
       "text": "🎁 Added, with its price.
 
-React ✅ on it once you've bought it. Send _list_ to see what's left and what it adds up to.
+React ✅ or 👍 on it once you've bought it. Send _list_ to see what's left and what it adds up to.
 From now on you'll just get a 👍.",
     },
     {
@@ -155,7 +155,7 @@ exports[`wishlist copy: adding and showing > the first thing, with and without a
         "ref": null,
         "text": "🎁 Added, with its price.
 
-React ✅ on it once you've bought it. Send _list_ to see what's left and what it adds up to.
+React ✅ or 👍 on it once you've bought it. Send _list_ to see what's left and what it adds up to.
 From now on you'll just get a 👍.",
       },
     ],
@@ -173,7 +173,7 @@ From now on you'll just get a 👍.",
         "ref": null,
         "text": "🎁 Added. I couldn't find a price for this one, so reply to it with the price if you want it in the total.
 
-React ✅ on it once you've bought it. Send _list_ to see what's left and what it adds up to.
+React ✅ or 👍 on it once you've bought it. Send _list_ to see what's left and what it adds up to.
 From now on you'll just get a 👍.",
       },
     ],
@@ -322,7 +322,7 @@ exports[`wishlist copy: lists, moving and deleting > naming, renaming, moving an
       "ref": null,
       "text": "🎁 Added. I couldn't find a price for this one, so reply to it with the price if you want it in the total.
 
-React ✅ on it once you've bought it. Send _list_ to see what's left and what it adds up to.
+React ✅ or 👍 on it once you've bought it. Send _list_ to see what's left and what it adds up to.
 From now on you'll just get a 👍.",
     },
     {
@@ -448,7 +448,7 @@ _list_ shows what's left to buy, with the total
 _bought_ shows what you already got
 _undo_ removes the last thing you added
 
-On something you added: react ✅ once you've bought it, or with anything else (❤️, ⭐) to mark it your own way. Reply to it with a price, a note, a _#label_, _move_ or _delete_. Reply _read again_ and I read its link once more.
+On something you added: react ✅ or 👍 once you've bought it, or with anything else (❤️, ⭐) to mark it your own way. Reply to it with a price, a note, a _#label_, _move_ or _delete_. Reply _read again_ and I read its link once more.
 
 _new list diwali_ starts another list in this chat. After that, _diwali_ before a link puts it there, and a link on its own goes to the list you used last.
 _new group diwali_ gives a list a WhatsApp group of its own
@@ -476,7 +476,7 @@ _list_ shows what's left to buy, with the total
 _bought_ shows what you already got
 _undo_ removes the last thing you added
 
-On something you added: react ✅ once you've bought it, or with anything else (❤️, ⭐) to mark it your own way. Reply to it with a price, a note, a _#label_, _move_ or _delete_. Reply _read again_ and I read its link once more.
+On something you added: react ✅ or 👍 once you've bought it, or with anything else (❤️, ⭐) to mark it your own way. Reply to it with a price, a note, a _#label_, _move_ or _delete_. Reply _read again_ and I read its link once more.
 
 _new list diwali_ starts another list in this chat. After that, _diwali_ before a link puts it there, and a link on its own goes to the list you used last.
 _new group diwali_ gives a list a WhatsApp group of its own

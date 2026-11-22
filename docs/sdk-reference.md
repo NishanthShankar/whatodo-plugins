@@ -288,6 +288,8 @@ web: {
 
 `kit.send(text, { ref })` lets you recognise reactions and replies to your own message. `kit.mark(ref)` does the same for the person's message you are handling in `onMessage`: a reaction to it arrives in `onReaction` with that ref, and a reply to it carries it as `quotedRef`. Use it when their message is the record itself (the link they saved). Since SDK 1.10.0.
 
+`kit.reactTo(ref, emoji)` puts a reaction on the person's messages you marked with that ref, from anywhere: a call from the page, a schedule, another message. Use it to show in WhatsApp what changed elsewhere (a ✅ on a thing ticked on the page). The ref must equal the one given to `kit.mark`; `""` takes the reaction off; nothing happens when no message carries the ref. Since SDK 1.26.0.
+
 - One ref per message; calling it again replaces the first.
 - `kit.react` inside `onReaction` is ignored for a marked message: their own reaction is already showing on it.
 

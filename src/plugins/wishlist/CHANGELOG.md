@@ -1,5 +1,13 @@
 # Changelog: Wishlist
 
+## [1.3.0] - 2026-11-23
+
+### Added
+- Marking a thing bought on the page puts a ✅ on its WhatsApp message; taking it back puts the 👍 there again. A message that brought several things gets the ✅ once all of them are bought.
+
+### Changed
+- A 👍 on a thing means bought, like a ✅. It is no longer kept as a mark.
+
 ## [1.2.0] - 2026-11-22
 
 ### Added

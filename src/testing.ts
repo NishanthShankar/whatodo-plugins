@@ -83,6 +83,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const signedUp: string[] = [];
   /** Refs given to kit.mark(), in order: the person's messages the plugin asked to remember. */
   const marks: Json[] = [];
+  /** What was given to kit.reactTo(), in order: a reaction put on the person's messages marked with a ref. */
+  const reactTos: { ref: Json; emoji: string }[] = [];
   /** Fallback texts from kit.unsure(), in order. In Zelfred these trigger intent understanding. */
   const unsures: string[] = [];
   /** Hooks that are open, by key. */
@@ -193,6 +195,11 @@ export function createTestKit(opts: TestKitOptions = {}) {
     mark(ref) {
       if (ref === undefined) throw new Error("kit.mark: give a ref");
       marks.push(clone(ref));
+    },
+    reactTo(ref, emoji) {
+      if (ref === undefined) throw new Error("kit.reactTo: give a ref");
+      if (typeof emoji !== "string") throw new Error("kit.reactTo: give an emoji, or \"\" to take the reaction off");
+      reactTos.push({ ref: clone(ref), emoji });
     },
     unsure(fallback) {
       if (typeof fallback !== "string" || !fallback.trim()) throw new Error("kit.unsure: give a fallback message");
@@ -312,6 +319,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
     asked,
     reactions,
     marks,
+    reactTos,
     signedUp,
     unsures,
     /** Keys of the hooks that are open. */

@@ -1,5 +1,5 @@
 import { definePlugin, type Json, type Kit, type Link, type Sender, type SharedItem, type SharedPage } from "../../sdk";
-import { copy, DELETE_NO, DELETE_YES, DONE, FIRST_LIST, SAVED, STAY, type Row } from "./copy";
+import { copy, DELETE_NO, DELETE_YES, DONE, FIRST_LIST, SAVED, STAY, TICK, type Row } from "./copy";
 import { currencyOf, guessCurrency, money, readPrice, readTags, slug, total } from "./money";
 
 /**
@@ -56,6 +56,8 @@ export interface Item {
   boughtAt?: number | null;
   /** Their ✅ on the message set `bought`, so taking the reaction off clears it. */
   reacted?: boolean;
+  /** The things that came in the same WhatsApp message, this one included. Unset: it came alone. Since 1.3.0. */
+  msg?: string[];
   /**
    * The reaction the person who added Wishlist last left on it, other than a "bought" one: ❤️,
    * ⭐, 🔥, whatever they use. Theirs to give meaning to; the page can group by it.
@@ -105,7 +107,9 @@ const SHOW = 10;
 const FIRST_ID = "main";
 
 const plainEmoji = (e: string) => e.replace(/[︎️]/g, "");
-const BOUGHT_EMOJI = new Set(["✅", "☑", "✔", "🛒", "🛍"]);
+/** A 👍 counts like a ✅ since 1.3.0. Skin tones are taken off before the lookup. */
+const BOUGHT_EMOJI = new Set(["✅", "☑", "✔", "👍", "🛒", "🛍"]);
+const bareEmoji = (e: string) => plainEmoji(e).replace(/[\u{1F3FB}-\u{1F3FF}]/gu, "");
 
 type ListRow = { id: string; list: List };
 type ItemRow = { id: string; item: Item };
@@ -280,10 +284,33 @@ async function room(kit: Kit, target: ListRow, n: number): Promise<string | null
   return null;
 }
 
+/**
+ * A thing was marked bought, or not, on the page: show it on its WhatsApp message too. The
+ * message gets my ✅ once everything that came in it is bought, and my 👍 back otherwise. A
+ * thing added on the page has no message, and then nothing happens.
+ */
+async function showOn(kit: Kit, id: string, item: Item) {
+  const ids = item.msg?.length ? item.msg : [id];
+  let all = item.bought;
+  for (const other of ids) {
+    if (other === id) continue;
+    const it = await kit.store.get<Item>("items", other);
+    if (it && !it.bought) all = false;
+  }
+  kit.reactTo({ kind: "item", ids } satisfies ItemRef as unknown as Json, all ? TICK : SAVED);
+}
+
 /** After something was added from WhatsApp: the tick, the one-time note, and which list when that isn't obvious. */
 async function added(kit: Kit, lists: ListRow[], d: Details, ids: string[], here: string | null, priced: boolean) {
   kit.mark({ kind: "item", ids } satisfies ItemRef as unknown as Json);
   kit.react(SAVED);
+  // Several things in one message: each remembers the others, to find the message again (showOn).
+  if (ids.length > 1) {
+    for (const id of ids) {
+      const item = await kit.store.get<Item>("items", id);
+      if (item) await kit.store.put("items", id, { ...item, msg: ids } as unknown as Json);
+    }
+  }
   // Naming a list that lives here makes it the one bare links go to next.
   if ((d.row.list.home ?? null) === here) await use(kit, here, d.row.id);
   if (!(await kit.store.get("state", "intro"))) {
@@ -661,7 +688,7 @@ function card(kit: Kit, item: Item, notes: boolean): SharedItem {
 
 export default definePlugin({
   id: "wishlist",
-  version: "1.2.0",
+  version: "1.3.0",
   sdk: "1",
   name: "Wishlist",
   icon: "🎁",
@@ -770,7 +797,7 @@ export default definePlugin({
 
   async onReaction(event, kit) {
     if (!isItemRef(event.ref)) return;
-    const bought = !!event.emoji && BOUGHT_EMOJI.has(plainEmoji(event.emoji));
+    const bought = !!event.emoji && BOUGHT_EMOJI.has(bareEmoji(event.emoji));
     // ✅ on a thing means it is bought. Changing or removing the reaction takes that back,
     // unless it was marked bought in words or on the page.
     // Any other reaction from the person who added Wishlist is kept as the thing's mark, to
@@ -960,7 +987,10 @@ export default definePlugin({
       },
       async setBought(kit, { id, on }) {
         const item = await kit.store.get<Item>("items", String(id));
-        if (item) await putItem(kit, String(id), { ...item, bought: !!on, boughtAt: on ? kit.now : null, reacted: false });
+        if (!item) return;
+        const next: Item = { ...item, bought: !!on, boughtAt: on ? kit.now : null, reacted: false };
+        await putItem(kit, String(id), next);
+        await showOn(kit, String(id), next);
       },
       async move(kit, { id, list }) {
         if (!(await kit.store.get<List>("lists", String(list)))) throw new Error("That list isn't there any more.");
