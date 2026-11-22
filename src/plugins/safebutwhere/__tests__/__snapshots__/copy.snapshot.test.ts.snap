@@ -1,0 +1,322 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`safebutwhere copy: changing > undo, a reply to something gone, a reply it can't read 1`] = `
+{
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Removed the last photo.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Removed: passport, blue file",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "That one isn't kept any more.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`safebutwhere copy: finding > answers: with a photo, tags and a position; words alone; more than fit; nothing 1`] = `
+{
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "photo": "p1",
+      "ref": {
+        "ids": [
+          "id1",
+        ],
+        "kind": "thing",
+      },
+      "text": "passport, blue file
+#documents
+📍 Home https://maps.google.com/?q=12.9716,77.5946
+_Kept on 15 November._",
+    },
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "id2",
+        ],
+        "kind": "thing",
+      },
+      "text": "charger 1, drawer 1
+_Kept on 15 November._",
+    },
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "id3",
+        ],
+        "kind": "thing",
+      },
+      "text": "charger 2, drawer 2
+_Kept on 15 November._",
+    },
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "id4",
+        ],
+        "kind": "thing",
+      },
+      "text": "charger 3, drawer 3
+_Kept on 15 November._",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "2 more match. Add a word and I'll narrow it down.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I have nothing on "umbrella".",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Find what? Try _where is my passport_.",
+    },
+  ],
+  "unsures": [
+    "I have nothing on "umbrella". To keep it, say where it is too: _umbrella, top shelf_.",
+  ],
+}
+`;
+
+exports[`safebutwhere copy: finding > near a position, and nothing near 1`] = `
+{
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "id1",
+        ],
+        "kind": "thing",
+      },
+      "text": "documents in mum's locker
+📍 Home https://maps.google.com/?q=12.9716,77.5946
+_Kept on 15 November, 30 m away._",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing kept near there.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`safebutwhere copy: finding > recent, tags, count, and each when there is nothing 1`] = `
+{
+  "empty": {
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "Nothing kept yet. Send a photo of where you put something, or a line like _passport, blue file, top shelf_.",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "No tags yet. Put one in your words, like _#documents_, or reply to a thing with one.",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "Nothing kept yet. Send a photo of where you put something, or a line like _passport, blue file, top shelf_.",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "Nothing kept yet. Send a photo of where you put something, or a line like _passport, blue file, top shelf_.",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "There's nothing to remove.",
+      },
+    ],
+    "unsures": [],
+  },
+  "filled": {
+    "reactions": [
+      "👍",
+      "👍",
+      "👍",
+    ],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*The last 2 things you kept*
+
+1. passport, blue file #documents #travel-papers · 15 November
+2. spare key under the pot · 15 November",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Your tags*
+
+#documents · 1
+#travel-papers · 1",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "2 things kept, 1 with a photo.",
+      },
+    ],
+    "unsures": [],
+  },
+}
+`;
+
+exports[`safebutwhere copy: keeping > full 1`] = `
+{
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "I'm holding 1500 things here, which is as many as I keep. Remove a few, then send this again.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`safebutwhere copy: keeping > the first thing, as a photo with no words 1`] = `
+{
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Kept. From now on a 👍 says the same.
+
+Send a few words now and they go with the photo. Send several photos first, and they all get the words.
+_#documents_ in your words is a tag. Share your location now, and I keep the position as well.
+
+When you can't find it, ask: _where is my passport_.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`safebutwhere copy: keeping > the first thing, as words 1`] = `
+{
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Kept. From now on a 👍 says the same.
+
+A photo works too. Words sent right after one go with it, and several photos sent together all get them.
+_#documents_ in your words is a tag. Share your location now, and I keep the position as well.
+
+When you can't find it, ask: _where is my passport_.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`safebutwhere copy: what the plugin says about itself > help through the intent model, and a message it can't read 1`] = `
+{
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "*SafeButWhere*
+
+Send a photo of where you put something, a line like _passport, blue file, top shelf_, or both. I keep it.
+
+Words sent right after a photo are kept with it. Send several photos and then the words, and every photo gets them.
+_#documents_ in your words is a tag.
+Share your location right after, and the position is kept too.
+
+_where is my passport_ brings it back, photo and all
+_recent_ shows the last things you kept
+_tags_ shows your tags
+_undo_ removes the last thing you kept
+Share your location on its own to see what you kept near there.
+
+Reply to a photo, a line of yours or an answer of mine with new words to change it, a _#tag_ to add one, or _delete_ to remove it.
+
+Everything is on app.whatodo.today too.",
+    },
+  ],
+  "unsures": [
+    "I have nothing on "hmm". To keep it, say where it is too: _hmm, top shelf_.",
+  ],
+}
+`;
+
+exports[`safebutwhere copy: what the plugin says about itself > welcome, help and group name 1`] = `
+{
+  "groupName": "📍 SafeButWhere",
+  "help": "*SafeButWhere*
+
+Send a photo of where you put something, a line like _passport, blue file, top shelf_, or both. I keep it.
+
+Words sent right after a photo are kept with it. Send several photos and then the words, and every photo gets them.
+_#documents_ in your words is a tag.
+Share your location right after, and the position is kept too.
+
+_where is my passport_ brings it back, photo and all
+_recent_ shows the last things you kept
+_tags_ shows your tags
+_undo_ removes the last thing you kept
+Share your location on its own to see what you kept near there.
+
+Reply to a photo, a line of yours or an answer of mine with new words to change it, a _#tag_ to add one, or _delete_ to remove it.
+
+Everything is on app.whatodo.today too.",
+  "welcome": "📍 You've added *SafeButWhere*.
+
+When you put something away, send me a photo of the spot, a line like _passport, blue file, top shelf_, or both. When you can't find it, ask: _where is my passport_.
+
+Send _help_ for more.",
+}
+`;
