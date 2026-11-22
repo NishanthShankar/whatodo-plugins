@@ -75,7 +75,7 @@ Raising a plugin's tier changes what people may pay for it, so it is a MAJOR rel
 ## Events
 
 ```ts
-interface MessageEvent  { text: string; quotedRef: Json | null; group?: string | null; sender?: Sender }
+interface MessageEvent  { text: string; quotedRef: Json | null; group?: string | null; sender?: Sender; links?: Link[]; photos?: Photo[]; place?: Place }
 interface ReactionEvent { emoji: string | null; ref: Json; group?: string | null; sender?: Sender }   // emoji null: reaction removed
 interface ScheduleEvent { id: string }
 interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number; sender?: Sender }
@@ -87,7 +87,7 @@ interface GroupEvent    { kind: "joined" | "left"; key: string; name: string }  
 interface EntryEvent    { change: "added" | "edited" | "removed"; id: string; kind: string; at: number; source: "whatsapp" | "web"; sender?: Sender }   // "vault" plugins; since SDK 1.21.0
 ```
 
-- `text` is trimmed by Zelfred; it is never empty.
+- `text` is trimmed by Zelfred; it is never empty, except for a plugin with `"photos"` or `"location"`: a photo or a position sent with no words arrives with an empty text.
 - `quotedRef` is the `ref` of **your** message the person replied to, or `null`. Replies to their own messages or to messages without a ref give `null`.
 - Only the installer's messages and reactions reach the plugin.
 - `group` is the key of the extra group (`kit.groups.open`) the event happened in, or `null` for the main group. Making a group takes a little while and can fail and be retried, so never wait for it: keep working in the main group until events start arriving with the key.
@@ -107,13 +107,14 @@ interface EntryEvent    { change: "added" | "edited" | "removed"; id: string; ki
 | `groups.open(key, { name, hello? })` | `Promise<void>` | Ask for an extra WhatsApp group for this install (the person and Zelfred). `name` ≤ 25 chars; `hello` is posted once it exists. Does nothing if `key` is already open. Since SDK 1.6.0. |
 | `groups.close(key)` | `Promise<void>` | Stop using that group. Zelfred stops listening and posting there. Since SDK 1.6.0. |
 | `groups.rename(key, name)` | `Promise<void>` | Give that group a new name (1-25 chars). A group still being made gets it when it is made. Does nothing for a group that isn't open or that the person handed over. Since SDK 1.22.0. |
-| `send(text, { ref?, group? })` | void | Post in the plugin's group after the handler finishes. With `group`, post in that extra group instead (the main group until it exists). While handling an event from an extra group, that group is the default. ≤ 4000 chars. WhatsApp formatting (`*bold*`, `_italic_`) works. Attach `ref` to recognise reactions and replies. |
+| `send(text, { ref?, group?, photo? })` | void | Post in the plugin's group after the handler finishes. With `group`, post in that extra group instead (the main group until it exists). While handling an event from an extra group, that group is the default. ≤ 4000 chars. WhatsApp formatting (`*bold*`, `_italic_`) works. Attach `ref` to recognise reactions and replies. |
 | `react(emoji)` | void | React to the message being handled; the last call wins. In `onMessage` that is the person's message, in `onReaction` the plugin's own message they reacted to (acknowledge their reaction). `""` removes it. Ignored in schedules and web calls. Since SDK 1.3.0. |
 | `unsure(fallback)` | void | `onMessage` only: you couldn't read the message. With `understand`, Zelfred works out the intent and calls `onIntent`; otherwise, or if it isn't sure, it posts `fallback`. Since SDK 1.4.0. |
 | `id()` | string | A short random id for new records. |
 | `hooks.url(key)` | `Promise<string>` | The web address of this install's hook `key` (lowercase letters, digits, dashes), made on first use. Anyone who has it can POST to it; each request arrives as `onHook`. Not on page loads. Since SDK 1.5.0. |
 | `hooks.remove(key)` | `Promise<void>` | Close a hook. Its address stops working. Since SDK 1.5.0. |
-| `files.remove(id)` | `Promise<void>` | Delete a file that arrived through a hook. Since SDK 1.5.0. |
+| `files.remove(id)` | `Promise<void>` | Delete a file that arrived through a hook, or a photo. Since SDK 1.5.0. |
+| `files.get(id)` | `Promise<{ id, type, size } \| null>` | One of this install's files, or null. Since SDK 1.25.0. |
 | `share.url(key)` | `Promise<string>` | The address of this install's shared page `key`, made on first use. Anyone who has it can open the page. Not on page loads. Since SDK 1.24.0. |
 | `share.find(key)` | `Promise<string \| null>` | The address for `key` if one was made. Works on page loads. Since SDK 1.24.0. |
 | `share.remove(key)` | `Promise<void>` | Stop sharing. The address stops working for good; `url(key)` afterwards makes a new one. Since SDK 1.24.0. |
@@ -152,9 +153,44 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"members"` | Hear everyone in its groups, not only the person who added it. Each message, reaction and intent says who sent it in `event.sender`. Can't be combined with `"lock-members"`. | Built (SDK 1.8.0) |
 | `"links"` | Get the public details of links people send: `event.links`. Zelfred opens the link, not the plugin. | Built (SDK 1.10.0) |
 | `"share"` | Make pages anyone with the link can open, signed in or not: `kit.share`, `web.shared`. Zelfred draws the page, limits how often it is opened and can take it down. Can't be combined with `"vault"`. See [Shared pages](#shared-pages-a-page-anyone-can-open). | Built (SDK 1.24.0), unlisted plugins only for now |
+| `"photos"` | Get the photos people send in its groups, as ids (`event.photos`), and send one back (`kit.send` with `photo`). Zelfred keeps the files. See [Photos](#photos). | Built (SDK 1.25.0) |
+| `"location"` | Get a position shared in its groups: `event.place`. See [A position](#a-position). | Built (SDK 1.25.0) |
 | `"vault"` | Nothing: it takes reading away. What is written in the plugin's group is locked on arrival with a key only the person's browser holds. The plugin gets `onEntry` and never a message. See [A vault](#a-vault-entries-nobody-else-can-read). | Built (SDK 1.21.0), unlisted plugins only until the locking is reviewed |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
+
+## Photos
+
+A plugin never holds a picture. With the `"photos"` permission Zelfred keeps each photo sent in the plugin's groups and hands over an id. Since SDK 1.25.0.
+
+```ts
+async onMessage(event, kit) {
+  for (const p of event.photos ?? []) {
+    // p.id, p.type ("image/jpeg"), p.size (bytes). event.text is the caption, or "".
+    await kit.store.put("things", kit.id(), { photo: p.id, what: event.text || null }, kit.now);
+  }
+}
+// Later: send it back, with the text as its caption.
+kit.send("Blue file, top shelf.", { photo: thing.photo, ref });
+```
+
+- **One photo per message.** WhatsApp sends each photo of an album as its own message, one after another, and only one of them carries the caption. Decide what a caption means for the others.
+- **A photo with no words** arrives with `event.text === ""`. Without `"photos"` it never reaches the plugin at all.
+- **Only pictures:** JPEG, PNG and WebP up to 8 MB. Videos, voice notes and documents are not passed on.
+- **Sending one back:** `kit.send(text, { photo: id })`. The caption is up to 1000 characters and may be empty. Only the install's own photos can be sent, and only into its own groups.
+- **On the page:** Zelfred shows a photo by its id to the signed-in person, and lets the page add one. The page hands the new id to one of the plugin's actions; check it with `await kit.files.get(id)` (null when it isn't this install's) before storing it.
+- **Deleting:** `kit.files.remove(id)`. A plugin that removes a record removes its photo. A photo the plugin turns away (it is full) must be removed too, or it stays behind.
+- **Limits:** 2000 photos per install. Past that Zelfred turns a new one away and says so; the plugin isn't called.
+- **Links are not read** for a message that carries a photo, even with `"links"`.
+- Can't be combined with `"vault"`.
+
+Test with `t.message(plugin, "caption", null, null, undefined, undefined, { photos: [photo("p1")] })`, `t.sent[n].photo` and `t.addFile(id)`.
+
+## A position
+
+With the `"location"` permission, a position a person shares in the plugin's groups (WhatsApp's "Location") arrives as `event.place`: `{ lat, lng, name, address }`. `name` and `address` are set when they picked a named place. A comment sent with it is `event.text`; with none, the text is empty. A live location arrives once, with where the person was when they started sharing. Since SDK 1.25.0.
+
+Test with `t.message(plugin, "", null, null, undefined, undefined, { place: { lat, lng, name: null, address: null } })`.
 
 ## A vault: entries nobody else can read
 

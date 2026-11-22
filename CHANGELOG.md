@@ -2,6 +2,18 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.25.0] - 2026-11-22
+
+### Added
+- Permission `"photos"`: the photos people send in the plugin's groups. Zelfred keeps each file and hands the plugin its id, type and size in `event.photos`; a photo with no words arrives with an empty `event.text`, and a caption is the text. `kit.send(text, { photo: id })` sends one back with the text as its caption. `kit.files.get(id)` says whether an id is one of the install's files, for an id that came from the page. Videos, voice notes and other files are not passed on.
+- Permission `"location"`: a position shared in the plugin's groups, as `event.place` (`{ lat, lng, name, address }`).
+- `definePlugin` refuses `"photos"` or `"location"` together with `"vault"`.
+- Test kit: `photo(id)`, a seventh argument to `t.message` (`{ photos, place }`), `t.addFile(id)` for a picture added on the page, and `photo` on each entry of `t.sent`.
+- Plugin SafeButWhere 1.0.0 (unlisted), the first to use both.
+
+### Note
+- The type changes for this version reached `main` a commit early, inside the 1.24.0 commit. Nothing used them until now.
+
 ## [1.24.0] - 2026-11-22
 
 ### Added

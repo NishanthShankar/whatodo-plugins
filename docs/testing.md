@@ -45,6 +45,8 @@ it("logs a glass and reacts", async () => {
 | `await t.loadFor(plugin, from, args?)` | the web page loads for someone else in the plugin's groups (`web.loadFor`) |
 | `await t.act(plugin, action, args?)` | the web page calls an action |
 | `await t.link(plugin, link)` | Zelfred read a link the plugin asked for with `kit.links.read` (`onLink`, with that request's `ref`). Throws when nobody asked for that address. |
+| `await t.message(plugin, text, null, null, undefined, undefined, { photos, place })` | a message with a photo (`photo("p1")`, needs `"photos"`) or a shared position (needs `"location"`); `text` may be `""` |
+| `t.addFile(id)` | a picture was added on the plugin's page: `kit.files.get(id)` now finds it |
 | `await t.shared(plugin, key)` | someone opens the shared page for `key`: returns what `web.shared` gives. Throws when nothing is shared under that key. |
 
 ### Reading results
