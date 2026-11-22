@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type PluginDef, type Sender, type StoredItem } from "./sdk";
+import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type PluginDef, type Sender, type SharedPage, type StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -80,6 +80,11 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const unsures: string[] = [];
   /** Hooks that are open, by key. */
   const hooks = new Set<string>();
+  /** Shared pages that are open: key -> how many addresses that key has had (a new one after each remove). */
+  const shares = new Map<string, number>();
+  const shareCount = new Map<string, number>();
+  /** Links the plugin asked Zelfred to read with kit.links.read(), in order. Answer one with `t.link()`. */
+  const reads: { url: string; ref: Json }[] = [];
   /** Ids passed to kit.files.remove(), in order. */
   const removedFiles: string[] = [];
   /** What the plugin told the person's other systems with kit.emit(), in order. */
@@ -102,7 +107,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
 
   /** The plugin being driven: its permissions decide what the kit allows, as in Zelfred. */
   let current: PluginDef | null = null;
-  const need = (permission: "hooks" | "groups", what: string) => {
+  const need = (permission: "hooks" | "groups" | "share" | "links", what: string) => {
     if (current && !current.permissions?.includes(permission)) throw new Error(`${current.id}: ${what} needs the "${permission}" permission`);
   };
 
@@ -202,6 +207,31 @@ export function createTestKit(opts: TestKitOptions = {}) {
         hooks.delete(key);
       },
     },
+    share: {
+      async url(key) {
+        need("share", "kit.share.url");
+        if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(key)) throw new Error(`kit.share.url: "${key}" must be lowercase letters, digits and dashes`);
+        if (!shares.has(key)) {
+          shareCount.set(key, (shareCount.get(key) ?? 0) + 1);
+          shares.set(key, shareCount.get(key)!);
+        }
+        return `https://share.test/${key}-${shares.get(key)}`;
+      },
+      async find(key) {
+        return shares.has(key) ? `https://share.test/${key}-${shares.get(key)}` : null;
+      },
+      async remove(key) {
+        shares.delete(key);
+      },
+    },
+    links: {
+      async read(url, ref) {
+        need("links", "kit.links.read");
+        if (typeof url !== "string" || !/^https?:\/\//i.test(url)) throw new Error("kit.links.read: give a web address");
+        if (ref === undefined) throw new Error("kit.links.read: give a ref");
+        reads.push({ url, ref: clone(ref) });
+      },
+    },
     files: {
       async remove(id) {
         removedFiles.push(id);
@@ -272,6 +302,10 @@ export function createTestKit(opts: TestKitOptions = {}) {
     groups,
     removedFiles,
     emitted,
+    /** Keys of the shared pages that are open. */
+    shares,
+    /** Links asked for with kit.links.read(), in order. */
+    reads,
     /** Move the clock. */
     setToday(day: string) {
       state.today = day;
@@ -453,6 +487,26 @@ export function createTestKit(opts: TestKitOptions = {}) {
       const endpoint = plugin.api?.get[name];
       if (!endpoint) throw new Error(`${plugin.id} has no api endpoint ${name}`);
       return clone(await endpoint.run(kit, { ...params }, scope));
+    },
+    /**
+     * Zelfred read a link the plugin asked for: `onLink` is called with what was found and the
+     * ref of that request. Throws when the plugin never asked for this address.
+     */
+    async link(plugin: PluginDef, found: Link) {
+      withDefaults(plugin);
+      const at = reads.findIndex((r) => r.url === found.url);
+      if (at < 0) throw new Error(`${plugin.id}: nobody asked to read ${found.url}`);
+      const [asked] = reads.splice(at, 1);
+      if (!plugin.onLink) throw new Error(`${plugin.id} has no onLink`);
+      await plugin.onLink({ link: { ...found }, ref: asked.ref }, kit);
+    },
+    /** What the shared page for `key` shows right now. Throws when that page isn't open (Zelfred would answer "not found"). */
+    async shared(plugin: PluginDef, key: string): Promise<SharedPage | null> {
+      withDefaults(plugin);
+      if (!shares.has(key)) throw new Error(`${plugin.id}: nothing is shared under "${key}"`);
+      if (!plugin.web?.shared) throw new Error(`${plugin.id} has no web.shared`);
+      const page = await plugin.web.shared(kit, key);
+      return page === null ? null : (clone(page as unknown as Json) as unknown as SharedPage);
     },
     async schedule(plugin: PluginDef, id: string) {
       withDefaults(plugin);

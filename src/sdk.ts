@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.23.0";
+export const SDK_VERSION = "1.24.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -56,10 +56,14 @@ export type Tier = 1 | 2 | 3;
  *   after unlocking with their passphrase; that page is built by Zelfred, and the plugin's
  *   `web.load` only ever returns what the plugin itself knows (counts and dates).
  *   Since SDK 1.21.0.
+ * - "share": make pages anyone with the link can open, signed in or not (`kit.share`,
+ *   `web.shared`). The plugin says what a page shows; Zelfred makes the address, draws the
+ *   page, limits how often it is opened and can take it down. The page never says whose it
+ *   is: no name, no number. Can't be combined with "vault". Since SDK 1.24.0.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault" | "share";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault", "share"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -255,6 +259,28 @@ export interface Kit {
      */
     rename(key: string, name: string): Promise<void>;
   };
+  /**
+   * Shared pages: addresses of this install that anyone can open in a browser without signing
+   * in. What a page shows comes from `web.shared(kit, key)`, read again on every visit, so the
+   * page is always current. Needs the "share" permission. Since SDK 1.24.0.
+   */
+  share: {
+    /** The address for `key` (lowercase letters, digits and dashes), made on first use. Not on page loads. */
+    url(key: string): Promise<string>;
+    /** The address for `key` if one was made, else null. Works on page loads too. */
+    find(key: string): Promise<string | null>;
+    /** Stop sharing: the address stops working for good. `url(key)` afterwards makes a new one, so old copies of the link stay dead. */
+    remove(key: string): Promise<void>;
+  };
+  /**
+   * Links the plugin wants read that didn't arrive in a WhatsApp message (one typed on its
+   * page). A handler can't wait for a page to be read, so this asks Zelfred to read it and
+   * call `onLink` with what it found and the `ref` given here, a moment later. Needs the
+   * "links" permission. Not on page loads. Since SDK 1.24.0.
+   */
+  links: {
+    read(url: string, ref: Json): Promise<void>;
+  };
   /** Files that arrived through hooks. The plugin holds their ids; Zelfred holds the bytes. Since SDK 1.5.0. */
   files: {
     /** Delete a file for good. */
@@ -299,6 +325,64 @@ export interface Link {
   image: string | null;
   /** Length in seconds, when the site says. */
   seconds: number | null;
+  /**
+   * What the page says the thing costs, in the currency's ordinary unit (24990 or 19.99). Only
+   * looked for when the plugin asks for it (`links: { price: true }`), and null when the page
+   * names no price. A shop can show a different price to a different visitor: treat it as a
+   * first guess the person can correct. Since SDK 1.24.0.
+   */
+  price?: number | null;
+  /** The price's currency as a three letter code ("INR"), when the page says. Since SDK 1.24.0. */
+  currency?: string | null;
+}
+
+/** Zelfred read a link the plugin asked for with `kit.links.read`. Since SDK 1.24.0. */
+export interface LinkEvent {
+  link: Link;
+  /** The ref given to `kit.links.read`. */
+  ref: Json;
+}
+
+/**
+ * What a shared page shows (`web.shared`). The plugin gives words, addresses and numbers;
+ * Zelfred draws the page, so every shared page looks and behaves the same and no plugin can
+ * put code on it. Leave out anything that says who the person is. Zelfred cuts what is too
+ * long: 80 characters for a title, 300 for a line, 500 items in all. Since SDK 1.24.0.
+ */
+export interface SharedPage {
+  /** The page's heading, and its title when the link is pasted into a chat. */
+  title: string;
+  /** One or two lines under the heading. */
+  intro?: string | null;
+  /** The address of a picture for the chat preview. */
+  image?: string | null;
+  sections: SharedSection[];
+  /** Closing lines, like totals: a label and its value. */
+  summary?: { label: string; value: string }[];
+}
+
+export interface SharedSection {
+  /** Leave out for a page with one section. */
+  heading?: string | null;
+  items: SharedItem[];
+}
+
+export interface SharedItem {
+  title: string;
+  /** Where the item leads. Zelfred refuses addresses that aren't ordinary web links. */
+  url?: string | null;
+  /** The address of its picture. */
+  image?: string | null;
+  /** One muted line under the title: where it is from, its labels. */
+  detail?: string | null;
+  /** Shown at the right: a price, an amount. Already formatted. */
+  value?: string | null;
+  /** The person's own words about it. Only pass them when the person chose to show them. */
+  note?: string | null;
+  /** Settled: shown struck through with `doneLabel` (a wish already bought). */
+  done?: boolean;
+  /** What a done item is marked with: "Bought". */
+  doneLabel?: string | null;
 }
 
 export interface MessageEvent {
@@ -531,6 +615,13 @@ export interface WebDef {
   loadFor?(kit: Kit, sender: Sender, args: Record<string, Json>): Promise<Json>;
   /** Changes the web page can ask for. */
   actions?: Record<string, (kit: Kit, args: Record<string, Json>) => Promise<Json | void>>;
+  /**
+   * What the shared page for `key` shows to anyone holding its address (`kit.share.url(key)`).
+   * Read-only, like `load`, and called on every visit. Return null when there is nothing to
+   * show any more (the list was deleted): the visitor is told the page is gone. Needs the
+   * "share" permission. Since SDK 1.24.0.
+   */
+  shared?(kit: Kit, key: string): Promise<SharedPage | null>;
 }
 
 /**
@@ -573,6 +664,13 @@ export interface PluginDef {
   /** What it may do beyond its own group and storage. See `Permission`. Since SDK 1.6.0. */
   permissions?: Permission[];
   /**
+   * What more Zelfred should look for on the links it reads for this plugin. `price`: what the
+   * thing costs (`link.price`, `link.currency`), for plugins about things to buy; some pages
+   * are then read a second time, the way a shopper's browser would. Needs the "links"
+   * permission. Since SDK 1.24.0.
+   */
+  links?: { price?: boolean };
+  /**
    * Not offered to everyone: left out of the store and the public site, and only people Zelfred
    * allows can add it. For plugins still being tried out. Since SDK 1.5.0.
    */
@@ -613,6 +711,8 @@ export interface PluginDef {
    * and is the only word a vault plugin gets about what people write. Since SDK 1.21.0.
    */
   onEntry?(event: EntryEvent, kit: Kit): Promise<void>;
+  /** A link asked for with `kit.links.read` was read. Needs the "links" permission. Since SDK 1.24.0. */
+  onLink?(event: LinkEvent, kit: Kit): Promise<void>;
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
   /** Called with the intent Zelfred found for an unclear message. Required with `understand`. */
@@ -674,6 +774,10 @@ export function definePlugin(def: PluginDef): PluginDef {
       if (def.permissions.includes(p)) throw new Error(`${def.id}: "vault" and "${p}" can't be used together`);
     }
   }
+  if (def.permissions?.includes("share") && def.permissions.includes("vault")) throw new Error(`${def.id}: "share" and "vault" can't be used together`);
+  if (def.web?.shared && !def.permissions?.includes("share")) throw new Error(`${def.id}: web.shared needs the "share" permission`);
+  if (def.permissions?.includes("share") && !def.web?.shared) throw new Error(`${def.id}: the "share" permission needs web.shared (what a shared page shows)`);
+  if ((def.onLink || def.links) && !def.permissions?.includes("links")) throw new Error(`${def.id}: onLink and links need the "links" permission`);
   if (def.onGroup && !def.permissions?.includes("groups")) throw new Error(`${def.id}: onGroup needs the "groups" permission`);
   if (def.api) {
     if (!def.permissions?.includes("api")) throw new Error(`${def.id}: api needs the "api" permission`);
