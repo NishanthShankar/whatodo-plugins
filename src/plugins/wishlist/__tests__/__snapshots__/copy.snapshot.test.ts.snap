@@ -1,0 +1,493 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`wishlist copy: adding and showing > a list, what was bought, every list, and nothing at all 1`] = `
+{
+  "asked": [],
+  "groups": [
+    [
+      "trip-to-goa",
+      {
+        "hello": "🎁 This group is for *Trip to Goa*. Send a link to something you want here, or type it with its price, and it goes on that list.
+
+_list_ here shows what's left to buy.",
+        "name": "🎁 Trip to Goa",
+      },
+    ],
+  ],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing on the list yet. Send a link to something you want, or type it: _running shoes 4000_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Nothing on *Wishlist* is bought yet. React ✅ on something once you have it.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎁 Added, with its price.
+
+React ✅ on it once you've bought it. Send _list_ to see what's left and what it adds up to.
+From now on you'll just get a 👍.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎁 *Wishlist*: 2 things to buy, ₹24,990 + $49.50
+
+1. *Brass desk lamp*  $49.50
+example.com
+https://example.com/lamp
+
+2. *Sony WH-1000XM5 Headphones*  ₹24,990
+amazon.in · #audio
+https://www.amazon.in/dp/B0PHONES",
+    },
+    {
+      "group": null,
+      "ref": {
+        "ids": [
+          "mwibj1c0id3",
+        ],
+        "kind": "item",
+      },
+      "text": "✅ *Wishlist*: 1 thing bought, ₹300
+
+✅ *socks*  ₹300",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎁 *diwali* is ready. Links you send here go to it now. To put one on another list, write the list's name first: _wishlist_ and then the link.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "In *diwali*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎁 I'm making a WhatsApp group for *Trip to Goa*. Send what you want for it there once it appears.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Your lists*
+
+*Wishlist*: 2 things to buy, ₹24,990 + $49.50
+*diwali*: 1 thing to buy
+*Trip to Goa*: nothing to buy · in its own group",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Links you send here go to *Wishlist* now.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Removed *Stoneware mug*.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`wishlist copy: adding and showing > everything bought 1`] = `
+{
+  "group": null,
+  "ref": null,
+  "text": "Nothing left to buy on *Wishlist*.",
+}
+`;
+
+exports[`wishlist copy: adding and showing > more than fits in one message 1`] = `
+{
+  "group": null,
+  "ref": null,
+  "text": "🎁 *Wishlist*: 12 things to buy, ₹7,800
+
+1. *thing 9*  ₹900
+
+2. *thing 8*  ₹800
+
+3. *thing 7*  ₹700
+
+4. *thing 6*  ₹600
+
+5. *thing 5*  ₹500
+
+6. *thing 4*  ₹400
+
+7. *thing 3*  ₹300
+
+8. *thing 2*  ₹200
+
+9. *thing 12*  ₹1,200
+
+10. *thing 11*  ₹1,100
+
+_2 more on app.whatodo.today._",
+}
+`;
+
+exports[`wishlist copy: adding and showing > the first thing, with and without a price 1`] = `
+{
+  "priced": {
+    "asked": [],
+    "groups": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🎁 Added, with its price.
+
+React ✅ on it once you've bought it. Send _list_ to see what's left and what it adds up to.
+From now on you'll just get a 👍.",
+      },
+    ],
+    "unsures": [],
+  },
+  "unpriced": {
+    "asked": [],
+    "groups": [],
+    "reactions": [
+      "👍",
+    ],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "🎁 Added. I couldn't find a price for this one, so reply to it with the price if you want it in the total.
+
+React ✅ on it once you've bought it. Send _list_ to see what's left and what it adds up to.
+From now on you'll just get a 👍.",
+      },
+    ],
+    "unsures": [],
+  },
+}
+`;
+
+exports[`wishlist copy: lists, moving and deleting > a group the person already had 1`] = `
+{
+  "asked": [],
+  "groups": [
+    [
+      "x-home",
+      {
+        "hello": null,
+        "name": "Home stuff",
+      },
+    ],
+  ],
+  "reactions": [],
+  "sent": [
+    {
+      "group": "x-home",
+      "ref": null,
+      "text": "🎁 I'm keeping a wishlist for this group now, called *Home stuff*. Anyone here can send a link to something wanted, or type it with its price.
+
+_list_ shows what's left to buy. React ✅ on something once it's bought.",
+    },
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`wishlist copy: lists, moving and deleting > limits 1`] = `
+[
+  "That's the most I can keep (2000 things). Remove some on app.whatodo.today first.",
+  "*Wishlist* is full (500 things). Remove some first, or start another list with _new list_ and a name.",
+  "That's the most lists I can keep (50). Delete one first.",
+  "There is no other list to move it to. Send _new list diwali_ to start one.",
+  "That list isn't there any more.",
+  "That isn't on a list any more.",
+  "Only the person who added Wishlist here can do that. You can add things, tick them off and ask for the _list_.",
+]
+`;
+
+exports[`wishlist copy: lists, moving and deleting > naming, renaming, moving and the questions 1`] = `
+{
+  "asked": [
+    {
+      "confirm": false,
+      "group": null,
+      "intro": null,
+      "keep": false,
+      "mention": null,
+      "multiple": false,
+      "open": false,
+      "options": [
+        "Wishlist",
+        "Leave it here",
+      ],
+      "question": "Move Stoneware mug to which list?",
+      "ref": {
+        "by": "owner",
+        "move": [
+          "mwibj1c0id2",
+        ],
+      },
+    },
+    {
+      "confirm": false,
+      "group": null,
+      "intro": null,
+      "keep": false,
+      "mention": null,
+      "multiple": false,
+      "open": false,
+      "options": [
+        "Delete it",
+        "Keep it",
+      ],
+      "question": "Delete Presents?",
+      "ref": {
+        "by": "owner",
+        "del": "id1",
+      },
+    },
+    {
+      "confirm": false,
+      "group": null,
+      "intro": null,
+      "keep": false,
+      "mention": null,
+      "multiple": false,
+      "open": false,
+      "options": [
+        "Delete it",
+        "Keep it",
+      ],
+      "question": "Delete Presents?",
+      "ref": {
+        "by": "owner",
+        "del": "id1",
+      },
+    },
+  ],
+  "groups": [],
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "Give the list a name, like _new list diwali_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎁 *Gifts* is ready. Links you send here go to it now. To put one on another list, write the list's name first: _wishlist_ and then the link.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "You already have a list called *Gifts*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "It's called *Presents* now.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a list called "nothing". Send _lists_ to see yours.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a list called "nothing". Send _lists_ to see yours.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "🎁 Added. I couldn't find a price for this one, so reply to it with the price if you want it in the total.
+
+React ✅ on it once you've bought it. Send _list_ to see what's left and what it adds up to.
+From now on you'll just get a 👍.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Moved to *Wishlist*.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a list called "nowhere". Send _lists_ to see yours.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "That isn't on a list any more.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "No problem. *Presents* stays.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Presents* is deleted.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't have a list called "nothing". Send _lists_ to see yours.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "I don't know that currency. Send its three letters, like _currency usd_.",
+    },
+    {
+      "group": null,
+      "ref": null,
+      "text": "Prices you type are in EUR now, like €1,500.",
+    },
+  ],
+  "unsures": [
+    "I didn't get that. Send a link to something you want, or type it with its price, like _running shoes 4000_. Send _help_ for more.",
+  ],
+}
+`;
+
+exports[`wishlist copy: sharing > sharing, stopping, and the page's own words 1`] = `
+{
+  "page": [
+    "3 things wanted, 1 already bought.",
+    "1 thing wanted.",
+    "Everything on this list is bought.",
+    "Nothing on this list yet.",
+    "Already bought",
+    "Bought",
+  ],
+  "said": {
+    "asked": [],
+    "groups": [],
+    "reactions": [],
+    "sent": [
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Wishlist* isn't shared.",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "My wishlist, in case you ever wonder what to get me:
+https://share.test/main-1",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "Forward that message to anyone you like. The page shows the list and its prices, never your name or number, and it changes as the list does. _stop sharing_ closes it.",
+      },
+      {
+        "group": null,
+        "ref": null,
+        "text": "*Wishlist* isn't shared any more. The old link is closed for good.",
+      },
+    ],
+    "unsures": [],
+  },
+}
+`;
+
+exports[`wishlist copy: sharing > the message to forward, in each wording, for the first list and a named one 1`] = `
+[
+  "My wishlist, in case you ever wonder what to get me:
+https://whatodo.today/s/abc",
+  "My Diwali list, in case you ever wonder what to get me:
+https://whatodo.today/s/abc",
+  "For anyone who has asked what I want. It's all here:
+https://whatodo.today/s/abc",
+  "For anyone who has asked what I want. Diwali, all here:
+https://whatodo.today/s/abc",
+  "No more guessing. Here is my wishlist:
+https://whatodo.today/s/abc",
+  "No more guessing. Here is my Diwali list:
+https://whatodo.today/s/abc",
+]
+`;
+
+exports[`wishlist copy: what the plugin says about itself > help through the intent model, and a message it can't read 1`] = `
+{
+  "asked": [],
+  "groups": [],
+  "reactions": [],
+  "sent": [
+    {
+      "group": null,
+      "ref": null,
+      "text": "*Wishlist*
+
+Send a link to something you want and I keep it with its name, picture and price. Or type it: _running shoes 4000_.
+
+_list_ shows what's left to buy, with the total
+_bought_ shows what you already got
+_undo_ removes the last thing you added
+
+On something you added: react ✅ once you've bought it. Reply to it with a price, a note, a _#label_, _move_ or _delete_.
+
+_new list diwali_ starts another list in this chat. After that, _diwali_ before a link puts it there, and a link on its own goes to the list you used last.
+_new group diwali_ gives a list a WhatsApp group of its own
+_lists_ shows every list you have
+
+_share_ gives you a link to this list that anyone can open. _stop sharing_ closes it.
+
+Everything is on app.whatodo.today too, with pictures.",
+    },
+  ],
+  "unsures": [
+    "I didn't get that. Send a link to something you want, or type it with its price, like _running shoes 4000_. Send _help_ for more.",
+  ],
+}
+`;
+
+exports[`wishlist copy: what the plugin says about itself > welcome, help and group name 1`] = `
+{
+  "groupName": "🎁 Wishlist",
+  "help": "*Wishlist*
+
+Send a link to something you want and I keep it with its name, picture and price. Or type it: _running shoes 4000_.
+
+_list_ shows what's left to buy, with the total
+_bought_ shows what you already got
+_undo_ removes the last thing you added
+
+On something you added: react ✅ once you've bought it. Reply to it with a price, a note, a _#label_, _move_ or _delete_.
+
+_new list diwali_ starts another list in this chat. After that, _diwali_ before a link puts it there, and a link on its own goes to the list you used last.
+_new group diwali_ gives a list a WhatsApp group of its own
+_lists_ shows every list you have
+
+_share_ gives you a link to this list that anyone can open. _stop sharing_ closes it.
+
+Everything is on app.whatodo.today too, with pictures.",
+  "welcome": "🎁 You've added *Wishlist*.
+
+Send a link to something you want, or type it with its price: _running shoes 4000_. I'll keep the list and the total.
+
+Send _help_ for more.",
+}
+`;

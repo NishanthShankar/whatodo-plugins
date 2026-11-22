@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type PluginDef, type Sender, type StoredItem } from "./sdk";
+import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type Photo, type Place, type PluginDef, type Sender, type SharedPage, type StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -22,6 +22,8 @@ export interface TestKitOptions {
 export interface Sent {
   text: string;
   ref: Json | null;
+  /** The photo sent with it (kit.send's `photo`), when there is one. */
+  photo?: string;
   /** The extra group it was posted in; null for the main group. */
   group: string | null;
 }
@@ -62,6 +64,11 @@ export function link(url: string, found: Partial<Omit<Link, "url">> = {}): Link 
   return { url, canonical: url, site: "example.com", kind: "page", found: true, title: null, description: null, author: null, image: null, seconds: null, ...found };
 }
 
+/** A photo as Zelfred would hand it over, for `t.message(..., { photos: [photo("p1")] })`. */
+export function photo(id: string, found: Partial<Omit<Photo, "id">> = {}): Photo {
+  return { id, type: "image/jpeg", size: 120_000, ...found };
+}
+
 export function createTestKit(opts: TestKitOptions = {}) {
   const rows = new Map<string, { data: Json; sort: string | number | null }>();
   const sent: Sent[] = [];
@@ -80,6 +87,11 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const unsures: string[] = [];
   /** Hooks that are open, by key. */
   const hooks = new Set<string>();
+  /** Shared pages that are open: key -> how many addresses that key has had (a new one after each remove). */
+  const shares = new Map<string, number>();
+  const shareCount = new Map<string, number>();
+  /** Links the plugin asked Zelfred to read with kit.links.read(), in order. Answer one with `t.link()`. */
+  const reads: { url: string; ref: Json }[] = [];
   /** Ids passed to kit.files.remove(), in order. */
   const removedFiles: string[] = [];
   /** What the plugin told the person's other systems with kit.emit(), in order. */
@@ -102,7 +114,9 @@ export function createTestKit(opts: TestKitOptions = {}) {
 
   /** The plugin being driven: its permissions decide what the kit allows, as in Zelfred. */
   let current: PluginDef | null = null;
-  const need = (permission: "hooks" | "groups", what: string) => {
+  /** Photos Zelfred holds for this install: the ones handed over with a message, and any added with `t.addFile()`. */
+  const files = new Map<string, { type: string; size: number }>();
+  const need = (permission: "hooks" | "groups" | "share" | "links" | "photos", what: string) => {
     if (current && !current.permissions?.includes(permission)) throw new Error(`${current.id}: ${what} needs the "${permission}" permission`);
   };
 
@@ -154,9 +168,13 @@ export function createTestKit(opts: TestKitOptions = {}) {
       },
     },
     send(text, o) {
-      if (typeof text !== "string" || !text.trim()) throw new Error("kit.send: empty message");
+      if (o?.photo !== undefined) {
+        need("photos", "kit.send with a photo");
+        if (!files.has(o.photo)) throw new Error(`kit.send: "${o.photo}" isn't one of this install's photos`);
+        if (typeof text !== "string" || text.length > 1000) throw new Error("kit.send: a photo's caption is up to 1000 characters");
+      } else if (typeof text !== "string" || !text.trim()) throw new Error("kit.send: empty message");
       if (text.length > MAX_TEXT) throw new Error(`kit.send: message longer than ${MAX_TEXT} characters`);
-      sent.push({ text, ref: o?.ref === undefined ? null : clone(o.ref), group: o?.group ?? here });
+      sent.push({ text, ref: o?.ref === undefined ? null : clone(o.ref), group: o?.group ?? here, ...(o?.photo !== undefined ? { photo: o.photo } : {}) });
     },
     ask(question, options, o) {
       checkAsk(question, options, o);
@@ -202,9 +220,39 @@ export function createTestKit(opts: TestKitOptions = {}) {
         hooks.delete(key);
       },
     },
+    share: {
+      async url(key) {
+        need("share", "kit.share.url");
+        if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(key)) throw new Error(`kit.share.url: "${key}" must be lowercase letters, digits and dashes`);
+        if (!shares.has(key)) {
+          shareCount.set(key, (shareCount.get(key) ?? 0) + 1);
+          shares.set(key, shareCount.get(key)!);
+        }
+        return `https://share.test/${key}-${shares.get(key)}`;
+      },
+      async find(key) {
+        return shares.has(key) ? `https://share.test/${key}-${shares.get(key)}` : null;
+      },
+      async remove(key) {
+        shares.delete(key);
+      },
+    },
+    links: {
+      async read(url, ref) {
+        need("links", "kit.links.read");
+        if (typeof url !== "string" || !/^https?:\/\//i.test(url)) throw new Error("kit.links.read: give a web address");
+        if (ref === undefined) throw new Error("kit.links.read: give a ref");
+        reads.push({ url, ref: clone(ref) });
+      },
+    },
     files: {
       async remove(id) {
         removedFiles.push(id);
+        files.delete(id);
+      },
+      async get(id) {
+        const f = files.get(id);
+        return f ? { id, ...f } : null;
       },
     },
     groups: {
@@ -271,7 +319,16 @@ export function createTestKit(opts: TestKitOptions = {}) {
     /** Extra groups that are open: key -> { name, hello }. */
     groups,
     removedFiles,
+    /** A photo added on the plugin's page: Zelfred holds it and the page passes its id to an action. */
+    addFile(id: string, found: { type?: string; size?: number } = {}) {
+      files.set(id, { type: found.type ?? "image/jpeg", size: found.size ?? 120_000 });
+      return id;
+    },
     emitted,
+    /** Keys of the shared pages that are open. */
+    shares,
+    /** Links asked for with kit.links.read(), in order. */
+    reads,
     /** Move the clock. */
     setToday(day: string) {
       state.today = day;
@@ -293,18 +350,24 @@ export function createTestKit(opts: TestKitOptions = {}) {
      * another member of the group, which needs the "members" permission.
      * `links`: what Zelfred read from the links in the message (build each with `link()`),
      * which needs the "links" permission.
+     * `more`: the photo in the message (`photos`, built with `photo()`; needs "photos") and the
+     * position shared in it (`place`; needs "location"). With either, `text` may be empty.
      */
-    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null, from?: string | Partial<Sender>, links?: Link[]) {
+    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null, from?: string | Partial<Sender>, links?: Link[], more?: { photos?: Photo[]; place?: Place }) {
       withDefaults(plugin);
       const sender = senderOf(plugin, from);
       if (!sender.owner) crowded.add(group);
       if (links && !plugin.permissions?.includes("links")) throw new Error(`${plugin.id}: link details need the "links" permission (Zelfred wouldn't read them)`);
+      if (more?.photos && !plugin.permissions?.includes("photos")) throw new Error(`${plugin.id}: photos need the "photos" permission (Zelfred wouldn't pass them on)`);
+      if (more?.place && !plugin.permissions?.includes("location")) throw new Error(`${plugin.id}: a position needs the "location" permission (Zelfred wouldn't pass it on)`);
+      if (!text.trim() && !more?.photos?.length && !more?.place) throw new Error("t.message: an empty message never reaches a plugin");
+      for (const p of more?.photos ?? []) files.set(p.id, { type: p.type, size: p.size });
       here = group;
       try {
         // A vault plugin never hears a message: in Zelfred it arrives locked, as an entry.
         if (plugin.permissions?.includes("vault")) throw new Error(`${plugin.id}: a "vault" plugin gets entries, not messages. Use t.entry().`);
         if (/^(help|\?|menu|commands)$/i.test(text.trim())) return kit.send(plugin.help);
-        await plugin.onMessage?.({ text, quotedRef, group, sender, ...(links ? { links: links.map((l) => ({ ...l })) } : {}) }, kit);
+        await plugin.onMessage?.({ text, quotedRef, group, sender, ...(links ? { links: links.map((l) => ({ ...l })) } : {}), ...(more?.photos ? { photos: more.photos.map((p) => ({ ...p })) } : {}), ...(more?.place ? { place: { ...more.place } } : {}) }, kit);
       } finally {
         here = null;
       }
@@ -453,6 +516,26 @@ export function createTestKit(opts: TestKitOptions = {}) {
       const endpoint = plugin.api?.get[name];
       if (!endpoint) throw new Error(`${plugin.id} has no api endpoint ${name}`);
       return clone(await endpoint.run(kit, { ...params }, scope));
+    },
+    /**
+     * Zelfred read a link the plugin asked for: `onLink` is called with what was found and the
+     * ref of that request. Throws when the plugin never asked for this address.
+     */
+    async link(plugin: PluginDef, found: Link) {
+      withDefaults(plugin);
+      const at = reads.findIndex((r) => r.url === found.url);
+      if (at < 0) throw new Error(`${plugin.id}: nobody asked to read ${found.url}`);
+      const [asked] = reads.splice(at, 1);
+      if (!plugin.onLink) throw new Error(`${plugin.id} has no onLink`);
+      await plugin.onLink({ link: { ...found }, ref: asked.ref }, kit);
+    },
+    /** What the shared page for `key` shows right now. Throws when that page isn't open (Zelfred would answer "not found"). */
+    async shared(plugin: PluginDef, key: string): Promise<SharedPage | null> {
+      withDefaults(plugin);
+      if (!shares.has(key)) throw new Error(`${plugin.id}: nothing is shared under "${key}"`);
+      if (!plugin.web?.shared) throw new Error(`${plugin.id} has no web.shared`);
+      const page = await plugin.web.shared(kit, key);
+      return page === null ? null : (clone(page as unknown as Json) as unknown as SharedPage);
     },
     async schedule(plugin: PluginDef, id: string) {
       withDefaults(plugin);
