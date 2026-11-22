@@ -113,7 +113,7 @@ describe("wishlist copy: lists, moving and deleting", () => {
   });
 
   it("limits", () => {
-    expect([copy.tooMany({ max: MAX_ITEMS }), copy.listFull({ name: "Wishlist", max: MAX_LIST_ITEMS }), copy.tooManyLists({ max: MAX_LISTS }), copy.noOtherList(), copy.listGone(), copy.itemGone(), copy.ownerOnly()]).toMatchSnapshot();
+    expect([copy.tooMany({ max: MAX_ITEMS }), copy.listFull({ name: "Wishlist", max: MAX_LIST_ITEMS }), copy.tooManyLists({ max: MAX_LISTS }), copy.noOtherList(), copy.listGone(), copy.itemGone(), copy.ownerOnly(), copy.noLink()]).toMatchSnapshot();
   });
 });
 

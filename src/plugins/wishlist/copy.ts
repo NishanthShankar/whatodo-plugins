@@ -26,6 +26,7 @@ export const CURRENCY_EXAMPLE = fixed("currency usd");
 /** Sent as a reply to something on a list. */
 export const MOVE = fixed("move");
 export const DELETE = fixed("delete");
+export const READ_AGAIN = fixed("read again");
 
 // ── Reactions ──
 
@@ -92,7 +93,7 @@ export const copy = {
       `_${BOUGHT}_ shows what you already got`,
       `_${UNDO}_ removes the last thing you added`,
       "",
-      `On something you added: react ✅ once you've bought it. Reply to it with a price, a note, a _#label_, _${MOVE}_ or _${DELETE}_.`,
+      `On something you added: react ✅ once you've bought it. Reply to it with a price, a note, a _#label_, _${MOVE}_ or _${DELETE}_. Reply _${READ_AGAIN}_ and I read its link once more.`,
       "",
       `_${NEW_LIST_EXAMPLE}_ starts another list in this chat. After that, _${LIST_NAME_EXAMPLE}_ before a link puts it there, and a link on its own goes to the list you used last.`,
       `_${NEW_GROUP_EXAMPLE}_ gives a list a WhatsApp group of its own`,
@@ -144,6 +145,8 @@ export const copy = {
 
   // ── Replying to something on a list ──
   itemGone: msg(["That isn't on a list any more."]),
+  /** Asked to read a thing's link again, and it has none. */
+  noLink: msg(["That one has no link for me to read. Reply to it with the price to set it."]),
   /** The poll's question. index.ts takes every * out of it: a poll shows them as they are. */
   moveQuestion: msg<{ name: string }>([({ name }) => `Move *${name}* to which list?`]),
   moved: msg<{ name: string }>([({ name }) => `Moved to *${name}*.`]),

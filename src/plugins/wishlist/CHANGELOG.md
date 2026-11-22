@@ -1,5 +1,10 @@
 # Changelog: Wishlist
 
+## [1.1.0] - 2026-11-22
+
+### Added
+- Read a thing's link again: reply `read again` to it on WhatsApp (also `refresh`, `check price`), or use the button on the page. The page's name, picture and price replace what was read before; a price the person typed stays.
+
 ## [1.0.0] - 2026-11-22
 
 ### Added
