@@ -1,5 +1,10 @@
 # Changelog: Wishlist
 
+## [1.2.0] - 2026-11-22
+
+### Added
+- A reaction other than ✅ on a thing is kept as its mark (❤️, ⭐, 🔥, anything), shown before its name in `list` and on the page, where things can be grouped by it. Only the reaction of the person who added Wishlist counts. Taking the reaction away clears the mark; a ✅ put over it keeps it.
+
 ## [1.1.0] - 2026-11-22
 
 ### Added

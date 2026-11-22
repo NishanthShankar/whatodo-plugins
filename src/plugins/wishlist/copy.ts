@@ -54,6 +54,8 @@ export interface Row {
   detail: string | null;
   url: string | null;
   bought: boolean;
+  /** The reaction they left on it (❤️, ⭐), shown before its name; null or unset for none. */
+  mark?: string | null;
 }
 
 interface Listing {
@@ -65,7 +67,7 @@ interface Listing {
 }
 
 function line(row: Row, n?: number): string {
-  const out = [`${n ? `${n}. ` : ""}${row.bought ? "✅ " : ""}*${row.name}*${row.price ? `  ${row.price}` : ""}`];
+  const out = [`${n ? `${n}. ` : ""}${row.bought ? "✅ " : ""}${row.mark ? `${row.mark} ` : ""}*${row.name}*${row.price ? `  ${row.price}` : ""}`];
   if (row.detail) out.push(row.detail);
   if (row.url) out.push(row.url);
   return out.join("\n");
@@ -93,7 +95,7 @@ export const copy = {
       `_${BOUGHT}_ shows what you already got`,
       `_${UNDO}_ removes the last thing you added`,
       "",
-      `On something you added: react ✅ once you've bought it. Reply to it with a price, a note, a _#label_, _${MOVE}_ or _${DELETE}_. Reply _${READ_AGAIN}_ and I read its link once more.`,
+      `On something you added: react ✅ once you've bought it, or with anything else (❤️, ⭐) to mark it your own way. Reply to it with a price, a note, a _#label_, _${MOVE}_ or _${DELETE}_. Reply _${READ_AGAIN}_ and I read its link once more.`,
       "",
       `_${NEW_LIST_EXAMPLE}_ starts another list in this chat. After that, _${LIST_NAME_EXAMPLE}_ before a link puts it there, and a link on its own goes to the list you used last.`,
       `_${NEW_GROUP_EXAMPLE}_ gives a list a WhatsApp group of its own`,
