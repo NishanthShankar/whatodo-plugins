@@ -56,6 +56,11 @@ export interface Item {
   boughtAt?: number | null;
   /** Their ✅ on the message set `bought`, so taking the reaction off clears it. */
   reacted?: boolean;
+  /**
+   * The reaction the person who added Wishlist last left on it, other than a "bought" one: ❤️,
+   * ⭐, 🔥, whatever they use. Theirs to give meaning to; the page can group by it.
+   */
+  mark?: string | null;
   note: string | null;
   tags: string[];
   at: number;
@@ -181,7 +186,7 @@ const priceOf = (kit: Kit, item: Item) => (item.price === null ? null : money(it
 
 function row(kit: Kit, item: Item): Row {
   const detail = [item.site, ...item.tags.map((t) => `#${t}`)].filter(Boolean).join(" · ");
-  return { name: label(item), price: priceOf(kit, item), detail: detail || null, url: item.url, bought: item.bought };
+  return { name: label(item), price: priceOf(kit, item), detail: detail || null, url: item.url, bought: item.bought, mark: item.mark ?? null };
 }
 
 /** A group's key from a name: plain letters and digits, and never one that is taken. */
@@ -656,7 +661,7 @@ function card(kit: Kit, item: Item, notes: boolean): SharedItem {
 
 export default definePlugin({
   id: "wishlist",
-  version: "1.1.0",
+  version: "1.2.0",
   sdk: "1",
   name: "Wishlist",
   icon: "🎁",
@@ -768,11 +773,22 @@ export default definePlugin({
     const bought = !!event.emoji && BOUGHT_EMOJI.has(plainEmoji(event.emoji));
     // ✅ on a thing means it is bought. Changing or removing the reaction takes that back,
     // unless it was marked bought in words or on the page.
+    // Any other reaction from the person who added Wishlist is kept as the thing's mark, to
+    // group by on the page. WhatsApp holds one reaction a person a message, so a ✅ put over a
+    // ❤️ leaves the ❤️ as the mark; taking a plain mark's reaction away clears it.
+    const mine = event.sender?.owner !== false;
+    const mark = event.emoji && !bought ? [...event.emoji].slice(0, 8).join("") : null;
     for (const id of event.ref.ids) {
       const item = await kit.store.get<Item>("items", id);
       if (!item) continue;
-      if (bought && !item.bought) await putItem(kit, id, { ...item, bought: true, boughtAt: kit.now, reacted: true });
-      else if (!bought && item.bought && item.reacted) await putItem(kit, id, { ...item, bought: false, boughtAt: null, reacted: false });
+      if (bought) {
+        if (!item.bought) await putItem(kit, id, { ...item, bought: true, boughtAt: kit.now, reacted: true });
+        continue;
+      }
+      const wasTick = item.bought && !!item.reacted;
+      const next: Item = wasTick ? { ...item, bought: false, boughtAt: null, reacted: false } : { ...item };
+      if (mine && (mark || !wasTick)) next.mark = mark;
+      if (wasTick || (next.mark ?? null) !== (item.mark ?? null)) await putItem(kit, id, next);
     }
   },
 
@@ -868,6 +884,7 @@ export default definePlugin({
           currency: r.item.currency ?? mine,
           shown: priceOf(kit, r.item),
           bought: r.item.bought,
+          mark: r.item.mark ?? null,
           note: r.item.note,
           tags: r.item.tags,
           at: r.item.at,

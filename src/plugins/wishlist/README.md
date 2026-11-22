@@ -33,7 +33,8 @@ On something you added (or on a single result the plugin posted):
 | You | What happens |
 |---|---|
 | react ✅ (also ☑️ ✔️ 🛒 🛍️) | Bought. |
-| change or remove your reaction | Takes back a "bought" the reaction set. |
+| react with anything else (❤️ ⭐ 🔥) | Kept as the thing's mark: shown before its name, and the page can group by it. Only the reaction of the person who added Wishlist counts. |
+| change or remove your reaction | Takes back a "bought" the reaction set. Removing a mark's reaction clears the mark; a ✅ put over a mark leaves the mark in place. |
 | reply `bought` / `not bought` | Does that. 👍 |
 | reply with a price (`2499`, `rs 2,499`) | Sets its price. 👍 |
 | reply `#gift` | Adds the label. `no labels` clears them. 👍 |
@@ -67,7 +68,7 @@ Limits: 2000 things, 500 on one list, 50 lists, 5 labels a thing, 500 characters
 | Collection | Key | Data | Sort |
 |---|---|---|---|
 | `lists` | list id (`main` for the first) | `{ name, home, created, notes? }` | created (ms) |
-| `items` | item id | `{ list, name, url, canonical, site, title, image, price, currency, typed?, bought, boughtAt?, reacted?, note, tags, at, by?, reading? }` | added (ms) |
+| `items` | item id | `{ list, name, url, canonical, site, title, image, price, currency, typed?, bought, boughtAt?, reacted?, mark?, note, tags, at, by?, reading? }` | added (ms) |
 | `groups` | group key | `{ name, created, made }` | created (ms) |
 | `state` | `last:<group>` | the id of the list used last in that group (empty: the main one) | none |
 | `state` | `intro`, `shared` | `1` once that one-time note was sent | none |

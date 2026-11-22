@@ -276,6 +276,39 @@ describe("on something already added", () => {
     expect(items(t)[0]).toMatchObject({ bought: false, reacted: false });
   });
 
+  it("keeps any other reaction as the thing's mark, from the person who added Wishlist only", async () => {
+    const { t, ref } = await one();
+    await t.react(plugin, "❤️", ref);
+    expect(items(t)[0]).toMatchObject({ mark: "❤️", bought: false });
+    await t.message(plugin, "list");
+    expect(last(t)).toContain("❤️ *Stoneware mug*");
+    // A tick put over it: bought, and the mark stays.
+    await t.react(plugin, "✅", ref);
+    expect(items(t)[0]).toMatchObject({ mark: "❤️", bought: true });
+    // The tick changed to a star: not bought any more, and the star is the mark now.
+    await t.react(plugin, "⭐", ref);
+    expect(items(t)[0]).toMatchObject({ mark: "⭐", bought: false });
+    await t.react(plugin, null, ref);
+    expect(items(t)[0].mark).toBeNull();
+    // Taking a tick away un-buys it and leaves the mark alone.
+    await t.react(plugin, "🔥", ref);
+    await t.react(plugin, "✅", ref);
+    await t.react(plugin, null, ref);
+    expect(items(t)[0]).toMatchObject({ mark: "🔥", bought: false });
+    expect(((await t.load(plugin)) as unknown as { items: { mark: string | null }[] }).items[0].mark).toBe("🔥");
+  });
+
+  it("someone else's reaction is not the mark", async () => {
+    const t = createTestKit();
+    await t.group(plugin, "joined", "x-home", "Home");
+    await send(t, lamp.url, [lamp], "x-home");
+    await t.react(plugin, "😍", t.marks[0], "x-home", "Asha");
+    expect(items(t)[0].mark ?? null).toBeNull();
+    await t.react(plugin, "⭐", t.marks[0], "x-home");
+    await t.react(plugin, null, t.marks[0], "x-home", "Asha");
+    expect(items(t)[0].mark).toBe("⭐");
+  });
+
   it("a reaction never takes back what was said in words", async () => {
     const { t, ref } = await one();
     await t.message(plugin, "bought", ref);
