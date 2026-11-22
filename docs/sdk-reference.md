@@ -34,7 +34,9 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onHook` | `(event: HookEvent, kit) => Promise<void>` | no | A request arrived at one of the install's hooks. See [Hooks](#hooks-requests-from-outside). Since SDK 1.5.0. |
 | `onEntry` | `(event: EntryEvent, kit) => Promise<void>` | no | An entry was added, edited or removed in a `"vault"` plugin's group. The plugin never sees what it says. See [A vault](#a-vault-entries-nobody-else-can-read). Since SDK 1.21.0. |
 | `onGroup` | `(event: GroupEvent, kit) => Promise<void>` | no | The person handed the plugin a WhatsApp group they already had, or took it back. Having it is what makes the plugin a choice for existing groups. Needs `"groups"`. Since SDK 1.17.0. |
-| `permissions` | `Permission[]` | no | What it may do beyond its own group and storage: `"hooks"`, `"groups"`, `"replies"`, `"lock-members"`, `"members"`. See [Permissions](#permissions). Since SDK 1.6.0. |
+| `onLink` | `(event: LinkEvent, kit) => Promise<void>` | no | A link asked for with `kit.links.read` was read. Needs `"links"`. See [Links](#links). Since SDK 1.24.0. |
+| `links` | `{ price?: boolean }` | no | What more to look for on the links read for this plugin. `price`: what the thing costs. Needs `"links"`. Since SDK 1.24.0. |
+| `permissions` | `Permission[]` | no | What it may do beyond its own group and storage. See [Permissions](#permissions). Since SDK 1.6.0. |
 | `unlisted` | boolean | no | Left out of the store and the public site; only people Zelfred allows can add it. For plugins still being tried out. Since SDK 1.5.0. |
 | `web` | `WebDef` | no | Data and actions for the plugin's web page. |
 
@@ -56,6 +58,7 @@ Slots run at most once per install: a daily schedule once per local day, an hour
 | `lockable` | boolean | The person may lock the page behind their Zelfred PIN. Use it for anything personal. |
 | `load` | `(kit, args) => Promise<Json>` | Data for the page. Runs **read-only**: `store.put`, `store.delete`, `setSettings` and `send` throw. |
 | `actions` | `Record<string, (kit, args) => Promise<Json \| void>>` | Changes the page can ask for. Throw `Error("Plain sentence")` to show the person a message. |
+| `shared` | `(kit, key) => Promise<SharedPage \| null>` | What the shared page for `key` shows to anyone holding its address. Read-only. Needs `"share"`. See [Shared pages](#shared-pages-a-page-anyone-can-open). Since SDK 1.24.0. |
 
 ## Tiers
 
@@ -111,6 +114,10 @@ interface EntryEvent    { change: "added" | "edited" | "removed"; id: string; ki
 | `hooks.url(key)` | `Promise<string>` | The web address of this install's hook `key` (lowercase letters, digits, dashes), made on first use. Anyone who has it can POST to it; each request arrives as `onHook`. Not on page loads. Since SDK 1.5.0. |
 | `hooks.remove(key)` | `Promise<void>` | Close a hook. Its address stops working. Since SDK 1.5.0. |
 | `files.remove(id)` | `Promise<void>` | Delete a file that arrived through a hook. Since SDK 1.5.0. |
+| `share.url(key)` | `Promise<string>` | The address of this install's shared page `key`, made on first use. Anyone who has it can open the page. Not on page loads. Since SDK 1.24.0. |
+| `share.find(key)` | `Promise<string \| null>` | The address for `key` if one was made. Works on page loads. Since SDK 1.24.0. |
+| `share.remove(key)` | `Promise<void>` | Stop sharing. The address stops working for good; `url(key)` afterwards makes a new one. Since SDK 1.24.0. |
+| `links.read(url, ref)` | `Promise<void>` | Ask Zelfred to read a link that didn't come in a message. `onLink` is called with what it found and `ref`. Since SDK 1.24.0. |
 | `time.day(ms)` | string | `YYYY-MM-DD` of an instant in the person's zone. |
 | `time.shiftDay(day, n)` | string | Add `n` days to a `YYYY-MM-DD`. |
 | `time.hour(ms)` | number | Local hour (0-23) of an instant. |
@@ -144,6 +151,7 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"lock-members"` | Block adding members: its groups (the main one and any extra ones) are made with Zelfred as the only admin and set so only admins can add people. For plugins whose group must stay between the person and Zelfred. | Reserved (SDK 1.7.0): Zelfred doesn't enforce it yet. |
 | `"members"` | Hear everyone in its groups, not only the person who added it. Each message, reaction and intent says who sent it in `event.sender`. Can't be combined with `"lock-members"`. | Built (SDK 1.8.0) |
 | `"links"` | Get the public details of links people send: `event.links`. Zelfred opens the link, not the plugin. | Built (SDK 1.10.0) |
+| `"share"` | Make pages anyone with the link can open, signed in or not: `kit.share`, `web.shared`. Zelfred draws the page, limits how often it is opened and can take it down. Can't be combined with `"vault"`. See [Shared pages](#shared-pages-a-page-anyone-can-open). | Built (SDK 1.24.0), unlisted plugins only for now |
 | `"vault"` | Nothing: it takes reading away. What is written in the plugin's group is locked on arrival with a key only the person's browser holds. The plugin gets `onEntry` and never a message. See [A vault](#a-vault-entries-nobody-else-can-read). | Built (SDK 1.21.0), unlisted plugins only until the locking is reviewed |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
@@ -198,6 +206,47 @@ async onMessage(event, kit) {
 - `image` is an address, not a file. Instagram's stop working after some days; YouTube's don't.
 - Reading takes a second or two, so the message reaches you that much later. Zelfred shows nothing meanwhile; react when you have handled it.
 - Only public pages are read, with no login. What is said or shown inside a video is not available.
+
+**Prices.** A plugin about things to buy sets `links: { price: true }`. Each link then also carries `price` (in the currency's ordinary unit: `24990`, `19.99`) and `currency` (`"INR"`), or null when the page names none. A page that shows no price to a link preview is read a second time the way a shopper's browser would. A shop can show a different price to a different visitor, and some shops turn Zelfred away, so treat the price as a first guess the person can correct. Since SDK 1.24.0.
+
+**A link that didn't come in a message.** A link typed on the plugin's page reaches a `web.actions` handler, which can't wait for a page to be read. Store what you have, call `await kit.links.read(url, ref)`, and fill in the rest in `onLink(event, kit)`, which gets `event.link` and your `ref` a moment later. Since SDK 1.24.0.
+
+```ts
+actions: {
+  async add(kit, { url }) {
+    const id = kit.id();
+    await kit.store.put("items", id, { url, reading: true });
+    await kit.links.read(String(url), { item: id });
+  },
+},
+async onLink(event, kit) {
+  const { item } = event.ref as { item: string };
+  await kit.store.put("items", item, { url: event.link.url, title: event.link.title, price: event.link.price ?? null });
+},
+```
+
+## Shared pages: a page anyone can open
+
+Everything a plugin shows is behind the person's sign in, except this. With the `"share"` permission a plugin can open a page to anyone holding its address: a wishlist to send to family. Since SDK 1.24.0.
+
+```ts
+permissions: ["share"],
+web: {
+  async load(kit) { … },
+  async shared(kit, key) {
+    const list = await kit.store.get<List>("lists", key);
+    if (!list) return null;                       // "this page is gone"
+    return { title: list.name, intro: "3 things wanted.", sections: [{ items: [{ title: "Desk lamp", url: "https://…", image: "https://…", detail: "example.com", value: "₹2,400" }] }] };
+  },
+},
+```
+
+- `await kit.share.url(key)` makes the address (a long random one, tied to nothing about the person) and returns it. `kit.share.remove(key)` closes it for good; asking for the url again makes a new one, so old copies of the link stay dead. `kit.share.find(key)` reads it without making one.
+- `web.shared(kit, key)` says what the page shows. It runs read-only on every visit, so the page is always current. Return `null` when the thing is gone.
+- The plugin gives words, addresses and numbers (`SharedPage`: a title, an intro, sections of items, a summary). Zelfred draws the page. No plugin can put its own code or markup on it.
+- **Never say whose it is.** No name, no number, no id of a person. Leave the person's own notes out unless they chose to show them.
+- What Zelfred does around it: outbound links are checked and marked as untrusted, the page is kept out of search engines, each address can only be opened so often, anyone can report a page and Zelfred can take one down. The person opening it is a stranger to Zelfred and is never written to.
+- In the test kit: `t.shares` lists the open keys and `await t.shared(plugin, key)` returns what the page would show.
 
 ## Remembering the person's message
 

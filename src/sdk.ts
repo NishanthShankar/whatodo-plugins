@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.23.0";
+export const SDK_VERSION = "1.25.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -56,10 +56,21 @@ export type Tier = 1 | 2 | 3;
  *   after unlocking with their passphrase; that page is built by Zelfred, and the plugin's
  *   `web.load` only ever returns what the plugin itself knows (counts and dates).
  *   Since SDK 1.21.0.
+ * - "share": make pages anyone with the link can open, signed in or not (`kit.share`,
+ *   `web.shared`). The plugin says what a page shows; Zelfred makes the address, draws the
+ *   page, limits how often it is opened and can take it down. The page never says whose it
+ *   is: no name, no number. Can't be combined with "vault". Since SDK 1.24.0.
+ * - "photos": get the photos people send in its groups. A plugin never holds a picture: Zelfred
+ *   keeps the file and hands over its id, type and size in `event.photos`. A photo sent with no
+ *   words arrives too, with an empty `event.text`. The plugin can send one of its photos back
+ *   (`kit.send(text, { photo: id })`) and its page can add one. Videos, voice notes and other
+ *   files are not passed on. Can't be combined with "vault". Since SDK 1.25.0.
+ * - "location": get the position a person shares in its groups (WhatsApp's "Location"), as
+ *   `event.place`. Can't be combined with "vault". Since SDK 1.25.0.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault" | "share" | "photos" | "location";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault", "share", "photos", "location"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -133,9 +144,11 @@ export interface Kit {
    * message later (they come back with the same ref). With `group`, post in one of the
    * install's extra groups (`kit.groups.open`); until that group exists the message goes to
    * the main group. While handling a message or reaction from an extra group, the default is
-   * that group.
+   * that group. With `photo` (the id of one of this install's photos; needs the "photos"
+   * permission), the picture is sent and `text` is its caption, up to 1000 characters; an
+   * empty text sends the picture alone. Since SDK 1.25.0.
    */
-  send(text: string, opts?: { ref?: Json; group?: string }): void;
+  send(text: string, opts?: { ref?: Json; group?: string; photo?: string }): void;
   /**
    * Ask for a choice between options. Use it whenever the plugin needs a structured answer,
    * a plain yes or no included. Zelfred sends a WhatsApp poll (the question with a numbered
@@ -255,10 +268,40 @@ export interface Kit {
      */
     rename(key: string, name: string): Promise<void>;
   };
-  /** Files that arrived through hooks. The plugin holds their ids; Zelfred holds the bytes. Since SDK 1.5.0. */
+  /**
+   * Shared pages: addresses of this install that anyone can open in a browser without signing
+   * in. What a page shows comes from `web.shared(kit, key)`, read again on every visit, so the
+   * page is always current. Needs the "share" permission. Since SDK 1.24.0.
+   */
+  share: {
+    /** The address for `key` (lowercase letters, digits and dashes), made on first use. Not on page loads. */
+    url(key: string): Promise<string>;
+    /** The address for `key` if one was made, else null. Works on page loads too. */
+    find(key: string): Promise<string | null>;
+    /** Stop sharing: the address stops working for good. `url(key)` afterwards makes a new one, so old copies of the link stay dead. */
+    remove(key: string): Promise<void>;
+  };
+  /**
+   * Links the plugin wants read that didn't arrive in a WhatsApp message (one typed on its
+   * page). A handler can't wait for a page to be read, so this asks Zelfred to read it and
+   * call `onLink` with what it found and the `ref` given here, a moment later. Needs the
+   * "links" permission. Not on page loads. Since SDK 1.24.0.
+   */
+  links: {
+    read(url: string, ref: Json): Promise<void>;
+  };
+  /**
+   * Files that arrived through hooks, and photos (the "photos" permission). The plugin holds
+   * their ids; Zelfred holds the bytes. Since SDK 1.5.0.
+   */
   files: {
     /** Delete a file for good. */
     remove(id: string): Promise<void>;
+    /**
+     * One of this install's files, or null when the id isn't one. Check an id that came from
+     * the page before storing it. Since SDK 1.25.0.
+     */
+    get(id: string): Promise<{ id: string; type: string; size: number } | null>;
   };
   /** Wall-clock helpers in the person's zone. */
   time: {
@@ -299,9 +342,93 @@ export interface Link {
   image: string | null;
   /** Length in seconds, when the site says. */
   seconds: number | null;
+  /**
+   * What the page says the thing costs, in the currency's ordinary unit (24990 or 19.99). Only
+   * looked for when the plugin asks for it (`links: { price: true }`), and null when the page
+   * names no price. A shop can show a different price to a different visitor: treat it as a
+   * first guess the person can correct. Since SDK 1.24.0.
+   */
+  price?: number | null;
+  /** The price's currency as a three letter code ("INR"), when the page says. Since SDK 1.24.0. */
+  currency?: string | null;
+}
+
+/** Zelfred read a link the plugin asked for with `kit.links.read`. Since SDK 1.24.0. */
+export interface LinkEvent {
+  link: Link;
+  /** The ref given to `kit.links.read`. */
+  ref: Json;
+}
+
+/**
+ * What a shared page shows (`web.shared`). The plugin gives words, addresses and numbers;
+ * Zelfred draws the page, so every shared page looks and behaves the same and no plugin can
+ * put code on it. Leave out anything that says who the person is. Zelfred cuts what is too
+ * long: 80 characters for a title, 300 for a line, 500 items in all. Since SDK 1.24.0.
+ */
+export interface SharedPage {
+  /** The page's heading, and its title when the link is pasted into a chat. */
+  title: string;
+  /** One or two lines under the heading. */
+  intro?: string | null;
+  /** The address of a picture for the chat preview. */
+  image?: string | null;
+  sections: SharedSection[];
+  /** Closing lines, like totals: a label and its value. */
+  summary?: { label: string; value: string }[];
+}
+
+export interface SharedSection {
+  /** Leave out for a page with one section. */
+  heading?: string | null;
+  items: SharedItem[];
+}
+
+export interface SharedItem {
+  title: string;
+  /** Where the item leads. Zelfred refuses addresses that aren't ordinary web links. */
+  url?: string | null;
+  /** The address of its picture. */
+  image?: string | null;
+  /** One muted line under the title: where it is from, its labels. */
+  detail?: string | null;
+  /** Shown at the right: a price, an amount. Already formatted. */
+  value?: string | null;
+  /** The person's own words about it. Only pass them when the person chose to show them. */
+  note?: string | null;
+  /** Settled: shown struck through with `doneLabel` (a wish already bought). */
+  done?: boolean;
+  /** What a done item is marked with: "Bought". */
+  doneLabel?: string | null;
+}
+
+/**
+ * A photo someone sent, for plugins with the "photos" permission. Zelfred keeps the file; the
+ * plugin keeps the id. Show it on the page through Zelfred, send it back with
+ * `kit.send(text, { photo: id })`, delete it with `kit.files.remove(id)`. Since SDK 1.25.0.
+ */
+export interface Photo {
+  id: string;
+  /** "image/jpeg", "image/png", "image/webp". */
+  type: string;
+  /** Bytes. */
+  size: number;
+}
+
+/** A position someone shared, for plugins with the "location" permission. Since SDK 1.25.0. */
+export interface Place {
+  lat: number;
+  lng: number;
+  /** The place's name and address, when the person picked a named place. */
+  name: string | null;
+  address: string | null;
 }
 
 export interface MessageEvent {
+  /**
+   * What was written. Never empty, except with the "photos" or "location" permission: a photo
+   * or a position sent with no words arrives with an empty text. A photo's caption is its text.
+   */
   text: string;
   /** The ref of the message this one replies to (one of the plugin's, or one marked with `kit.mark`), if any. */
   quotedRef: Json | null;
@@ -312,6 +439,14 @@ export interface MessageEvent {
    * Since SDK 1.10.0.
    */
   links?: Link[];
+  /**
+   * The photo in the message. WhatsApp sends each photo as its own message, so several photos
+   * sent together arrive one after another, each with one photo here, and only the one that
+   * carries the caption has a text. Only with the "photos" permission. Since SDK 1.25.0.
+   */
+  photos?: Photo[];
+  /** The position shared in the message. Only with the "location" permission. Since SDK 1.25.0. */
+  place?: Place;
   /** The key of the extra group it was sent in; null or unset for the main group. Since SDK 1.6.0. */
   group?: string | null;
   /** Who sent it. Zelfred always sets it since SDK 1.8.0. */
@@ -531,6 +666,13 @@ export interface WebDef {
   loadFor?(kit: Kit, sender: Sender, args: Record<string, Json>): Promise<Json>;
   /** Changes the web page can ask for. */
   actions?: Record<string, (kit: Kit, args: Record<string, Json>) => Promise<Json | void>>;
+  /**
+   * What the shared page for `key` shows to anyone holding its address (`kit.share.url(key)`).
+   * Read-only, like `load`, and called on every visit. Return null when there is nothing to
+   * show any more (the list was deleted): the visitor is told the page is gone. Needs the
+   * "share" permission. Since SDK 1.24.0.
+   */
+  shared?(kit: Kit, key: string): Promise<SharedPage | null>;
 }
 
 /**
@@ -573,6 +715,13 @@ export interface PluginDef {
   /** What it may do beyond its own group and storage. See `Permission`. Since SDK 1.6.0. */
   permissions?: Permission[];
   /**
+   * What more Zelfred should look for on the links it reads for this plugin. `price`: what the
+   * thing costs (`link.price`, `link.currency`), for plugins about things to buy; some pages
+   * are then read a second time, the way a shopper's browser would. Needs the "links"
+   * permission. Since SDK 1.24.0.
+   */
+  links?: { price?: boolean };
+  /**
    * Not offered to everyone: left out of the store and the public site, and only people Zelfred
    * allows can add it. For plugins still being tried out. Since SDK 1.5.0.
    */
@@ -613,6 +762,8 @@ export interface PluginDef {
    * and is the only word a vault plugin gets about what people write. Since SDK 1.21.0.
    */
   onEntry?(event: EntryEvent, kit: Kit): Promise<void>;
+  /** A link asked for with `kit.links.read` was read. Needs the "links" permission. Since SDK 1.24.0. */
+  onLink?(event: LinkEvent, kit: Kit): Promise<void>;
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
   /** Called with the intent Zelfred found for an unclear message. Required with `understand`. */
@@ -670,10 +821,14 @@ export function definePlugin(def: PluginDef): PluginDef {
     if (def.onMessage) throw new Error(`${def.id}: a "vault" plugin can't have onMessage (it never sees what people write; use onEntry)`);
     if (def.understand || def.onIntent) throw new Error(`${def.id}: a "vault" plugin can't have understand (nothing written there is read)`);
     if (def.onGroup) throw new Error(`${def.id}: a "vault" plugin can't take groups the person already had (onGroup)`);
-    for (const p of ["links", "members"] as const) {
+    for (const p of ["links", "members", "photos", "location"] as const) {
       if (def.permissions.includes(p)) throw new Error(`${def.id}: "vault" and "${p}" can't be used together`);
     }
   }
+  if (def.permissions?.includes("share") && def.permissions.includes("vault")) throw new Error(`${def.id}: "share" and "vault" can't be used together`);
+  if (def.web?.shared && !def.permissions?.includes("share")) throw new Error(`${def.id}: web.shared needs the "share" permission`);
+  if (def.permissions?.includes("share") && !def.web?.shared) throw new Error(`${def.id}: the "share" permission needs web.shared (what a shared page shows)`);
+  if ((def.onLink || def.links) && !def.permissions?.includes("links")) throw new Error(`${def.id}: onLink and links need the "links" permission`);
   if (def.onGroup && !def.permissions?.includes("groups")) throw new Error(`${def.id}: onGroup needs the "groups" permission`);
   if (def.api) {
     if (!def.permissions?.includes("api")) throw new Error(`${def.id}: api needs the "api" permission`);

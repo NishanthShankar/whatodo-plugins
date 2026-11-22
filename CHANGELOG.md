@@ -2,6 +2,15 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.24.0] - 2026-11-22
+
+### Added
+- Permission `"share"`: pages anyone with the link can open without signing in. `kit.share.url(key)` makes the address, `kit.share.find(key)` reads it, `kit.share.remove(key)` closes it for good. `web.shared(kit, key)` returns what the page shows as a `SharedPage` (a title, an intro, sections of items, a summary); Zelfred draws it. `definePlugin` refuses `"share"` together with `"vault"`, and either half of sharing without the other.
+- `links: { price: true }` on a plugin: each link Zelfred reads for it also carries `price` and `currency` (null when the page names none).
+- `kit.links.read(url, ref)` and `onLink(event, kit)`: have a link read that didn't arrive in a message (one typed on the plugin's page), and get what was found a moment later with the same `ref`.
+- Test kit: `t.shares`, `t.shared(plugin, key)`, `t.reads`, `t.link(plugin, link)`.
+- Plugin Wishlist 1.0.0 (unlisted), the first to use all three.
+
 ## [1.23.0] - 2026-11-21
 
 ### Added

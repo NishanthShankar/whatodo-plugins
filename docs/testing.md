@@ -44,6 +44,8 @@ it("logs a glass and reacts", async () => {
 | `await t.load(plugin, args?)` | the web page loads |
 | `await t.loadFor(plugin, from, args?)` | the web page loads for someone else in the plugin's groups (`web.loadFor`) |
 | `await t.act(plugin, action, args?)` | the web page calls an action |
+| `await t.link(plugin, link)` | Zelfred read a link the plugin asked for with `kit.links.read` (`onLink`, with that request's `ref`). Throws when nobody asked for that address. |
+| `await t.shared(plugin, key)` | someone opens the shared page for `key`: returns what `web.shared` gives. Throws when nothing is shared under that key. |
 
 ### Reading results
 
@@ -55,6 +57,8 @@ it("logs a glass and reacts", async () => {
 | `t.signedUp` | sender ids given to `kit.signUp`, in order. A member made with a name has `profile: false` until then. |
 | `t.asked` | questions asked with `kit.ask`, in order: `{ question, options, ref, group, confirm, open }` |
 | `t.unsures` | fallback texts from `kit.unsure()`, in order (in Zelfred these trigger intent understanding) |
+| `t.shares` | the shared pages that are open, by key (`kit.share.url`); a key is gone after `kit.share.remove` |
+| `t.reads` | `{ url, ref }[]`: links asked for with `kit.links.read` and not answered yet |
 | `t.dump()` | `{ "collection/key": data }` of everything stored |
 | `t.kit.settings` | current settings |
 | `t.setToday(day)`, `t.setHour(h)` | move the clock between events |
