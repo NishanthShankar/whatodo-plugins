@@ -2,6 +2,14 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.27.0] - 2026-11-23
+
+### Added
+- `kit.person.currency`: the currency the person counts in, as a three letter code, or null while Zelfred doesn't know it.
+- `kit.learn({ currency })`: a plugin that finds out tells Zelfred, so the person is asked once and not by every plugin. Zelfred keeps it only while it knows nothing; a later call changes nothing.
+- Test kit: `person.currency` in the options, and `t.kit.person.currency` to read what was learnt.
+- Plugin Simple Expense Tracker 1.0.0 (`expense-tracker`), the first to use it.
+
 ## [1.26.0] - 2026-11-23
 
 ### Added

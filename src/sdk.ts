@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.26.0";
+export const SDK_VERSION = "1.27.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -104,6 +104,12 @@ export interface Person {
   name: string | null;
   /** IANA zone, like "Asia/Kolkata". */
   timezone: string;
+  /**
+   * The currency this person counts in, as a three letter code ("INR"), or null while Zelfred
+   * doesn't know it. A plugin that finds out tells Zelfred with `kit.learn`, so no other
+   * plugin has to ask. Since SDK 1.27.0.
+   */
+  currency?: string | null;
 }
 
 /**
@@ -247,6 +253,15 @@ export interface Kit {
    * goes to addresses that take everything. Since SDK 1.20.0.
    */
   emit(event: string, data: Json, opts?: { group?: string | null | (string | null)[] }): Promise<void>;
+  /**
+   * Tell Zelfred something about the person who added the plugin that it didn't know yet, so
+   * they are asked once and not by every plugin. Today that is `currency`: a three letter
+   * code ("INR"). Zelfred keeps it only while it knows nothing: what the person said first
+   * stands, and a later call changes nothing. Only pass what that person said themselves, in
+   * a message or an answer of their own, never a guess and never what someone else in the
+   * group said. `kit.person.currency` reads it back. Not on page loads. Since SDK 1.27.0.
+   */
+  learn(what: { currency?: string }): Promise<void>;
   /** A short random id for new records. */
   id(): string;
   /**

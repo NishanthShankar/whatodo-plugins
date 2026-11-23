@@ -28,6 +28,8 @@ Write down, in the plugin's README draft:
 5. **Settings.** Things the person can change (a check-in hour), with defaults.
 6. **Web page.** Only if the chat can't show it well (a month-long grid, a chart, bulk edits).
 7. **Unknown input.** What the plugin says when it doesn't understand: always point to `help`.
+8. **The first time.** When the plugin does something the person may not understand, it says so in words the first time it happens in a group, and never again: the first expense kept gets "Kept. I add these up until you say end trip. From now on a 👍 means kept.", the second gets the 👍. Keep a small record (`state/taught`) so it is said once.
+9. **What it learns.** If the first time shows something worth keeping (the currency they count in), take it from the message when it is there. When it isn't, ask once with `kit.ask` and record the answer. Something true of the person and not only of this plugin goes to Zelfred with `kit.learn`, so no other plugin asks again.
 
 **Done when:** the README draft has Commands, Data and Privacy sections (and Schedules / Settings / Web page if used) and every command has a defined acknowledgement.
 

@@ -14,7 +14,8 @@ export interface TestKitOptions {
   today?: string;
   /** Local hour for kit.time.hour(). Default 21. */
   hour?: number;
-  person?: { name: string | null; timezone: string };
+  /** `currency`: what Zelfred already knows the person counts in ("INR"). Left out: nothing yet. */
+  person?: { name: string | null; timezone: string; currency?: string | null };
   /** Settings for the install; the plugin's defaults are applied under these. */
   settings?: Record<string, Json>;
 }
@@ -210,6 +211,12 @@ export function createTestKit(opts: TestKitOptions = {}) {
       if (typeof senderId !== "string" || !senderId) throw new Error("kit.signUp: give the sender's id");
       if (!signedUp.includes(senderId)) signedUp.push(senderId);
     },
+    async learn(what) {
+      const code = what?.currency;
+      if (code !== undefined && !/^[A-Z]{3}$/.test(String(code))) throw new Error('kit.learn: a currency is a three letter code like "INR"');
+      // As in Zelfred: kept only while nothing is known.
+      if (code !== undefined && !person.currency) person.currency = code;
+    },
     async emit(event, data, opts) {
       if (current && !current.permissions?.includes("api")) throw new Error(`${current.id}: kit.emit needs the "api" permission`);
       if (current && !(event in (current.api?.events ?? {}))) throw new Error(`${current.id}: kit.emit("${event}") isn't in api.events`);
@@ -288,7 +295,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
   };
 
   // The owner's id is the one their events carry (see senderOf).
-  const person = { id: "owner", ...(opts.person ?? { name: "Test Person", timezone: "Asia/Kolkata" }) };
+  const person: { id: string; name: string | null; timezone: string; currency: string | null } = { id: "owner", currency: null, ...(opts.person ?? { name: "Test Person", timezone: "Asia/Kolkata" }) };
   /**
    * Who an event is from. Nothing: the person who added the plugin. A string: another member
    * with that name (their id is the name in lowercase, so the same name is the same person).
