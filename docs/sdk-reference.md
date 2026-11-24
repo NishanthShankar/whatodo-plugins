@@ -22,7 +22,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `tier` | `1 \| 2 \| 3` | yes in this repo (optional in the SDK type) | Platform cost tier: how much the plugin costs Zelfred to run, not its price. See [Tiers](#tiers). |
 | `welcome` | string | yes | Posted in the group right after install. |
 | `help` | string | yes | Posted when the person sends `help`, `?`, `menu` or `commands` (Zelfred handles this; `onMessage` doesn't see those). |
-| `listing` | `{ title, description, h1 }` | yes in this repo (optional in the SDK type) | The plugin's public page on whatodo.today: search title (≤ 60), meta description (≤ 155), main heading (≤ 80). Write for what people search ("Habit tracker on WhatsApp"), not the plugin's name. |
+| `listing` | `{ title, description, h1 }` | yes in this repo (optional in the SDK type) | The plugin's public page on whatodo.today: search title (≤ 60), meta description (≤ 155), main heading (≤ 80). Write for the problem and the words people search ("Subscription tracker and renewal reminders"), not the plugin's name. It need not say WhatsApp: that is the channel, not what the app is for. |
 | `settings` | `Record<string, Json>` | no | Defaults for a new install. |
 | `schedules` | `ScheduleDef[]` | no | Daily or hourly triggers. |
 | `onInstall` | `(kit) => Promise<void>` | no | Once, when an install is created (before the group exists: don't `send` here). |
