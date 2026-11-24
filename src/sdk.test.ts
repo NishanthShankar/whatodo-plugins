@@ -58,7 +58,20 @@ describe("members and sender", () => {
     const plugin = definePlugin({ ...base, permissions: ["members"], onMessage: async (_e, kit) => void (person = kit.person) });
     const t = createTestKit({ person: { name: "Nisha", timezone: "Asia/Kolkata" } });
     await t.message(plugin, "hello", null, null, "Asha");
-    expect(person).toEqual({ id: "owner", name: "Nisha", timezone: "Asia/Kolkata" });
+    expect(person).toEqual({ id: "owner", name: "Nisha", timezone: "Asia/Kolkata", currency: null });
+  });
+
+  it("learns the person's currency once, and keeps the first one it is told", async () => {
+    const plugin = definePlugin({ ...base, onMessage: async (e, kit) => kit.learn({ currency: e.text }) });
+    const t = createTestKit();
+    expect(t.kit.person.currency).toBeNull();
+    await t.message(plugin, "INR");
+    await t.message(plugin, "USD");
+    expect(t.kit.person.currency).toBe("INR");
+    await expect(t.message(plugin, "rupees")).rejects.toThrow(/three letter code/);
+    const known = createTestKit({ person: { name: null, timezone: "Asia/Kolkata", currency: "EUR" } });
+    await known.message(plugin, "INR");
+    expect(known.kit.person.currency).toBe("EUR");
   });
 
   it("refuses another member's event without the permission", async () => {

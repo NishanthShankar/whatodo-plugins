@@ -100,7 +100,8 @@ interface EntryEvent    { change: "added" | "edited" | "removed"; id: string; ki
 |---|---|---|
 | `now` | number | The event's moment (ms). Use instead of `Date.now()`. |
 | `today` | string | Today in the person's zone, `YYYY-MM-DD`. |
-| `person` | `{ name: string \| null; timezone: string }` | The installer. `name` is what they set in Zelfred (may be null). |
+| `person` | `{ name: string \| null; timezone: string; currency: string \| null }` | The installer. `name` is what they set in Zelfred (may be null). `currency` is the one they count in ("INR"), or null while Zelfred doesn't know it (since SDK 1.27.0). |
+| `learn({ currency })` | `Promise<void>` | Tell Zelfred something about the installer it didn't know yet, so they are asked once and not by every plugin. Kept only while Zelfred knows nothing; a later call changes nothing. Pass only what that person said themselves, never a guess or what someone else in the group said. Since SDK 1.27.0. |
 | `settings` | `Record<string, Json>` | Defaults merged with the install's values. |
 | `setSettings(patch)` | `Promise<void>` | Merge a patch into the install's settings. |
 | `store` | `Store` | Per-install storage, below. |

@@ -25,7 +25,7 @@ it("logs a glass and reacts", async () => {
 |---|---|---|
 | `today` | `"2026-11-15"` | `kit.today` and `kit.time.day()` |
 | `hour` | `21` | `kit.time.hour()`; also sets `kit.now` |
-| `person` | `{ name: "Test Person", timezone: "Asia/Kolkata" }` | `kit.person` |
+| `person` | `{ name: "Test Person", timezone: "Asia/Kolkata" }` | `kit.person`. Add `currency: "INR"` for a person whose currency Zelfred already knows; `t.kit.person.currency` shows what `kit.learn` recorded. |
 | `settings` | `{}` | Install settings, layered over the plugin's defaults |
 
 ### Driving events

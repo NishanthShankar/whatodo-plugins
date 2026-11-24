@@ -1,0 +1,153 @@
+/**
+ * Everything Simple Expense Tracker puts on WhatsApp: its welcome and help, every reply and
+ * every reaction. index.ts decides what to say; this file decides how.
+ *
+ * A message is a list of wordings (see src/copy.ts) and one is picked each time. A message
+ * takes its data and returns the whole text.
+ */
+import { fixed, msg } from "../../sdk";
+
+// ── Words the parser in index.ts reads back, and the examples shown to people. ──
+
+/** The platform's own word: it sends this plugin's help. */
+export const HELP = fixed("help");
+export const EXAMPLE = fixed("lunch 450");
+export const EXAMPLE_2 = fixed("cab 300");
+export const EXAMPLE_OTHER = fixed("dinner 20 usd");
+export const TOTAL = fixed("total");
+export const END = fixed("end trip");
+export const TRIPS = fixed("trips");
+export const UNDO = fixed("undo");
+export const CURRENCY = fixed("currency");
+export const CURRENCY_EXAMPLE = fixed("currency usd");
+export const TYPED_EXAMPLE = fixed("sgd");
+export const NAME_EXAMPLE = fixed("name goa");
+/** Sent as a reply to an expense. */
+export const DELETE = fixed("delete");
+
+// ── Reactions ──
+
+/** On an expense that was kept, and on a reply that changed or removed one. */
+export const SAVED = fixed("👍");
+
+/** One expense as a list shows it. */
+export interface Row {
+  what: string;
+  /** "₹450". */
+  amount: string;
+  /** Who sent it. Null when one person sent everything, or the name isn't known. */
+  who: string | null;
+}
+
+/** A trip as an answer shows it. */
+export interface Shown {
+  /** "Goa" or "Trip 2". */
+  title: string;
+  /** "3 Nov" or "3 to 7 Nov". */
+  days: string;
+  count: number;
+  /** "₹24,990 + $20". */
+  total: string;
+  /** The rows shown: the newest ones when the trip is long. */
+  rows: Row[];
+  /** The number of the first row shown. */
+  from: number;
+  /** What each person sent, when more than one did: "Asha ₹450". */
+  people: string[];
+}
+
+const row = (r: Row, n: number) => `${n}. ${r.what} ${r.amount}${r.who ? ` · ${r.who}` : ""}`;
+const expenses = (n: number) => `${n} ${n === 1 ? "expense" : "expenses"}`;
+
+function list(t: Shown): string {
+  const lines: string[] = [];
+  if (t.from > 1) lines.push(`_${expenses(t.from - 1)} before these._`);
+  lines.push(...t.rows.map((r, i) => row(r, t.from + i)));
+  lines.push("", `*Total: ${t.total}* · ${expenses(t.count)}`);
+  if (t.people.length) lines.push(t.people.join(" · "));
+  return lines.join("\n");
+}
+
+export const copy = {
+  // ── What the plugin says about itself ──
+  welcome: msg([
+    `🧾 You've added *Simple Expense Tracker*.\n\nSend me each expense as what it was and the amount, like _${EXAMPLE}_. I add them up. Add your friends to this group and they can send theirs too.\n\nSay _${END}_ when it's over. The next expense starts a new list.\n\nSend _${HELP}_ for more.`,
+  ]),
+  help: msg([
+    [
+      "*Simple Expense Tracker*",
+      "",
+      `Send an expense as what it was and the amount: _${EXAMPLE}_. I keep it and add it up. Several lines in one message are several expenses.`,
+      `Put a currency with the amount to keep it in that one: _${EXAMPLE_OTHER}_.`,
+      "",
+      `_${TOTAL}_ shows the list and the sum so far`,
+      `_${END}_ closes the list. The next expense starts a new trip`,
+      `_${TRIPS}_ shows the trips you have ended`,
+      `_${NAME_EXAMPLE}_ names this trip`,
+      `_${CURRENCY_EXAMPLE}_ changes what I count plain amounts in for this trip`,
+      `_${UNDO}_ removes the last expense you sent`,
+      "",
+      `Reply to an expense with the right amount to correct it, or with _${DELETE}_ to remove it.`,
+    ].join("\n"),
+  ]),
+  groupName: msg(["🧾 TripExpenses"]),
+
+  // ── Keeping ──
+  /**
+   * Sent once in a group, after the very first expense is kept: what happens here from now on.
+   * `currency`: the sign of the one the trip is counted in, when the message said. Null: the
+   * question about it follows.
+   */
+  firstKept: msg<{ kept: string[]; currency: string | null }>([
+    ({ kept, currency }) =>
+      [
+        `Kept: ${kept.join("; ")}.`,
+        "",
+        `I add up every expense sent here. What it was, then the amount, like _${EXAMPLE_2}_. Anyone in this group can send one.`,
+        `_${TOTAL}_ shows the sum so far. _${END}_ closes the list, and the next expense starts a new one.`,
+        ...(currency ? [`I'm counting this trip in ${currency}. An amount with another currency, like _${EXAMPLE_OTHER}_, is kept in that one.`] : []),
+        "",
+        "From now on a 👍 means kept.",
+      ].join("\n"),
+  ]),
+  /** The question about a trip's currency. `first`: it is the very first trip here. */
+  whichCurrency: msg<{ first: boolean }>([
+    ({ first }) => `${first ? "Which currency do I count in?" : "A new trip. Which currency do I count this one in?"} Pick one, or type another, like ${TYPED_EXAMPLE}.`,
+  ]),
+  /** The record once the currency is settled, by an answer or by `currency usd`. */
+  counting: msg<{ currency: string }>([({ currency }) => `Counting in ${currency}.`, ({ currency }) => `${currency} it is.`]),
+  /** `currency` on its own. */
+  countingNow: msg<{ currency: string }>([({ currency }) => `I'm counting this trip in ${currency}. To change it: _${CURRENCY_EXAMPLE}_.`]),
+  currencyUnknown: msg([`I don't know that currency. Send its three letters, like _${CURRENCY_EXAMPLE}_.`]),
+  /** A message with no amount: how to send one. */
+  format: msg([
+    `I need what it was and then the amount, like _${EXAMPLE}_. Add a currency if it isn't the usual one: _${EXAMPLE_OTHER}_.`,
+    `That has no amount I can add. Send what it was, then the amount: _${EXAMPLE}_.`,
+  ]),
+  /** Some lines of a message were kept and some had no amount. */
+  someNotKept: msg<{ kept: number; lines: string[] }>([
+    ({ kept, lines }) => `Kept ${kept}. ${lines.length === 1 ? "This line has" : "These lines have"} no amount, so I left ${lines.length === 1 ? "it" : "them"} out:\n${lines.map((l) => `- ${l}`).join("\n")}`,
+  ]),
+  full: msg<{ max: number }>([({ max }) => `This trip has ${max} expenses, which is as many as one list holds. Say _${END}_ and carry on in a new one.`]),
+
+  // ── Showing ──
+  total: msg<Shown>([(t) => `*${t.title}, so far*\n\n${list(t)}`]),
+  ended: msg<Shown>([(t) => `*${t.title}* · ${t.days}\n\n${list(t)}\n\nThis list is closed. The next expense starts a new trip.`]),
+  nothingYet: msg([`Nothing to add up yet. Send an expense like _${EXAMPLE}_.`]),
+  nothingToEnd: msg([`There's nothing to end. Send an expense like _${EXAMPLE}_ and a trip starts.`]),
+  trips: msg<{ trips: { title: string; days: string; count: number; total: string; open: boolean }[] }>([
+    ({ trips }) => `*Your trips*\n\n${trips.map((t) => `${t.title} · ${t.days} · ${expenses(t.count)} · ${t.total}${t.open ? " · open" : ""}`).join("\n")}`,
+  ]),
+  noTrips: msg([`No trips yet. Send an expense like _${EXAMPLE}_ and the first one starts.`]),
+
+  // ── Changing ──
+  removed: msg<{ what: string; amount: string }>([({ what, amount }) => `Removed: ${what} ${amount}.`]),
+  nothingToUndo: msg(["There's nothing of yours to remove in this trip."]),
+  /** A reply to an expense that is no longer kept. */
+  gone: msg(["That one isn't kept any more."]),
+  /** A reply to an expense of a trip that has ended. */
+  closed: msg(["That trip is closed, so I've left it as it is."]),
+  /** A correction sent as a reply to a message that held several expenses. */
+  several: msg([`That message holds several expenses. Reply _${DELETE}_ to remove them, then send the right ones.`]),
+  replyHow: msg([`To correct it, reply with the right amount, or the whole line like _${EXAMPLE}_. To remove it, reply _${DELETE}_.`]),
+};
