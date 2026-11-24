@@ -14,6 +14,9 @@ Send these in the TripExpenses group. Anyone in the group can.
 | `cab rs 300`, `cab ₹300`, `dinner 20 usd`, `dinner $20` | Kept in that currency, whatever the trip is counted in. |
 | `flights 12k`, `villa 1.5 lakh`, `hotel 4,500.50` | Amounts the way people write them. |
 | `450 lunch`, `450: lunch`, `450 for lunch`, `rs 450 lunch` | The amount first works too, with or without a mark or "for" after it. The welcome, the help and the note about the format all say so. |
+| `lunch 450 #food` | Kept with the label `food`. Up to 5 labels on an expense. `total` adds up each label. |
+| a photo of the bill, with `lunch 450` as its caption | The expense is kept with its bill. A 📎 marks it in the list. The first time, one message says how bills work. |
+| a photo with no expense in its caption | Not kept. Nothing is said, and the file is deleted at once: people share trip photos in such a group. |
 | several lines in one message | Each line is an expense. Lines with no amount are left out, and named back. |
 | a message with no amount | Not kept. One message says how to send an expense. |
 | `total` (also `sum`, `list`, `summary`, `how much`, `so far`) | The list and the sum so far. |
@@ -31,7 +34,10 @@ On an expense you sent:
 |---|---|
 | reply with an amount, like `540` | The amount is corrected. 👍 |
 | reply with a whole line, like `brunch 540` | The expense is replaced. 👍 |
-| reply `delete` (also `remove`) | Removed. 👍 |
+| reply `delete` (also `remove`) | Removed, and its bill with it. 👍 |
+| reply with a photo | That photo is its bill (it replaces the one before). 👍. Works after the trip closed too. |
+| reply `#food` | The label is added. 👍. Works after the trip closed too. |
+| reply `bill` | Its bill comes back, as a photo with the expense as its caption. |
 
 ### Currency
 
@@ -59,22 +65,23 @@ Alone in the group, the person is told the format every time. Once a friend has 
 
 Limits: 500 expenses a trip, 20 lines a message, 80 characters for what it was, 40 for a trip's name. A list shows the newest 40.
 
-These choices are the plugin author's and were not confirmed by the owner: no splitting, anyone in the group may end a trip or correct any expense, `undo` removes only your own last one, the quiet rule for chatter above, an amount at the start of a line counting, a closed trip never changing, trips kept apart per group, a changed description closing the open trip and not only renaming it, and the limits.
+These choices are the plugin author's and were not confirmed by the owner: no splitting, anyone in the group may end a trip or correct any expense, `undo` removes only your own last one, the quiet rule for chatter above, an amount at the start of a line counting, a closed trip never changing, trips kept apart per group, a changed description closing the open trip and not only renaming it, labels and bills and the day being changeable after a trip closed, the tier staying 1 with bills kept, and the limits.
 
 ## Web page
 
-`web.load` gives every group the app runs in (its own first), each with its open trip and that trip's expenses, and the trips that ended (the newest 50) with their totals. `args.trip` adds one trip in full. A trip that was only named and has no expense yet is not shown. One action, `remove`, takes an expense out of the open trip; the page asks first, and a closed trip is refused. Everything else is done in WhatsApp. `lockable`: the page can sit behind the PIN. There is no `loadFor`: a friend in the group sees nothing of it on their own page.
+`web.load` gives every group the app runs in (its own first), each with its open trip and that trip's expenses, and the trips that ended (the newest 50) with their totals. `args.trip` adds one trip in full. A trip that was only named and has no expense yet is not shown. Each expense carries the day it was paid, its labels and the id of its bill's photo, and a trip carries what each label adds up to. Actions: `remove` takes an expense out of the open trip (the page asks first, and a closed trip is refused); `setDay` sets the day an expense was paid; `setTags` sets its labels; `setBill` keeps a photo the page added as its bill, or takes the bill away. The last three also work on a closed trip, since they leave its sum alone. Everything else is done in WhatsApp. `lockable`: the page can sit behind the PIN. There is no `loadFor`: a friend in the group sees nothing of it on their own page.
 
 ## Data
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
 | `trips` | trip id | `{ n, home?, name, currency, asked?, startedAt, endedAt, seq?, count?, sums? }` | started (ms) |
-| `expenses` | `<trip id>:<id>` | `{ what, amount, currency, by, name, at }` | its place in the trip |
+| `expenses` | `<trip id>:<id>` | `{ what, amount, currency, by, name, at, day?, tags?, bill? }` | its place in the trip |
 | `homes` | group key | `{ name }`: a group the person handed over | when (ms) |
 | `state` | `open` | `{ trip }`: the trip expenses go to now | none |
 | `state` | `n` | how many trips were started | none |
 | `state` | `taught` | `1` once the first-expense note was sent | none |
+| `state` | `taughtBill` | `1` once a bill was kept in the group | none |
 | `state` | `shared` | `1` once someone other than the owner wrote in the group | none |
 | `state` | `prompted` | `1` after the format was said, until something is kept | none |
 
@@ -86,7 +93,9 @@ Refs: `{ kind: "expense", trip, ids }` on the person's own expense message (thro
 
 ## Privacy
 
-Permissions: `members`, so friends added to the group can send expenses, and `groups`, so it can be given a group the person already had.
+Permissions: `members`, so friends added to the group can send expenses, `groups`, so it can be given a group the person already had, and `photos`, so a photo of a bill can be kept with its expense.
+
+With `photos`, every photo sent in the group reaches the app. It keeps one only when the photo's caption is an expense or the photo is a reply to an expense. Any other photo is deleted at once, and nothing is said about it. A bill is deleted with its expense. Bills are kept on Zelfred's servers and shown only to the person who added the app, on the page, and to the group when someone asks for one.
 
 Reads only the messages in its own groups, a new name or description of those groups, its own stored data, the time zone of the person who added it, and the currency Zelfred knows they count in. Stores what each expense was, the amount, and the name of who sent it. Everyone in the group sees everything it posts there, as with any WhatsApp group.
 
