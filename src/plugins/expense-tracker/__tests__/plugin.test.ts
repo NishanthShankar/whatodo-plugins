@@ -436,3 +436,84 @@ describe("what it says about itself", () => {
     expect(plugin.welcome).not.toContain("?");
   });
 });
+
+describe("a new description or name for the group", () => {
+  it("closes the open trip, shows it, and starts one called what was written", async () => {
+    const t = await started();
+    await t.groupInfo(plugin, "description", "Goa with Ravi\nDec 2026");
+    expect(last(t)).toContain("1. lunch ₹450");
+    expect(last(t)).toContain("This list is closed. A new trip starts: *Goa with Ravi*.");
+    expect(trips(t).map((x) => [x.name, x.endedAt !== null])).toEqual([[null, true], ["Goa with Ravi", false]]);
+    await t.message(plugin, "cab 300");
+    expect(openQuestion(t)).toHaveLength(1);
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("*Goa with Ravi, so far*");
+    expect(last(t)).not.toContain("lunch");
+  });
+
+  it("names the trip when nothing was sent yet, and does not start two for two changes", async () => {
+    const t = createTestKit();
+    await t.groupInfo(plugin, "name", "Coorg");
+    expect(last(t)).toBe("A new trip starts: *Coorg*. Send its first expense.");
+    await t.groupInfo(plugin, "description", "Coorg, the long weekend");
+    expect(trips(t).map((x) => x.name)).toEqual(["Coorg, the long weekend"]);
+  });
+
+  it("starts an unnamed trip when the description is removed", async () => {
+    const t = await started();
+    await t.groupInfo(plugin, "description", "");
+    expect(last(t)).toContain("A new trip starts: *Trip 2*.");
+  });
+
+  it("tells people about the description, and not about renaming the group", () => {
+    for (const text of [plugin.welcome, plugin.help, copy.joinedGroup()]) {
+      expect(text).toContain("description");
+      expect(text).not.toMatch(/rename|group's name/);
+    }
+  });
+});
+
+describe("a group the person already had", () => {
+  it("says once how it works, and keeps its own trips", async () => {
+    const t = await started();
+    await t.group(plugin, "joined", "x-flat", "Flat 4B");
+    expect(t.sent.at(-1)).toMatchObject({ group: "x-flat", text: copy.joinedGroup() });
+    await t.message(plugin, "milk 60 rs", null, "x-flat", "Asha");
+    expect(last(t)).toContain("Kept: milk, ₹60.");
+    await t.message(plugin, "total", null, "x-flat");
+    expect(last(t)).toContain("1. milk ₹60");
+    expect(last(t)).not.toContain("lunch");
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("1. lunch ₹450");
+    expect(last(t)).not.toContain("milk");
+    await t.message(plugin, "trips", null, "x-flat");
+    expect(last(t)).not.toContain("450");
+  });
+
+  it("stays quiet when people there just talk", async () => {
+    const t = createTestKit();
+    await t.group(plugin, "joined", "x-flat", "Flat 4B");
+    await t.message(plugin, "who is home tonight", null, "x-flat", "Asha");
+    expect(t.unsures).toEqual([]);
+  });
+
+  it("starts a new trip there when its description changes", async () => {
+    const t = createTestKit();
+    await t.group(plugin, "joined", "x-flat", "Flat 4B");
+    await t.message(plugin, "milk 60 rs", null, "x-flat");
+    await t.groupInfo(plugin, "description", "December", "x-flat");
+    expect(t.sent.at(-1)).toMatchObject({ group: "x-flat" });
+    expect(trips(t).map((x) => [x.name, x.home, x.endedAt !== null])).toEqual([[null, "x-flat", true], ["December", "x-flat", false]]);
+  });
+
+  it("closes what was open when the group is taken back", async () => {
+    const t = createTestKit();
+    await t.group(plugin, "joined", "x-flat", "Flat 4B");
+    await t.message(plugin, "milk 60 rs", null, "x-flat");
+    const said = t.sent.length;
+    await t.group(plugin, "left", "x-flat", "Flat 4B");
+    expect(t.sent).toHaveLength(said);
+    expect(trips(t)[0].endedAt).not.toBeNull();
+    expect(Object.keys(t.dump()).filter((k) => k.includes("x-flat"))).toEqual([]);
+  });
+});

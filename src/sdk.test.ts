@@ -279,6 +279,22 @@ describe("a group the person already had", () => {
   it("needs the groups permission", () => {
     expect(() => definePlugin({ ...base, onGroup: async () => {} })).toThrow(/groups/);
   });
+
+  it("hears a new name or description of a group, and answers in that group", async () => {
+    const seen: string[] = [];
+    const plugin = definePlugin({
+      ...base,
+      onGroupInfo: async (e, kit) => {
+        seen.push(`${e.group ?? "main"} ${e.what} ${e.value}`);
+        kit.send("noted");
+      },
+    });
+    const t = createTestKit();
+    await t.groupInfo(plugin, "description", "Goa");
+    await t.groupInfo(plugin, "name", "Flat 4B", "x-1");
+    expect(seen).toEqual(["main description Goa", "x-1 name Flat 4B"]);
+    expect(t.sent.map((s) => s.group)).toEqual([null, "x-1"]);
+  });
 });
 
 describe("profiles", () => {

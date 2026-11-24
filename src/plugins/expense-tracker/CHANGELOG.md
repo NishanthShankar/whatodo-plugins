@@ -1,4 +1,17 @@
-# Changelog: Simple Expense Tracker
+# Changelog: TripExpenses
+
+## [1.1.0] - 2026-11-24
+
+### Added
+- A new description for the group starts a new trip, called what you wrote. The trip that was open is closed and shown first. A new group name does the same.
+- It can be chosen for a WhatsApp group you already have. Each group keeps its own trips.
+
+### Changed
+- The app is called TripExpenses, like its group. It was "Simple Expense Tracker".
+- New permission: `groups`, to take a group the person already had.
+
+### Data
+- Trips made in a handed-over group carry `home` (the group's key). New collection `homes`. `state` keys for such a group end in `@<group key>`. Nothing stored by 1.0.0 changes.
 
 ## [1.0.0] - 2026-11-23
 
