@@ -86,7 +86,8 @@ for (const plugin of plugins) {
       expect(l.title.length).toBeLessThanOrEqual(60);
       expect(l.description.length).toBeLessThanOrEqual(155);
       expect(l.description.length).toBeGreaterThanOrEqual(70);
-      expect(/whatsapp/i.test(l.title), "the listing title should say WhatsApp").toBe(true);
+      // The title leads with the problem and the words people search. It need not name WhatsApp:
+      // the owner ruled on 2026-11-23 that WhatsApp is the channel, not what an app is sold as.
     });
 
     it("declares its platform cost tier", () => {
