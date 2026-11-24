@@ -1,5 +1,15 @@
 # Changelog: TripExpenses
 
+## [1.2.0] - 2026-11-24
+
+### Added
+- A page: the open trip with its expenses and total, what each person sent, and the trips that ended, for every group it runs in. An expense can be taken out of the open trip there.
+- The amount first now also reads with a mark or "for" after it: `450: lunch`, `450 for lunch`.
+
+### Changed
+- The welcome, the help and the note about the format say the amount can come first: `450 lunch`.
+- Its page on the site no longer has "WhatsApp" in its title and heading.
+
 ## [1.1.0] - 2026-11-24
 
 ### Added

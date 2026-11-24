@@ -106,6 +106,9 @@ export interface Read {
   currency: string | null;
 }
 
+/** What stands between an amount that starts the line and the thing: a space, with or without a mark before it. */
+const THEN = String.raw`(?:\s*[-:=]\s*|\s+)`;
+
 /** What is left of the line once the amount is taken out: the thing paid for. Null when nothing is. */
 function whatOf(rest: string): string | null {
   const what = rest
@@ -120,7 +123,7 @@ function whatOf(rest: string): string | null {
 /**
  * One expense in a line: what it was and the amount, with or without a currency. The amount
  * ends the line ("lunch 450", "cab rs 300", "hotel 4,500.50 inr", "dinner $20", "flights 12k").
- * An amount that starts the line is taken too ("450 lunch"). Null when the line has no amount
+ * An amount that starts the line is taken too ("450 lunch", "450: lunch", "450 for lunch"). Null when the line has no amount
  * in either place, or nothing but the amount.
  */
 export function readExpense(line: string): Read | null {
@@ -142,15 +145,17 @@ export function readExpense(line: string): Read | null {
   m = new RegExp(String.raw`^(.*?)(?:\s|[-:=])${NUMBER}$`, "i").exec(t);
   if (m) return made(m[1], amountOf(m[2], m[3], m[4]?.toLowerCase()), null);
 
-  // The amount first: "rs 450 lunch", "$20 cab"
-  m = new RegExp(String.raw`^${MARK}\s?${NUMBER}\s+(.+)$`, "i").exec(t);
-  if (m && currencyOf(m[1])) return made(m[5], amountOf(m[2], m[3], m[4]?.toLowerCase()), currencyOf(m[1]));
+  // The amount first, with or without a mark after it ("450: lunch") or a joining word ("450 for lunch").
+  const after = (rest: string) => rest.replace(/^(?:for|on|towards)\s+/i, "");
+  // "rs 450 lunch", "$20 cab"
+  m = new RegExp(String.raw`^${MARK}\s?${NUMBER}${THEN}(.+)$`, "i").exec(t);
+  if (m && currencyOf(m[1])) return made(after(m[5]), amountOf(m[2], m[3], m[4]?.toLowerCase()), currencyOf(m[1]));
   // "450 rs lunch"
-  m = new RegExp(String.raw`^${NUMBER}\s?${MARK}\s+(.+)$`, "i").exec(t);
-  if (m && currencyOf(m[4])) return made(m[5], amountOf(m[1], m[2], m[3]?.toLowerCase()), currencyOf(m[4]));
+  m = new RegExp(String.raw`^${NUMBER}\s?${MARK}${THEN}(.+)$`, "i").exec(t);
+  if (m && currencyOf(m[4])) return made(after(m[5]), amountOf(m[1], m[2], m[3]?.toLowerCase()), currencyOf(m[4]));
   // "450 lunch"
-  m = new RegExp(String.raw`^${NUMBER}\s+(.+)$`, "i").exec(t);
-  if (m) return made(m[4], amountOf(m[1], m[2], m[3]?.toLowerCase()), null);
+  m = new RegExp(String.raw`^${NUMBER}${THEN}(.+)$`, "i").exec(t);
+  if (m) return made(after(m[4]), amountOf(m[1], m[2], m[3]?.toLowerCase()), null);
   return null;
 }
 

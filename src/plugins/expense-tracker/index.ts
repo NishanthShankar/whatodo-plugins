@@ -46,6 +46,8 @@ export const MAX_EXPENSES = 500;
 export const MAX_LINES = 20;
 /** How many expenses a list shows: the newest ones. */
 export const LISTED = 40;
+/** How many ended trips the page shows for each group. */
+export const PAGE_TRIPS = 50;
 /** How many trips `trips` shows. */
 export const TRIPS_SHOWN = 10;
 /** The longest name a trip takes. */
@@ -389,9 +391,77 @@ async function command(kit: Kit, here: Here, text: string, lower: string, sender
   return false;
 }
 
+// ── The page ──
+
+/** One expense as the page shows it. */
+interface PageRow {
+  id: string;
+  n: number;
+  what: string;
+  /** "₹450". */
+  amount: string;
+  who: string | null;
+  at: number;
+}
+/** A trip as the page shows it. `rows` only for the open trip and for the one asked for. */
+interface PageTrip {
+  id: string;
+  title: string;
+  days: string;
+  count: number;
+  /** "₹24,990 + $20". */
+  total: string;
+  /** The sign of what plain amounts are counted in. */
+  currency: string;
+  /** What each person sent, when more than one did: "Asha ₹450". */
+  people: string[];
+  open: boolean;
+  rows?: PageRow[];
+}
+
+async function pageTrip(kit: Kit, id: string, trip: Trip, withRows: boolean): Promise<PageTrip | null> {
+  const open = trip.endedAt === null;
+  const mine = of(kit, trip);
+  if (!open && !withRows) {
+    return { id, title: titleOf(trip), days: daysOf(kit, trip), count: trip.count ?? 0, total: total(trip.sums ?? {}, mine), currency: sign(mine), people: [], open };
+  }
+  const items = await expensesOf(kit, id);
+  // An open trip nobody has sent anything to yet (it was only named) is not a trip to show.
+  if (open && !items.length) return null;
+  const s = shown(kit, trip, items);
+  const names = new Map<string, string | null>();
+  for (const { data: e } of items) if (e.name || !names.has(e.by)) names.set(e.by, e.name ?? names.get(e.by) ?? null);
+  const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: names.size > 1 ? (names.get(e.by) ?? null) : null, at: e.at }));
+  return { id, title: s.title, days: s.days, count: s.count, total: s.total, currency: sign(mine), people: s.people, open, ...(withRows || open ? { rows } : {}) };
+}
+
+/**
+ * What the page shows: every group this app runs in, each with its open trip (and its
+ * expenses) and the trips that ended, newest first. `args.trip`: also that trip in full.
+ */
+async function page(kit: Kit, args: Record<string, Json>): Promise<Json> {
+  const all = (await kit.store.list<Trip>("trips")).reverse();
+  const homes = await kit.store.list<{ name: string }>("homes");
+  const places: { key: Here; name: string | null }[] = [{ key: null, name: null }, ...homes.map((h) => ({ key: h.key as Here, name: h.data.name }))];
+  const groups = [];
+  for (const p of places) {
+    const here = all.filter((t) => (t.data.home ?? null) === p.key);
+    let open: PageTrip | null = null;
+    const past: PageTrip[] = [];
+    for (const t of here) {
+      if (t.data.endedAt === null) open = open ?? (await pageTrip(kit, t.key, t.data, true));
+      else if (past.length < PAGE_TRIPS) past.push((await pageTrip(kit, t.key, t.data, false))!);
+    }
+    if (p.key === null || open || past.length) groups.push({ key: p.key, name: p.name, open, past });
+  }
+  const want = typeof args.trip === "string" ? args.trip : null;
+  const asked = want ? await kit.store.get<Trip>("trips", want) : null;
+  return { groups, trip: want && asked ? await pageTrip(kit, want, asked, true) : null } as unknown as Json;
+}
+
 export default definePlugin({
   id: "expense-tracker",
-  version: "1.1.0",
+  version: "1.2.0",
   sdk: "1",
   name: "TripExpenses",
   icon: "🧾",
@@ -405,12 +475,29 @@ export default definePlugin({
   // "members": friends on the trip send their expenses too. "groups": it takes a group they already have.
   permissions: ["members", "groups"],
   listing: {
-    title: "Trip Expense Tracker on WhatsApp | Zelfred",
-    description: "Send what you paid and the amount to a WhatsApp chat, like \"lunch 450\". Your trip's expenses are added up as you go. Nothing to install.",
-    h1: "Trip expenses, added up in WhatsApp",
+    title: "Trip Expense Tracker: Added Up as You Go | Zelfred",
+    description: "Tell me what you paid and the amount, like \"lunch 450\". Your trip's expenses are added up as you go, with what each friend sent. Nothing to install.",
+    h1: "Trip expenses, added up as you go",
   },
   welcome: copy.welcome(),
   help: copy.help(),
+
+  web: {
+    // What a person spent is their own business: the page can sit behind the PIN.
+    lockable: true,
+    load: page,
+    actions: {
+      /** Take one expense out of the open trip. The page asks "are you sure" before calling this. */
+      async remove(kit, { trip, id }) {
+        const t = await kit.store.get<Trip>("trips", String(trip));
+        if (!t) throw new Error("That trip isn't kept any more.");
+        if (t.endedAt !== null) throw new Error("That trip is closed, so it stays as it is.");
+        const key = `${String(trip)}:${String(id)}`;
+        if (!(await kit.store.get<Expense>("expenses", key))) throw new Error("That one is already removed.");
+        await kit.store.delete("expenses", key);
+      },
+    },
+  },
 
   async onGroup(event, kit) {
     const here = event.key;
