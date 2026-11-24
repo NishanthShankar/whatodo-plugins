@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import plugin, { LISTED, MAX_EXPENSES, type Expense, type Trip } from "..";
-import { createTestKit } from "../../../testing";
+import { createTestKit, photo } from "../../../testing";
 import { copy } from "../copy";
-import { readAmount, readExpense } from "../money";
+import { readAmount, readExpense, takeTags } from "../money";
 
 type T = ReturnType<typeof createTestKit>;
 const expenses = (t: T) => Object.entries(t.dump()).filter(([k]) => k.startsWith("expenses/")).map(([, v]) => v as unknown as Expense);
@@ -583,5 +583,125 @@ describe("the page", () => {
     expect(p.groups[0].open).toMatchObject({ count: 1, total: "₹300" });
     await t.message(plugin, "end trip");
     await expect(t.act(plugin, "remove", { trip: trip.id, id: trip.rows![1].id })).rejects.toThrow(/closed/);
+  });
+});
+
+describe("labels", () => {
+  it("are read off a line and kept with the expense", async () => {
+    expect(takeTags("lunch 450 #Food #client")).toEqual({ rest: "lunch 450", tags: ["food", "client"] });
+    const t = await started();
+    await t.message(plugin, "cab 300 #travel");
+    await t.message(plugin, "#food dinner 900");
+    expect(expenses(t).map((e) => [e.what, e.tags ?? []])).toEqual([["lunch", []], ["cab", ["travel"]], ["dinner", ["food"]]]);
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("2. cab ₹300 #travel");
+    expect(last(t)).toContain("#food ₹900 · #travel ₹300");
+  });
+
+  it("are added by a reply, also after the trip closed", async () => {
+    const t = await started();
+    await t.message(plugin, "#food", t.marks[0]);
+    expect(expenses(t)[0].tags).toEqual(["food"]);
+    await t.message(plugin, "end trip");
+    await t.message(plugin, "#client", t.marks[0]);
+    expect(expenses(t)[0].tags).toEqual(["food", "client"]);
+  });
+});
+
+describe("a photo of the bill", () => {
+  const withPhoto = (id: string) => ({ photos: [photo(id)] });
+
+  it("sent with the expense as its caption is kept with it, and how bills work is said once", async () => {
+    const t = await started();
+    await t.message(plugin, "dinner 900", null, null, undefined, undefined, withPhoto("p1"));
+    expect(expenses(t)[1]).toMatchObject({ what: "dinner", bill: "p1" });
+    expect(last(t)).toContain("Kept the bill with dinner.");
+    await t.message(plugin, "cab 300", null, null, undefined, undefined, withPhoto("p2"));
+    expect(expenses(t)[2].bill).toBe("p2");
+    expect(t.reactions.at(-1)).toBe("👍");
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("2. dinner ₹900 📎");
+  });
+
+  it("sent as a reply to an expense becomes its bill, and replaces the one before", async () => {
+    const t = await started();
+    await t.message(plugin, "", t.marks[0], null, undefined, undefined, withPhoto("p1"));
+    expect(expenses(t)[0].bill).toBe("p1");
+    await t.message(plugin, "", t.marks[0], null, undefined, undefined, withPhoto("p2"));
+    expect(expenses(t)[0].bill).toBe("p2");
+    expect(t.removedFiles).toEqual(["p1"]);
+  });
+
+  it("comes back when asked for", async () => {
+    const t = await started();
+    await t.message(plugin, "bill", t.marks[0]);
+    expect(last(t)).toContain("No bill is kept");
+    await t.message(plugin, "", t.marks[0], null, undefined, undefined, withPhoto("p1"));
+    await t.message(plugin, "bill", t.marks[0]);
+    expect(t.sent.at(-1)).toMatchObject({ text: "lunch ₹450", photo: "p1" });
+  });
+
+  it("is not kept when it is just a photo: nothing is said and the file is deleted", async () => {
+    const t = await started();
+    const said = t.sent.length;
+    await t.message(plugin, "", null, null, "Asha", undefined, withPhoto("p1"));
+    await t.message(plugin, "sunset at the beach", null, null, "Asha", undefined, withPhoto("p2"));
+    expect(t.sent).toHaveLength(said);
+    expect(t.unsures).toEqual([]);
+    expect(t.removedFiles).toEqual(["p1", "p2"]);
+    expect(expenses(t)).toHaveLength(1);
+  });
+
+  it("goes when its expense goes", async () => {
+    const t = await started();
+    await t.message(plugin, "", t.marks[0], null, undefined, undefined, withPhoto("p1"));
+    await t.message(plugin, "delete", t.marks[0]);
+    expect(t.removedFiles).toEqual(["p1"]);
+    expect(expenses(t)).toEqual([]);
+  });
+});
+
+describe("changing an expense on the page", () => {
+  type P = { groups: { open: { id: string; labels: string[]; rows: { id: string; day: string; tags: string[]; bill: string | null }[] } | null; past: { id: string }[] }[]; trip: { rows: { id: string; day: string; tags: string[] }[] } | null };
+  const load = async (t: T, args: Record<string, string> = {}) => (await t.load(plugin, args)) as unknown as P;
+
+  it("sets the day it was paid, and refuses a day that hasn't come", async () => {
+    const t = await started();
+    let p = await load(t);
+    const trip = p.groups[0].open!;
+    const sent = trip.rows[0].day;
+    expect(sent).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    await t.act(plugin, "setDay", { trip: trip.id, id: trip.rows[0].id, day: "2026-01-05" });
+    p = await load(t);
+    expect(p.groups[0].open!.rows[0].day).toBe("2026-01-05");
+    await expect(t.act(plugin, "setDay", { trip: trip.id, id: trip.rows[0].id, day: "2999-01-01" })).rejects.toThrow(/hasn't come/);
+    await expect(t.act(plugin, "setDay", { trip: trip.id, id: trip.rows[0].id, day: "2026-02-31" })).rejects.toThrow(/Pick a date/);
+  });
+
+  it("sets labels, and the trip adds each one up", async () => {
+    const t = await started();
+    let p = await load(t);
+    const trip = p.groups[0].open!;
+    await t.act(plugin, "setTags", { trip: trip.id, id: trip.rows[0].id, tags: ["#Food", "food", "client lunch"] });
+    p = await load(t);
+    expect(p.groups[0].open!.rows[0].tags).toEqual(["food", "clientlunch"]);
+    expect(p.groups[0].open!.labels).toEqual(["clientlunch ₹450", "food ₹450"]);
+  });
+
+  it("keeps a bill added on the page, takes it away again, and works on a closed trip", async () => {
+    const t = await started();
+    let p = await load(t);
+    const trip = p.groups[0].open!;
+    await expect(t.act(plugin, "setBill", { trip: trip.id, id: trip.rows[0].id, photo: "nope" })).rejects.toThrow(/didn't arrive/);
+    const id = t.addFile("page-1");
+    await t.act(plugin, "setBill", { trip: trip.id, id: trip.rows[0].id, photo: id });
+    p = await load(t);
+    expect(p.groups[0].open!.rows[0].bill).toBe(id);
+    await t.message(plugin, "end trip");
+    await t.act(plugin, "setTags", { trip: trip.id, id: trip.rows[0].id, tags: ["food"] });
+    await t.act(plugin, "setBill", { trip: trip.id, id: trip.rows[0].id, photo: null });
+    expect(t.removedFiles).toEqual([id]);
+    const closed = await load(t, { trip: trip.id });
+    expect(closed.trip!.rows[0].tags).toEqual(["food"]);
   });
 });

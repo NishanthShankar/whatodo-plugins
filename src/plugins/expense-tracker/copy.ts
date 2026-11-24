@@ -26,6 +26,10 @@ export const TYPED_EXAMPLE = fixed("sgd");
 export const NAME_EXAMPLE = fixed("name goa");
 /** Sent as a reply to an expense. */
 export const DELETE = fixed("delete");
+/** Sent as a reply to an expense: its bill comes back. */
+export const BILL = fixed("bill");
+export const TAG_EXAMPLE = fixed("lunch 450 #food");
+export const TAG_REPLY = fixed("#food");
 
 // ── Reactions ──
 
@@ -39,6 +43,10 @@ export interface Row {
   amount: string;
   /** Who sent it. Null when one person sent everything, or the name isn't known. */
   who: string | null;
+  /** Its labels, without the "#". */
+  tags?: string[];
+  /** A photo of its bill is kept. */
+  bill?: boolean;
 }
 
 /** A trip as an answer shows it. */
@@ -56,9 +64,11 @@ export interface Shown {
   from: number;
   /** What each person sent, when more than one did: "Asha ₹450". */
   people: string[];
+  /** What each label adds up to, when any expense has one: "food ₹450". */
+  labels?: string[];
 }
 
-const row = (r: Row, n: number) => `${n}. ${r.what} ${r.amount}${r.who ? ` · ${r.who}` : ""}`;
+const row = (r: Row, n: number) => `${n}. ${r.what} ${r.amount}${r.tags?.length ? ` ${r.tags.map((t) => `#${t}`).join(" ")}` : ""}${r.bill ? " 📎" : ""}${r.who ? ` · ${r.who}` : ""}`;
 const expenses = (n: number) => `${n} ${n === 1 ? "expense" : "expenses"}`;
 
 function list(t: Shown): string {
@@ -67,6 +77,7 @@ function list(t: Shown): string {
   lines.push(...t.rows.map((r, i) => row(r, t.from + i)));
   lines.push("", `*Total: ${t.total}* · ${expenses(t.count)}`);
   if (t.people.length) lines.push(t.people.join(" · "));
+  if (t.labels?.length) lines.push(t.labels.map((l) => `#${l}`).join(" · "));
   return lines.join("\n");
 }
 
@@ -90,7 +101,10 @@ export const copy = {
       `_${CURRENCY_EXAMPLE}_ changes what I count plain amounts in for this trip`,
       `_${UNDO}_ removes the last expense you sent`,
       "",
-      `Reply to an expense with the right amount to correct it, or with _${DELETE}_ to remove it.`,
+      `Add a label with a #: _${TAG_EXAMPLE}_. The list adds up each label.`,
+      "Send a photo of the bill with the expense as its caption, and I keep the two together.",
+      "",
+      `Reply to an expense with the right amount to correct it, with _${DELETE}_ to remove it, with a photo to keep its bill, with _${TAG_REPLY}_ to label it, or with _${BILL}_ to see its bill.`,
     ].join("\n"),
   ]),
   groupName: msg(["🧾 TripExpenses"]),
@@ -145,6 +159,16 @@ export const copy = {
     ({ title, closed }) => `${closed ? `*${closed.title}* · ${closed.days}\n\n${list(closed)}\n\nThis list is closed. ` : ""}A new trip starts: *${title}*. Send its first expense.`,
   ]),
 
+  /** Said once in a group, the first time a bill's photo is kept: how bills work here. */
+  firstBill: msg<{ what: string }>([
+    ({ what }) => `Kept the bill with ${what}.\n\nSend a bill's photo with the expense as its caption, like _${EXAMPLE}_, or reply to an expense with the photo. Reply _${BILL}_ to an expense to see its bill. A 📎 in the list marks one that has it.\n\nFrom now on a 👍 means kept.`,
+  ]),
+  /** The bill of an expense, sent back as the caption of its photo. */
+  billOf: msg<{ what: string; amount: string }>([({ what, amount }) => `${what} ${amount}`]),
+  noBill: msg(["No bill is kept for that one. Reply to it with a photo of the bill and I keep it."]),
+  /** A photo sent as a reply to a message that held several expenses. */
+  billWhich: msg(["That message holds several expenses, so I can't tell whose bill this is. Send the photo with the expense as its caption."]),
+
   // ── Showing ──
   total: msg<Shown>([(t) => `*${t.title}, so far*\n\n${list(t)}`]),
   ended: msg<Shown>([(t) => `*${t.title}* · ${t.days}\n\n${list(t)}\n\nThis list is closed. The next expense starts a new trip.`]),
@@ -164,5 +188,5 @@ export const copy = {
   closed: msg(["That trip is closed, so I've left it as it is."]),
   /** A correction sent as a reply to a message that held several expenses. */
   several: msg([`That message holds several expenses. Reply _${DELETE}_ to remove them, then send the right ones.`]),
-  replyHow: msg([`To correct it, reply with the right amount, or the whole line like _${EXAMPLE}_. To remove it, reply _${DELETE}_.`]),
+  replyHow: msg([`To correct it, reply with the right amount, or the whole line like _${EXAMPLE}_. To remove it, reply _${DELETE}_. To label it, reply _${TAG_REPLY}_.`]),
 };

@@ -1,5 +1,18 @@
 # Changelog: TripExpenses
 
+## [1.3.0] - 2026-11-24
+
+### Added
+- A photo of the bill is kept with its expense: send the photo with the expense as its caption, or reply to an expense with the photo. Reply `bill` to see it. On the page a bill can be added, looked at and taken away.
+- Labels: `lunch 450 #food`, or reply `#food` to an expense. `total` and the page add up each label.
+- On the page, the day an expense was paid can be changed, and its labels set.
+
+### Changed
+- New permission: `photos`. A photo that is not a bill is deleted at once and nothing is said.
+
+### Data
+- An expense may carry `day` ("YYYY-MM-DD"), `tags` and `bill` (the photo's id). New `state` key `taughtBill`. Nothing stored before changes.
+
 ## [1.2.0] - 2026-11-24
 
 ### Added

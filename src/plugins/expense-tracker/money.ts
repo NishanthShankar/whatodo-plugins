@@ -106,6 +106,27 @@ export interface Read {
   currency: string | null;
 }
 
+/** The most labels one expense carries, and how long one may be. */
+export const MAX_TAGS = 5;
+export const MAX_TAG = 24;
+
+/** A label as it is kept: lowercase, no "#", letters, digits, "-" and "_" only. Null when nothing is left. */
+export function cleanTag(raw: string): string | null {
+  const t = raw.trim().replace(/^#+/, "").toLowerCase().replace(/[^\p{L}\p{N}_-]/gu, "").slice(0, MAX_TAG);
+  return t || null;
+}
+
+/** Take the "#labels" out of a line: what is left, and the labels, each once. */
+export function takeTags(line: string): { rest: string; tags: string[] } {
+  const tags: string[] = [];
+  const rest = line.replace(/(^|\s)#([\p{L}\p{N}_-]+)/gu, (_, lead: string, word: string) => {
+    const t = cleanTag(word);
+    if (t && !tags.includes(t) && tags.length < MAX_TAGS) tags.push(t);
+    return lead;
+  });
+  return { rest: rest.replace(/\s+/g, " ").trim(), tags };
+}
+
 /** What stands between an amount that starts the line and the thing: a space, with or without a mark before it. */
 const THEN = String.raw`(?:\s*[-:=]\s*|\s+)`;
 
