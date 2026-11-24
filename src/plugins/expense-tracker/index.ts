@@ -88,6 +88,8 @@ export interface Expense {
   tags?: string[];
   /** The id of the photo of its bill (kept by Zelfred). */
   bill?: string | null;
+  /** The emoji someone in the group reacted to it with: the group it is in. */
+  mark?: string | null;
 }
 
 /** A line read as an expense, with the labels that were on it. */
@@ -155,6 +157,24 @@ function labelSums(items: { data: Expense }[], mine: string): string[] {
   return [...by].sort((a, b) => size(b[1]) - size(a[1]) || a[0].localeCompare(b[0])).map(([t, s]) => `${t} ${total(s, mine)}`);
 }
 
+/** What each emoji's group adds up to, biggest first. Empty when no expense was reacted to. */
+function markSums(items: { data: Expense }[], mine: string): { mark: string; total: string; count: number }[] {
+  const by = new Map<string, { sums: Sums; count: number }>();
+  for (const { data: e } of items) {
+    if (!e.mark) continue;
+    const g = by.get(e.mark) ?? by.set(e.mark, { sums: {}, count: 0 }).get(e.mark)!;
+    add(g.sums, e.amount, e.currency ?? mine);
+    g.count++;
+  }
+  const size = (s: Sums) => Object.values(s).reduce((a, b) => a + b, 0);
+  return [...by].sort((a, b) => size(b[1].sums) - size(a[1].sums) || a[0].localeCompare(b[0])).map(([mark, g]) => ({ mark, total: total(g.sums, mine), count: g.count }));
+}
+
+/** Reactions that say "seen" or "fine" and not which group an expense is in. */
+const PLAIN = new Set(["👍", "✅", "👌", "🙏"]);
+/** An emoji without its skin tone or the mark that makes it a picture. */
+const bare = (emoji: string) => emoji.replace(/[\u{1F3FB}-\u{1F3FF}\uFE0F]/gu, "");
+
 /** Take an expense out, and its bill's photo with it. */
 async function drop(kit: Kit, key: string, e: Expense): Promise<void> {
   if (e.bill) await kit.files.remove(e.bill);
@@ -176,9 +196,9 @@ function shown(kit: Kit, trip: Trip, items: { data: Expense }[]): Shown {
   }
   const several = by.size > 1;
   const from = Math.max(0, items.length - LISTED);
-  const rows: Row[] = items.slice(from).map(({ data: e }) => ({ what: e.what, amount: money(e.amount, e.currency ?? mine), who: several ? (by.get(e.by)?.name ?? null) : null, tags: e.tags ?? [], bill: !!e.bill }));
+  const rows: Row[] = items.slice(from).map(({ data: e }) => ({ what: e.what, amount: money(e.amount, e.currency ?? mine), who: several ? (by.get(e.by)?.name ?? null) : null, tags: e.tags ?? [], bill: !!e.bill, mark: e.mark ?? null }));
   const people = several ? [...by.values()].map((p) => `${p.name ?? "Someone"} ${total(p.sums, mine)}`) : [];
-  return { title: titleOf(trip), days: daysOf(kit, trip), count: items.length, total: total(sums, mine), rows, from: from + 1, people, labels: labelSums(items, mine) };
+  return { title: titleOf(trip), days: daysOf(kit, trip), count: items.length, total: total(sums, mine), rows, from: from + 1, people, labels: labelSums(items, mine), marks: markSums(items, mine).map((m) => `${m.mark} ${m.total}`) };
 }
 
 /** The person who added the app said which currency they count in: Zelfred keeps it if it knew nothing. */
@@ -473,6 +493,8 @@ interface PageRow {
   tags: string[];
   /** The id of its bill's photo, or null. */
   bill: string | null;
+  /** The emoji it was reacted to with, or null. */
+  mark: string | null;
 }
 /** A trip as the page shows it. `rows` only for the open trip and for the one asked for. */
 interface PageTrip {
@@ -488,6 +510,8 @@ interface PageTrip {
   people: string[];
   /** What each label adds up to: "food ₹450". Only with `rows`. */
   labels: string[];
+  /** What each emoji's group adds up to, biggest first. Only with `rows`. */
+  marks: { mark: string; total: string; count: number }[];
   open: boolean;
   rows?: PageRow[];
 }
@@ -496,7 +520,7 @@ async function pageTrip(kit: Kit, id: string, trip: Trip, withRows: boolean): Pr
   const open = trip.endedAt === null;
   const mine = of(kit, trip);
   if (!open && !withRows) {
-    return { id, title: titleOf(trip), days: daysOf(kit, trip), count: trip.count ?? 0, total: total(trip.sums ?? {}, mine), currency: sign(mine), people: [], labels: [], open };
+    return { id, title: titleOf(trip), days: daysOf(kit, trip), count: trip.count ?? 0, total: total(trip.sums ?? {}, mine), currency: sign(mine), people: [], labels: [], marks: [], open };
   }
   const items = await expensesOf(kit, id);
   // An open trip nobody has sent anything to yet (it was only named) is not a trip to show.
@@ -504,8 +528,8 @@ async function pageTrip(kit: Kit, id: string, trip: Trip, withRows: boolean): Pr
   const s = shown(kit, trip, items);
   const names = new Map<string, string | null>();
   for (const { data: e } of items) if (e.name || !names.has(e.by)) names.set(e.by, e.name ?? names.get(e.by) ?? null);
-  const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: names.size > 1 ? (names.get(e.by) ?? null) : null, at: e.at, day: e.day ?? kit.time.day(e.at), tags: e.tags ?? [], bill: e.bill ?? null }));
-  return { id, title: s.title, days: s.days, count: s.count, total: s.total, currency: sign(mine), people: s.people, labels: s.labels ?? [], open, ...(withRows || open ? { rows } : {}) };
+  const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: names.size > 1 ? (names.get(e.by) ?? null) : null, at: e.at, day: e.day ?? kit.time.day(e.at), tags: e.tags ?? [], bill: e.bill ?? null, mark: e.mark ?? null }));
+  return { id, title: s.title, days: s.days, count: s.count, total: s.total, currency: sign(mine), people: s.people, labels: s.labels ?? [], marks: markSums(items, mine), open, ...(withRows || open ? { rows } : {}) };
 }
 
 /** The expense a page action is about. Throws a plain sentence when it isn't kept any more. */
@@ -542,7 +566,7 @@ async function page(kit: Kit, args: Record<string, Json>): Promise<Json> {
 
 export default definePlugin({
   id: "expense-tracker",
-  version: "1.3.0",
+  version: "1.4.0",
   sdk: "1",
   name: "TripExpenses",
   icon: "🧾",
@@ -585,6 +609,12 @@ export default definePlugin({
         if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(`${day}T00:00:00Z`)) || new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) !== day) throw new Error("Pick a date.");
         if (day > kit.time.shiftDay(kit.time.day(kit.now), 1)) throw new Error("That date hasn't come yet.");
         await kit.store.put("expenses", key, { ...e, day } as unknown as Json);
+      },
+      /** The emoji an expense is grouped under, or (`mark: null`) none. */
+      async setMark(kit, { trip, id, mark }) {
+        const { key, e } = await pageExpense(kit, trip, id);
+        if (!(mark === null || (typeof mark === "string" && mark.trim() && [...mark.trim()].length <= 8 && !/[\p{L}\p{N}\s]/u.test(mark.trim())))) throw new Error("Pick one emoji.");
+        await kit.store.put("expenses", key, { ...e, mark: mark === null ? null : mark.trim() } as unknown as Json);
       },
       /** An expense's labels, all of them at once. */
       async setTags(kit, { trip, id, tags }) {
@@ -680,6 +710,23 @@ export default definePlugin({
     if ((await kit.store.get("state", sk(here, "shared"))) && (await kit.store.get("state", sk(here, "prompted")))) return;
     await kit.store.put("state", sk(here, "prompted"), 1);
     kit.unsure(copy.format());
+  },
+
+  /**
+   * A reaction on an expense someone sent: any emoji but a plain "seen" one puts the expense in
+   * that emoji's group, to add up and to group by on the page. Anyone in the group may, and the
+   * last one counts. Taking a reaction away clears the group. A closed trip takes it too: its
+   * sum stays as it was.
+   */
+  async onReaction(event, kit) {
+    if (!isExpenseRef(event.ref)) return;
+    if (event.emoji && PLAIN.has(bare(event.emoji))) return;
+    const mark = event.emoji ? [...event.emoji].slice(0, 8).join("") : null;
+    for (const id of event.ref.ids) {
+      const key = `${event.ref.trip}:${id}`;
+      const e = await kit.store.get<Expense>("expenses", key);
+      if (e && (e.mark ?? null) !== mark) await kit.store.put("expenses", key, { ...e, mark } as unknown as Json);
+    }
   },
 
   async onAnswer(event, kit) {

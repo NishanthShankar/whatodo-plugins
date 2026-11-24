@@ -705,3 +705,40 @@ describe("changing an expense on the page", () => {
     expect(closed.trip!.rows[0].tags).toEqual(["food"]);
   });
 });
+
+describe("an emoji's group", () => {
+  it("takes an expense when someone reacts to it, and the list adds each group up", async () => {
+    const t = await started();
+    await t.message(plugin, "pizza 600");
+    await t.message(plugin, "cab 300");
+    await t.react(plugin, "🍕", t.marks[0]);
+    await t.react(plugin, "🍕", t.marks[1], null, "Asha");
+    await t.react(plugin, "🚕", t.marks[2]);
+    expect(expenses(t).map((e) => e.mark)).toEqual(["🍕", "🍕", "🚕"]);
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("1. lunch ₹450 🍕");
+    expect(last(t)).toContain("🍕 ₹1,050 · 🚕 ₹300");
+    const p = (await t.load(plugin, {})) as unknown as { groups: { open: { marks: { mark: string; total: string; count: number }[]; rows: { mark: string | null }[] } }[] };
+    expect(p.groups[0].open.marks).toEqual([{ mark: "🍕", total: "₹1,050", count: 2 }, { mark: "🚕", total: "₹300", count: 1 }]);
+  });
+
+  it("is left by taking the reaction away, and a thumbs up is no group", async () => {
+    const t = await started();
+    await t.react(plugin, "👍", t.marks[0]);
+    expect(expenses(t)[0].mark ?? null).toBeNull();
+    await t.react(plugin, "🍕", t.marks[0]);
+    await t.react(plugin, null, t.marks[0]);
+    expect(expenses(t)[0].mark).toBeNull();
+  });
+
+  it("can be set and cleared on the page", async () => {
+    const t = await started();
+    const p = (await t.load(plugin, {})) as unknown as { groups: { open: { id: string; rows: { id: string }[] } }[] };
+    const where = { trip: p.groups[0].open.id, id: p.groups[0].open.rows[0].id };
+    await t.act(plugin, "setMark", { ...where, mark: "🏨" });
+    expect(expenses(t)[0].mark).toBe("🏨");
+    await expect(t.act(plugin, "setMark", { ...where, mark: "hotel" })).rejects.toThrow(/one emoji/);
+    await t.act(plugin, "setMark", { ...where, mark: null });
+    expect(expenses(t)[0].mark).toBeNull();
+  });
+});

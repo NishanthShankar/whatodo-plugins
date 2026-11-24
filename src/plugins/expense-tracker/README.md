@@ -37,6 +37,7 @@ On an expense you sent:
 | reply `delete` (also `remove`) | Removed, and its bill with it. 👍 |
 | reply with a photo | That photo is its bill (it replaces the one before). 👍. Works after the trip closed too. |
 | reply `#food` | The label is added. 👍. Works after the trip closed too. |
+| react with an emoji, like 🍕 | The expense joins that emoji's group. `total` and the page add up each group. Anyone in the group may, and the last reaction counts. Taking the reaction away clears it. 👍, ✅, 👌 and 🙏 are not groups. Works after the trip closed too. |
 | reply `bill` | Its bill comes back, as a photo with the expense as its caption. |
 
 ### Currency
@@ -69,14 +70,14 @@ These choices are the plugin author's and were not confirmed by the owner: no sp
 
 ## Web page
 
-`web.load` gives every group the app runs in (its own first), each with its open trip and that trip's expenses, and the trips that ended (the newest 50) with their totals. `args.trip` adds one trip in full. A trip that was only named and has no expense yet is not shown. Each expense carries the day it was paid, its labels and the id of its bill's photo, and a trip carries what each label adds up to. Actions: `remove` takes an expense out of the open trip (the page asks first, and a closed trip is refused); `setDay` sets the day an expense was paid; `setTags` sets its labels; `setBill` keeps a photo the page added as its bill, or takes the bill away. The last three also work on a closed trip, since they leave its sum alone. Everything else is done in WhatsApp. `lockable`: the page can sit behind the PIN. There is no `loadFor`: a friend in the group sees nothing of it on their own page.
+`web.load` gives every group the app runs in (its own first), each with its open trip and that trip's expenses, and the trips that ended (the newest 50) with their totals. `args.trip` adds one trip in full. A trip that was only named and has no expense yet is not shown. Each expense carries the day it was paid, its labels and the id of its bill's photo, and a trip carries what each label adds up to. Actions: `remove` takes an expense out of the open trip (the page asks first, and a closed trip is refused); `setDay` sets the day an expense was paid; `setTags` sets its labels; `setMark` sets or clears the emoji it is grouped under; `setBill` keeps a photo the page added as its bill, or takes the bill away. The last three also work on a closed trip, since they leave its sum alone. Everything else is done in WhatsApp. `lockable`: the page can sit behind the PIN. There is no `loadFor`: a friend in the group sees nothing of it on their own page.
 
 ## Data
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
 | `trips` | trip id | `{ n, home?, name, currency, asked?, startedAt, endedAt, seq?, count?, sums? }` | started (ms) |
-| `expenses` | `<trip id>:<id>` | `{ what, amount, currency, by, name, at, day?, tags?, bill? }` | its place in the trip |
+| `expenses` | `<trip id>:<id>` | `{ what, amount, currency, by, name, at, day?, tags?, bill?, mark? }` | its place in the trip |
 | `homes` | group key | `{ name }`: a group the person handed over | when (ms) |
 | `state` | `open` | `{ trip }`: the trip expenses go to now | none |
 | `state` | `n` | how many trips were started | none |
