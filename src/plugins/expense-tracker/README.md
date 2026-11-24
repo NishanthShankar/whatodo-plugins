@@ -13,7 +13,7 @@ Send these in the TripExpenses group. Anyone in the group can.
 | `lunch 450` | Kept. 👍. What it was, then the amount. The very first time, one message explains the group; after that a 👍 is the whole answer. |
 | `cab rs 300`, `cab ₹300`, `dinner 20 usd`, `dinner $20` | Kept in that currency, whatever the trip is counted in. |
 | `flights 12k`, `villa 1.5 lakh`, `hotel 4,500.50` | Amounts the way people write them. |
-| `450 lunch` | The amount first works too. |
+| `450 lunch`, `450: lunch`, `450 for lunch`, `rs 450 lunch` | The amount first works too, with or without a mark or "for" after it. The welcome, the help and the note about the format all say so. |
 | several lines in one message | Each line is an expense. Lines with no amount are left out, and named back. |
 | a message with no amount | Not kept. One message says how to send an expense. |
 | `total` (also `sum`, `list`, `summary`, `how much`, `so far`) | The list and the sum so far. |
@@ -61,6 +61,10 @@ Limits: 500 expenses a trip, 20 lines a message, 80 characters for what it was, 
 
 These choices are the plugin author's and were not confirmed by the owner: no splitting, anyone in the group may end a trip or correct any expense, `undo` removes only your own last one, the quiet rule for chatter above, an amount at the start of a line counting, a closed trip never changing, trips kept apart per group, a changed description closing the open trip and not only renaming it, and the limits.
 
+## Web page
+
+`web.load` gives every group the app runs in (its own first), each with its open trip and that trip's expenses, and the trips that ended (the newest 50) with their totals. `args.trip` adds one trip in full. A trip that was only named and has no expense yet is not shown. One action, `remove`, takes an expense out of the open trip; the page asks first, and a closed trip is refused. Everything else is done in WhatsApp. `lockable`: the page can sit behind the PIN. There is no `loadFor`: a friend in the group sees nothing of it on their own page.
+
 ## Data
 
 | Collection | Key | Data | Sort |
@@ -88,4 +92,4 @@ Reads only the messages in its own groups, a new name or description of those gr
 
 It tells Zelfred one thing about the person who added it: the currency they count in, the first time they say it. Other apps can read that so they don't ask again.
 
-Nothing is sent to a model. It has no web page yet.
+Nothing is sent to a model. Its page shows the person who added the app what is kept, and can sit behind their PIN.

@@ -517,3 +517,71 @@ describe("a group the person already had", () => {
     expect(Object.keys(t.dump()).filter((k) => k.includes("x-flat"))).toEqual([]);
   });
 });
+
+describe("the amount first", () => {
+  it("reads it with a mark or a joining word after it", () => {
+    expect(readExpense("450: lunch")).toEqual({ what: "lunch", amount: 450, currency: null });
+    expect(readExpense("450 - lunch")).toEqual({ what: "lunch", amount: 450, currency: null });
+    expect(readExpense("450 for lunch")).toEqual({ what: "lunch", amount: 450, currency: null });
+    expect(readExpense("rs 450 for lunch")).toEqual({ what: "lunch", amount: 450, currency: "INR" });
+    expect(readExpense("20 usd: dinner")).toEqual({ what: "dinner", amount: 20, currency: "USD" });
+    expect(readExpense("300 on 2 beers")).toEqual({ what: "2 beers", amount: 300, currency: null });
+    // A thing that starts with such a word but isn't one keeps it.
+    expect(readExpense("450 forks")).toEqual({ what: "forks", amount: 450, currency: null });
+  });
+
+  it("is told to people wherever the format is", () => {
+    for (const text of [plugin.welcome, plugin.help, copy.joinedGroup(), copy.format()]) expect(text).toMatch(/450 lunch|either order/);
+  });
+});
+
+describe("the page", () => {
+  type Page = { groups: { key: string | null; name: string | null; open: PageTrip | null; past: PageTrip[] }[]; trip: PageTrip | null };
+  type PageTrip = { id: string; title: string; days: string; count: number; total: string; people: string[]; open: boolean; rows?: { id: string; n: number; what: string; amount: string; who: string | null }[] };
+  const load = async (t: T, args: Record<string, string> = {}) => (await t.load(plugin, args)) as unknown as Page;
+
+  it("shows the open trip with its expenses, and who sent what once several did", async () => {
+    const t = await started();
+    await t.message(plugin, "cab 300", null, null, "Asha");
+    const p = await load(t);
+    expect(p.groups).toHaveLength(1);
+    expect(p.groups[0]).toMatchObject({ key: null, past: [] });
+    expect(p.groups[0].open).toMatchObject({ title: "Trip 1", count: 2, total: "₹750", open: true });
+    expect(p.groups[0].open!.rows!.map((r) => [r.n, r.what, r.amount])).toEqual([[1, "lunch", "₹450"], [2, "cab", "₹300"]]);
+    expect(p.groups[0].open!.rows![1].who).toBe("Asha");
+    expect(p.groups[0].open!.people).toHaveLength(2);
+  });
+
+  it("lists ended trips with their totals, and gives one in full when asked", async () => {
+    const t = await started();
+    await t.message(plugin, "end trip");
+    await t.message(plugin, "ferry 40 eur");
+    const p = await load(t);
+    expect(p.groups[0].open).toMatchObject({ title: "Trip 2", total: "€40" });
+    expect(p.groups[0].past).toMatchObject([{ title: "Trip 1", count: 1, total: "₹450", open: false }]);
+    expect(p.groups[0].past[0].rows).toBeUndefined();
+    const one = await load(t, { trip: p.groups[0].past[0].id });
+    expect(one.trip!.rows!.map((r) => r.what)).toEqual(["lunch"]);
+  });
+
+  it("keeps each group's trips apart, and shows nothing for a trip that was only named", async () => {
+    const t = createTestKit();
+    await t.groupInfo(plugin, "description", "Coorg");
+    await t.group(plugin, "joined", "x-flat", "Flat 4B");
+    await t.message(plugin, "milk 60 rs", null, "x-flat");
+    const p = await load(t);
+    expect(p.groups.map((g) => [g.key, g.name, g.open?.count ?? 0])).toEqual([[null, null, 0], ["x-flat", "Flat 4B", 1]]);
+  });
+
+  it("takes an expense out of the open trip, and leaves a closed trip alone", async () => {
+    const t = await started();
+    await t.message(plugin, "cab 300");
+    let p = await load(t);
+    const trip = p.groups[0].open!;
+    await t.act(plugin, "remove", { trip: trip.id, id: trip.rows![0].id });
+    p = await load(t);
+    expect(p.groups[0].open).toMatchObject({ count: 1, total: "₹300" });
+    await t.message(plugin, "end trip");
+    await expect(t.act(plugin, "remove", { trip: trip.id, id: trip.rows![1].id })).rejects.toThrow(/closed/);
+  });
+});

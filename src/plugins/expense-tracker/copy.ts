@@ -13,6 +13,8 @@ import { fixed, msg } from "../../sdk";
 export const HELP = fixed("help");
 export const EXAMPLE = fixed("lunch 450");
 export const EXAMPLE_2 = fixed("cab 300");
+/** The amount first: it reads the same. */
+export const EXAMPLE_FIRST = fixed("450 lunch");
 export const EXAMPLE_OTHER = fixed("dinner 20 usd");
 export const TOTAL = fixed("total");
 export const END = fixed("end trip");
@@ -71,13 +73,13 @@ function list(t: Shown): string {
 export const copy = {
   // ── What the plugin says about itself ──
   welcome: msg([
-    `🧾 You've added *TripExpenses*.\n\nSend me each expense as what it was and the amount, like _${EXAMPLE}_. I add them up. Add your friends to this group and they can send theirs too.\n\nSay _${END}_ when it's over. To start a new trip, change this group's description to the trip's name.\n\nSend _${HELP}_ for more.`,
+    `🧾 You've added *TripExpenses*.\n\nSend me each expense as what it was and the amount, like _${EXAMPLE}_ or _${EXAMPLE_FIRST}_. I add them up. Add your friends to this group and they can send theirs too.\n\nSay _${END}_ when it's over. To start a new trip, change this group's description to the trip's name.\n\nSend _${HELP}_ for more.`,
   ]),
   help: msg([
     [
       "*TripExpenses*",
       "",
-      `Send an expense as what it was and the amount: _${EXAMPLE}_. I keep it and add it up. Several lines in one message are several expenses.`,
+      `Send an expense as what it was and the amount, in either order: _${EXAMPLE}_ or _${EXAMPLE_FIRST}_. I keep it and add it up. Several lines in one message are several expenses.`,
       `Put a currency with the amount to keep it in that one: _${EXAMPLE_OTHER}_.`,
       "",
       `_${TOTAL}_ shows the list and the sum so far`,
@@ -104,7 +106,7 @@ export const copy = {
       [
         `Kept: ${kept.join("; ")}.`,
         "",
-        `I add up every expense sent here. What it was, then the amount, like _${EXAMPLE_2}_. Anyone in this group can send one.`,
+        `I add up every expense sent here. What it was and the amount, in either order, like _${EXAMPLE_2}_. Anyone in this group can send one.`,
         `_${TOTAL}_ shows the sum so far. _${END}_ closes the list. For a new trip, change this group's description to its name.`,
         ...(currency ? [`I'm counting this trip in ${currency}. An amount with another currency, like _${EXAMPLE_OTHER}_, is kept in that one.`] : []),
         "",
@@ -122,8 +124,8 @@ export const copy = {
   currencyUnknown: msg([`I don't know that currency. Send its three letters, like _${CURRENCY_EXAMPLE}_.`]),
   /** A message with no amount: how to send one. */
   format: msg([
-    `I need what it was and then the amount, like _${EXAMPLE}_. Add a currency if it isn't the usual one: _${EXAMPLE_OTHER}_.`,
-    `That has no amount I can add. Send what it was, then the amount: _${EXAMPLE}_.`,
+    `I need what it was and the amount, like _${EXAMPLE}_ or _${EXAMPLE_FIRST}_. Add a currency if it isn't the usual one: _${EXAMPLE_OTHER}_.`,
+    `That has no amount I can add. Send what it was and the amount, in either order: _${EXAMPLE}_.`,
   ]),
   /** Some lines of a message were kept and some had no amount. */
   someNotKept: msg<{ kept: number; lines: string[] }>([
@@ -133,7 +135,7 @@ export const copy = {
 
   /** Said once in a group the person already had, when they make it this app's. */
   joinedGroup: msg([
-    `🧾 I add up expenses in this group now. Send what it was and the amount, like _${EXAMPLE}_. Anyone here can.\n\n_${TOTAL}_ shows the sum so far, and _${END}_ closes the list. For a new trip, change this group's description to its name.`,
+    `🧾 I add up expenses in this group now. Send what it was and the amount, like _${EXAMPLE}_ or _${EXAMPLE_FIRST}_. Anyone here can.\n\n_${TOTAL}_ shows the sum so far, and _${END}_ closes the list. For a new trip, change this group's description to its name.`,
   ]),
   /**
    * The group got a new description or name, so a new trip starts. `closed`: the trip that was
