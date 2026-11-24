@@ -1,5 +1,13 @@
 # Changelog: TripExpenses
 
+## [1.4.0] - 2026-11-24
+
+### Added
+- React to an expense with an emoji and it joins that emoji's group. `total` and the page add up each group, and the page can show the expenses group by group.
+
+### Data
+- An expense may carry `mark` (the emoji). Nothing stored before changes.
+
 ## [1.3.0] - 2026-11-24
 
 ### Added

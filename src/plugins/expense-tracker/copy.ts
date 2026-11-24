@@ -47,6 +47,8 @@ export interface Row {
   tags?: string[];
   /** A photo of its bill is kept. */
   bill?: boolean;
+  /** The emoji someone reacted to it with: its group. */
+  mark?: string | null;
 }
 
 /** A trip as an answer shows it. */
@@ -66,9 +68,11 @@ export interface Shown {
   people: string[];
   /** What each label adds up to, when any expense has one: "food ₹450". */
   labels?: string[];
+  /** What each emoji's group adds up to, when any expense has one: "🍕 ₹450". */
+  marks?: string[];
 }
 
-const row = (r: Row, n: number) => `${n}. ${r.what} ${r.amount}${r.tags?.length ? ` ${r.tags.map((t) => `#${t}`).join(" ")}` : ""}${r.bill ? " 📎" : ""}${r.who ? ` · ${r.who}` : ""}`;
+const row = (r: Row, n: number) => `${n}. ${r.what} ${r.amount}${r.tags?.length ? ` ${r.tags.map((t) => `#${t}`).join(" ")}` : ""}${r.mark ? ` ${r.mark}` : ""}${r.bill ? " 📎" : ""}${r.who ? ` · ${r.who}` : ""}`;
 const expenses = (n: number) => `${n} ${n === 1 ? "expense" : "expenses"}`;
 
 function list(t: Shown): string {
@@ -78,6 +82,7 @@ function list(t: Shown): string {
   lines.push("", `*Total: ${t.total}* · ${expenses(t.count)}`);
   if (t.people.length) lines.push(t.people.join(" · "));
   if (t.labels?.length) lines.push(t.labels.map((l) => `#${l}`).join(" · "));
+  if (t.marks?.length) lines.push(t.marks.join(" · "));
   return lines.join("\n");
 }
 
@@ -102,6 +107,7 @@ export const copy = {
       `_${UNDO}_ removes the last expense you sent`,
       "",
       `Add a label with a #: _${TAG_EXAMPLE}_. The list adds up each label.`,
+      "React to an expense with an emoji, like 🍕, and it joins that emoji's group. The list adds up each group.",
       "Send a photo of the bill with the expense as its caption, and I keep the two together.",
       "",
       `Reply to an expense with the right amount to correct it, with _${DELETE}_ to remove it, with a photo to keep its bill, with _${TAG_REPLY}_ to label it, or with _${BILL}_ to see its bill.`,
