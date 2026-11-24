@@ -3,7 +3,7 @@ import { copy, SAVED, type Row, type Shown } from "./copy";
 import { add, COMMON, currencyOf, guessCurrency, label, money, readAmount, readExpense, sayDay, sign, total, type Read, type Sums } from "./money";
 
 /**
- * Simple Expense Tracker (the group is "TripExpenses")
+ * TripExpenses, a simple expense tracker
  *
  * People send what they paid for and the amount; it is added up. "end trip" closes the list
  * and the next expense starts a new one. Everyone in the group can send expenses. Nothing is
@@ -16,15 +16,29 @@ import { add, COMMON, currencyOf, guessCurrency, label, money, readAmount, readE
  * stands. What the person who added the app says is handed to Zelfred (kit.learn), which
  * keeps it if it knew nothing.
  *
+ * Groups. Besides its own group it takes groups the person already had (onGroup). Each group
+ * has its own trips: what is sent in one never shows in another. `here` below is the group's
+ * key, null for the app's own group.
+ *
+ * A new trip starts three ways: the first expense after "end trip", or someone giving the
+ * group a new description or a new name (onGroupInfo). The new trip is called what they wrote.
+ *
  * Storage
  *   trips     key: trip id                data: Trip      sort: started (ms)
  *   expenses  key: "<trip id>:<id>"       data: Expense   sort: its place in the trip (1, 2, 3...)
+ *   homes     key: group key              data: { name }  the groups handed over
+ *   state, one set per group: the key as below in the app's own group, "<key>@<group>" elsewhere
  *   state     key: "open"                 data: { trip }  the trip expenses go to now
  *   state     key: "n"                    data: number    how many trips were started
  *   state     key: "taught"               data: 1 once the first-expense note was sent
  *   state     key: "shared"               data: 1 once someone other than the owner wrote here
  *   state     key: "prompted"             data: 1 after "I need an amount", until something is kept
  */
+
+/** The group something happens in: its key, or null for the app's own group. */
+type Here = string | null;
+const STATE = ["open", "n", "taught", "shared", "prompted"] as const;
+const sk = (here: Here, key: (typeof STATE)[number]) => (here ? `${key}@${here}` : key);
 
 /** The most expenses one trip holds. */
 export const MAX_EXPENSES = 500;
@@ -38,8 +52,10 @@ export const TRIPS_SHOWN = 10;
 export const MAX_NAME = 40;
 
 export interface Trip {
-  /** Its number: "Trip 2" until it is named. */
+  /** Its number in its group: "Trip 2" until it is named. */
   n: number;
+  /** The group it belongs to, when that is one the person handed over. */
+  home?: string | null;
   name: string | null;
   /** What bare amounts are counted in. Null until an expense or an answer says. */
   currency: string | null;
@@ -85,20 +101,20 @@ const currencyRef = (trip: string, codes: string[]): CurrencyRef => ({ kind: "cu
 type Found = { id: string; trip: Trip };
 
 /** The trip expenses go to now, or null when none is open. */
-async function openTrip(kit: Kit): Promise<Found | null> {
-  const open = await kit.store.get<{ trip: string }>("state", "open");
+async function openTrip(kit: Kit, here: Here): Promise<Found | null> {
+  const open = await kit.store.get<{ trip: string }>("state", sk(here, "open"));
   if (!open) return null;
   const trip = await kit.store.get<Trip>("trips", open.trip);
   return trip && trip.endedAt === null ? { id: open.trip, trip } : null;
 }
 
-async function startTrip(kit: Kit): Promise<Found> {
-  const n = ((await kit.store.get<number>("state", "n")) ?? 0) + 1;
+async function startTrip(kit: Kit, here: Here, name: string | null = null): Promise<Found> {
+  const n = ((await kit.store.get<number>("state", sk(here, "n"))) ?? 0) + 1;
   const id = kit.id();
-  const trip: Trip = { n, name: null, currency: null, startedAt: kit.now, endedAt: null };
+  const trip: Trip = { n, name, currency: null, startedAt: kit.now, endedAt: null, ...(here ? { home: here } : {}) };
   await kit.store.put("trips", id, trip as unknown as Json, kit.now);
-  await kit.store.put("state", "n", n);
-  await kit.store.put("state", "open", { trip: id });
+  await kit.store.put("state", sk(here, "n"), n);
+  await kit.store.put("state", sk(here, "open"), { trip: id });
   return { id, trip };
 }
 
@@ -165,10 +181,10 @@ async function askCurrency(kit: Kit, f: Found, first: boolean): Promise<void> {
 const senderOf = (event: { sender?: Sender }, kit: Kit): Sender => event.sender ?? { id: kit.person.id ?? "owner", name: kit.person.name, owner: true };
 
 /** Something was understood: the next message with no amount is told how again. */
-const heard = (kit: Kit) => kit.store.delete("state", "prompted");
+const heard = (kit: Kit, here: Here) => kit.store.delete("state", sk(here, "prompted"));
 
-async function keep(kit: Kit, reads: Read[], bad: string[], sender: Sender): Promise<void> {
-  const f = (await openTrip(kit)) ?? (await startTrip(kit));
+async function keep(kit: Kit, here: Here, reads: Read[], bad: string[], sender: Sender): Promise<void> {
+  const f = (await openTrip(kit, here)) ?? (await startTrip(kit, here));
   const have = (await expensesOf(kit, f.id)).length;
   if (have + reads.length > MAX_EXPENSES) {
     kit.send(copy.full({ max: MAX_EXPENSES }));
@@ -185,18 +201,18 @@ async function keep(kit: Kit, reads: Read[], bad: string[], sender: Sender): Pro
   f.trip = { ...f.trip, seq: seq + reads.length };
   await save(kit, f);
   kit.mark({ kind: "expense", trip: f.id, ids } as unknown as Json);
-  await heard(kit);
+  await heard(kit, here);
 
   // A trip with no currency yet takes it from the first expense that names one.
   const named = reads.find((r) => r.currency)?.currency ?? null;
   const unsettled = f.trip.currency === null;
   if (unsettled && named) await settle(kit, f, named, sender);
 
-  const taught = await kit.store.get("state", "taught");
+  const taught = await kit.store.get("state", sk(here, "taught"));
   const ask = unsettled && !named && have === 0 && !f.trip.asked;
   if (!taught) {
     // The first expense ever sent here: say once what happens in this group.
-    await kit.store.put("state", "taught", 1);
+    await kit.store.put("state", sk(here, "taught"), 1);
     const kept = reads.map((r) => `${r.what}, ${r.currency ? money(r.amount, r.currency) : f.trip.currency ? money(r.amount, f.trip.currency) : r.amount}`);
     kit.send(copy.firstKept({ kept, currency: f.trip.currency ? sign(f.trip.currency) : null }));
     if (ask) await askCurrency(kit, f, true);
@@ -208,13 +224,11 @@ async function keep(kit: Kit, reads: Read[], bad: string[], sender: Sender): Pro
   if (bad.length) kit.send(copy.someNotKept({ kept: reads.length, lines: bad }));
 }
 
-async function end(kit: Kit): Promise<void> {
-  const f = await openTrip(kit);
+/** Close the open trip of a group. Returns it as a list, or null when there was nothing in it to close. */
+async function close(kit: Kit, here: Here): Promise<Shown | null> {
+  const f = await openTrip(kit, here);
   const items = f ? await expensesOf(kit, f.id) : [];
-  if (!f || !items.length) {
-    kit.send(copy.nothingToEnd());
-    return;
-  }
+  if (!f || !items.length) return null;
   if (f.trip.asked) kit.close(currencyRef(f.id, f.trip.asked) as unknown as Json);
   const mine = of(kit, f.trip);
   const sums: Sums = {};
@@ -222,12 +236,39 @@ async function end(kit: Kit): Promise<void> {
   // The currency it was counted in is fixed with it, so the sums stay true whatever is learnt later.
   f.trip = { ...f.trip, currency: mine, asked: null, endedAt: kit.now, count: items.length, sums };
   await save(kit, f);
-  await kit.store.delete("state", "open");
-  kit.send(copy.ended(shown(kit, f.trip, items)));
+  await kit.store.delete("state", sk(here, "open"));
+  return shown(kit, f.trip, items);
 }
 
-async function showTotal(kit: Kit): Promise<void> {
-  const f = await openTrip(kit);
+async function end(kit: Kit, here: Here): Promise<void> {
+  const closed = await close(kit, here);
+  kit.send(closed ? copy.ended(closed) : copy.nothingToEnd());
+}
+
+/** What a new description or group name makes of a trip's name: its first line, plainly. */
+function nameFrom(value: string): string | null {
+  const line = value.split("\n").map((l) => l.replace(/[*_~`]/g, "").replace(/\s+/g, " ").trim()).find(Boolean) ?? "";
+  return line.slice(0, MAX_NAME).trim() || null;
+}
+
+/** The group got a new description or name: what was open is closed, and a trip with that name starts. */
+async function renamed(kit: Kit, here: Here, value: string): Promise<void> {
+  const name = nameFrom(value);
+  const closed = await close(kit, here);
+  const open = await openTrip(kit, here);
+  // An open trip with nothing in it yet (two changes in a row, or a name before any expense) takes the name.
+  if (open) {
+    if (open.trip.asked) kit.close(currencyRef(open.id, open.trip.asked) as unknown as Json);
+    open.trip = { ...open.trip, name, asked: null };
+    await save(kit, open);
+  }
+  const f = open ?? (await startTrip(kit, here, name));
+  await heard(kit, here);
+  kit.send(copy.newTrip({ title: titleOf(f.trip), closed }));
+}
+
+async function showTotal(kit: Kit, here: Here): Promise<void> {
+  const f = await openTrip(kit, here);
   const items = f ? await expensesOf(kit, f.id) : [];
   if (!f || !items.length) {
     kit.send(copy.nothingYet());
@@ -236,8 +277,8 @@ async function showTotal(kit: Kit): Promise<void> {
   kit.send(copy.total(shown(kit, f.trip, items)));
 }
 
-async function showTrips(kit: Kit): Promise<void> {
-  const all = (await kit.store.list<Trip>("trips")).reverse();
+async function showTrips(kit: Kit, here: Here): Promise<void> {
+  const all = (await kit.store.list<Trip>("trips")).filter((t) => (t.data.home ?? null) === here).reverse();
   const rows: { title: string; days: string; count: number; total: string; open: boolean }[] = [];
   for (const t of all) {
     if (rows.length >= TRIPS_SHOWN) break;
@@ -253,8 +294,8 @@ async function showTrips(kit: Kit): Promise<void> {
   kit.send(rows.length ? copy.trips({ trips: rows }) : copy.noTrips());
 }
 
-async function undo(kit: Kit, sender: Sender): Promise<void> {
-  const f = await openTrip(kit);
+async function undo(kit: Kit, here: Here, sender: Sender): Promise<void> {
+  const f = await openTrip(kit, here);
   const last = f ? (await expensesOf(kit, f.id)).filter((e) => e.data.by === sender.id).pop() : undefined;
   if (!f || !last) {
     kit.send(copy.nothingToUndo());
@@ -301,26 +342,26 @@ async function onReply(kit: Kit, ref: ExpenseRef, text: string, lower: string): 
 }
 
 /** The ready-made messages. True when the text was one. */
-async function command(kit: Kit, text: string, lower: string, sender: Sender): Promise<boolean> {
+async function command(kit: Kit, here: Here, text: string, lower: string, sender: Sender): Promise<boolean> {
   if (/^(end( it| now)?|(end|close|finish|stop) (it|(the |this )?(trip|list))|(trip|list) (is )?(over|ended|done|finished))$/.test(lower)) {
-    await end(kit);
+    await end(kit, here);
     return true;
   }
   if (/^(total|sum|list|show|expenses|summary|how much|so far|total so far|show (the )?(total|list|expenses))\??$/.test(lower)) {
-    await showTotal(kit);
+    await showTotal(kit, here);
     return true;
   }
   if (/^(trips|my trips|all trips|past trips|old trips|history)$/.test(lower)) {
-    await showTrips(kit);
+    await showTrips(kit, here);
     return true;
   }
   if (/^(undo|delete last|remove last|remove the last one|delete the last one)$/.test(lower)) {
-    await undo(kit, sender);
+    await undo(kit, here, sender);
     return true;
   }
   let m = lower.match(/^currency(?:\s+(?:is\s+|to\s+|in\s+)?(.+))?$/);
   if (m) {
-    const f = (await openTrip(kit)) ?? (m[1] ? await startTrip(kit) : null);
+    const f = (await openTrip(kit, here)) ?? (m[1] ? await startTrip(kit, here) : null);
     if (!m[1]) {
       kit.send(copy.countingNow({ currency: sign(f ? of(kit, f.trip) : own(kit)) }));
       return true;
@@ -338,7 +379,7 @@ async function command(kit: Kit, text: string, lower: string, sender: Sender): P
     const name = m[1].replace(/\s+/g, " ").trim().slice(0, MAX_NAME);
     // A name that ends in an amount is an expense about a name ("name board 300").
     if (name && !readExpense(text)) {
-      const f = (await openTrip(kit)) ?? (await startTrip(kit));
+      const f = (await openTrip(kit, here)) ?? (await startTrip(kit, here));
       f.trip = { ...f.trip, name };
       await save(kit, f);
       kit.react(SAVED);
@@ -350,9 +391,9 @@ async function command(kit: Kit, text: string, lower: string, sender: Sender): P
 
 export default definePlugin({
   id: "expense-tracker",
-  version: "1.0.0",
+  version: "1.1.0",
   sdk: "1",
-  name: "Simple Expense Tracker",
+  name: "TripExpenses",
   icon: "🧾",
   tagline: "Trip expenses, added up. Send what you paid and the amount.",
   description:
@@ -361,8 +402,8 @@ export default definePlugin({
   price: 0,
   // Tier 1: a little text per expense, and it only answers when written to.
   tier: 1,
-  // "members": friends on the trip send their expenses too.
-  permissions: ["members"],
+  // "members": friends on the trip send their expenses too. "groups": it takes a group they already have.
+  permissions: ["members", "groups"],
   listing: {
     title: "Trip Expense Tracker on WhatsApp | Zelfred",
     description: "Send what you paid and the amount to a WhatsApp chat, like \"lunch 450\". Your trip's expenses are added up as you go. Nothing to install.",
@@ -371,28 +412,49 @@ export default definePlugin({
   welcome: copy.welcome(),
   help: copy.help(),
 
+  async onGroup(event, kit) {
+    const here = event.key;
+    if (event.kind === "left") {
+      // Zelfred has stopped listening there. What was open is closed, so `trips` stays true; nothing is said.
+      await close(kit, here);
+      for (const key of STATE) await kit.store.delete("state", sk(here, key));
+      await kit.store.delete("homes", here);
+      return;
+    }
+    await kit.store.put("homes", here, { name: event.name.replace(/\s+/g, " ").trim().slice(0, 100) }, kit.now);
+    // Other people are in it already and they talk: the note about the format was just given.
+    await kit.store.put("state", sk(here, "shared"), 1);
+    await kit.store.put("state", sk(here, "prompted"), 1);
+    kit.send(copy.joinedGroup());
+  },
+
+  async onGroupInfo(event, kit) {
+    await renamed(kit, event.group ?? null, event.value);
+  },
+
   async onMessage(event, kit) {
     const text = event.text.trim();
     if (!text) return;
     const lower = text.toLowerCase().replace(/\s+/g, " ").replace(/[!.]+$/, "");
     const sender = senderOf(event, kit);
-    if (!sender.owner && !(await kit.store.get("state", "shared"))) await kit.store.put("state", "shared", 1);
+    const here: Here = event.group ?? null;
+    if (!sender.owner && !(await kit.store.get("state", sk(here, "shared")))) await kit.store.put("state", sk(here, "shared"), 1);
 
     if (isExpenseRef(event.quotedRef)) {
-      await heard(kit);
+      await heard(kit, here);
       return onReply(kit, event.quotedRef, text, lower);
     }
-    if (await command(kit, text.replace(/\s+/g, " "), lower, sender)) {
-      await heard(kit);
+    if (await command(kit, here, text.replace(/\s+/g, " "), lower, sender)) {
+      await heard(kit, here);
       return;
     }
 
     // A currency on its own, while the trip is asking which one: that is the answer.
-    const f = await openTrip(kit);
+    const f = await openTrip(kit, here);
     const typed = f?.trip.asked ? currencyOf(lower) : null;
     if (f && typed) {
       await settle(kit, f, typed, sender);
-      await heard(kit);
+      await heard(kit, here);
       kit.send(copy.counting({ currency: sign(typed) }));
       return;
     }
@@ -405,12 +467,12 @@ export default definePlugin({
       if (r) reads.push(r);
       else bad.push(line.slice(0, 80));
     }
-    if (reads.length) return keep(kit, reads, bad, sender);
+    if (reads.length) return keep(kit, here, reads, bad, sender);
 
     // No amount: say how, once. In a group with friends in it, people also just talk, so one
     // telling is enough until something is kept or asked for.
-    if ((await kit.store.get("state", "shared")) && (await kit.store.get("state", "prompted"))) return;
-    await kit.store.put("state", "prompted", 1);
+    if ((await kit.store.get("state", sk(here, "shared"))) && (await kit.store.get("state", sk(here, "prompted")))) return;
+    await kit.store.put("state", sk(here, "prompted"), 1);
     kit.unsure(copy.format());
   },
 

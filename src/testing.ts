@@ -525,6 +525,17 @@ export function createTestKit(opts: TestKitOptions = {}) {
         here = null;
       }
     },
+    /** Someone gives one of the plugin's groups a new name or description, as Zelfred would report it. `group`: an extra group's key, null for the main one. */
+    async groupInfo(plugin: PluginDef, what: "name" | "description", value: string, group: string | null = null) {
+      withDefaults(plugin);
+      if (!plugin.onGroupInfo) throw new Error(`${plugin.id} has no onGroupInfo`);
+      here = group;
+      try {
+        await plugin.onGroupInfo({ what, value, group }, kit);
+      } finally {
+        here = null;
+      }
+    },
     /** One of the person's other systems calls a read endpoint, as Zelfred would after checking its key. */
     async api(plugin: PluginDef, name: string, params: Record<string, string> = {}, scope: { groups: (string | null)[] | null } = { groups: null }) {
       withDefaults(plugin);

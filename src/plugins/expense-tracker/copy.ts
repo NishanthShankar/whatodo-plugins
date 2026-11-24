@@ -1,5 +1,5 @@
 /**
- * Everything Simple Expense Tracker puts on WhatsApp: its welcome and help, every reply and
+ * Everything TripExpenses puts on WhatsApp: its welcome and help, every reply and
  * every reaction. index.ts decides what to say; this file decides how.
  *
  * A message is a list of wordings (see src/copy.ts) and one is picked each time. A message
@@ -71,17 +71,18 @@ function list(t: Shown): string {
 export const copy = {
   // ── What the plugin says about itself ──
   welcome: msg([
-    `🧾 You've added *Simple Expense Tracker*.\n\nSend me each expense as what it was and the amount, like _${EXAMPLE}_. I add them up. Add your friends to this group and they can send theirs too.\n\nSay _${END}_ when it's over. The next expense starts a new list.\n\nSend _${HELP}_ for more.`,
+    `🧾 You've added *TripExpenses*.\n\nSend me each expense as what it was and the amount, like _${EXAMPLE}_. I add them up. Add your friends to this group and they can send theirs too.\n\nSay _${END}_ when it's over. To start a new trip, change this group's description to the trip's name.\n\nSend _${HELP}_ for more.`,
   ]),
   help: msg([
     [
-      "*Simple Expense Tracker*",
+      "*TripExpenses*",
       "",
       `Send an expense as what it was and the amount: _${EXAMPLE}_. I keep it and add it up. Several lines in one message are several expenses.`,
       `Put a currency with the amount to keep it in that one: _${EXAMPLE_OTHER}_.`,
       "",
       `_${TOTAL}_ shows the list and the sum so far`,
       `_${END}_ closes the list. The next expense starts a new trip`,
+      "A new description for this group starts a new trip too, called what you wrote",
       `_${TRIPS}_ shows the trips you have ended`,
       `_${NAME_EXAMPLE}_ names this trip`,
       `_${CURRENCY_EXAMPLE}_ changes what I count plain amounts in for this trip`,
@@ -104,7 +105,7 @@ export const copy = {
         `Kept: ${kept.join("; ")}.`,
         "",
         `I add up every expense sent here. What it was, then the amount, like _${EXAMPLE_2}_. Anyone in this group can send one.`,
-        `_${TOTAL}_ shows the sum so far. _${END}_ closes the list, and the next expense starts a new one.`,
+        `_${TOTAL}_ shows the sum so far. _${END}_ closes the list. For a new trip, change this group's description to its name.`,
         ...(currency ? [`I'm counting this trip in ${currency}. An amount with another currency, like _${EXAMPLE_OTHER}_, is kept in that one.`] : []),
         "",
         "From now on a 👍 means kept.",
@@ -129,6 +130,18 @@ export const copy = {
     ({ kept, lines }) => `Kept ${kept}. ${lines.length === 1 ? "This line has" : "These lines have"} no amount, so I left ${lines.length === 1 ? "it" : "them"} out:\n${lines.map((l) => `- ${l}`).join("\n")}`,
   ]),
   full: msg<{ max: number }>([({ max }) => `This trip has ${max} expenses, which is as many as one list holds. Say _${END}_ and carry on in a new one.`]),
+
+  /** Said once in a group the person already had, when they make it this app's. */
+  joinedGroup: msg([
+    `🧾 I add up expenses in this group now. Send what it was and the amount, like _${EXAMPLE}_. Anyone here can.\n\n_${TOTAL}_ shows the sum so far, and _${END}_ closes the list. For a new trip, change this group's description to its name.`,
+  ]),
+  /**
+   * The group got a new description or name, so a new trip starts. `closed`: the trip that was
+   * open, when it had anything in it.
+   */
+  newTrip: msg<{ title: string; closed: Shown | null }>([
+    ({ title, closed }) => `${closed ? `*${closed.title}* · ${closed.days}\n\n${list(closed)}\n\nThis list is closed. ` : ""}A new trip starts: *${title}*. Send its first expense.`,
+  ]),
 
   // ── Showing ──
   total: msg<Shown>([(t) => `*${t.title}, so far*\n\n${list(t)}`]),

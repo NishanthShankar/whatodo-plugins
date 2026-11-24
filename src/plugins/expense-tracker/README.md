@@ -1,6 +1,6 @@
-# 🧾 Simple Expense Tracker
+# 🧾 TripExpenses
 
-For a trip, a weekend, or anything you pay for along the way. Send each expense as what it was and the amount, and it is added up. Say `end trip` and you get the list and the total, and the next expense starts a new list. Lives in its own WhatsApp group, "🧾 TripExpenses". Add your friends to the group and they can send expenses too.
+For a trip, a weekend, or anything you pay for along the way. Send each expense as what it was and the amount, and it is added up. Say `end trip` and you get the list and the total, and the next expense starts a new list. A simple expense tracker. Lives in its own WhatsApp group, "🧾 TripExpenses", and can also take a group you already have. Add your friends to the group and they can send expenses too.
 
 Nothing is split and nobody owes anybody here: it is one sum, with what each person sent beside it.
 
@@ -18,6 +18,7 @@ Send these in the TripExpenses group. Anyone in the group can.
 | a message with no amount | Not kept. One message says how to send an expense. |
 | `total` (also `sum`, `list`, `summary`, `how much`, `so far`) | The list and the sum so far. |
 | `end trip` (also `end it`, `end`, `close trip`, `trip over`) | The list and the total, and the trip is closed. The next expense starts a new one. |
+| a new description for the group | A new trip starts, called what you wrote (its first line). The trip that was open is closed and shown first. A new group name does the same, but people are only told about the description. |
 | `trips` (also `history`) | Your last 10 trips with their totals. |
 | `name goa` | Names this trip. Until then it is "Trip 1", "Trip 2". |
 | `currency usd` | Changes what plain amounts are counted in for this trip. `currency` alone says what it is now. |
@@ -44,25 +45,36 @@ On an expense you sent:
 - The person's own currency is Zelfred's to keep (`kit.person.currency`). The plugin hands it over with `kit.learn` the first time the person who added the app names a currency or answers the question. Zelfred keeps the first one it is told. A friend's answer sets the trip only.
 - A total with more than one currency keeps them apart: `₹750 + $20`. Nothing is converted.
 
+### Groups you already have
+
+It can be chosen for a WhatsApp group the person already had (`onGroup`, the `groups` permission). It says once how it works there. Each group has its own trips, its own "Trip 1, Trip 2" and its own first-time note; nothing sent in one group shows in another. When the group is taken back, its open trip is closed and nothing is said.
+
+### A new trip from the description
+
+Zelfred tells the plugin when someone gave a group a new description or name (`onGroupInfo`). It finds out when the next message arrives there, so the new trip starts just before that message is read. The trip takes the first line as its name, up to 40 characters; an emptied description starts an unnamed trip. Two changes in a row, or a change before any expense, name the same trip and do not start a second one. The description Zelfred itself writes when it makes the group does not count.
+
 ### A message with no amount
 
-Alone in the group, the person is told the format every time. Once a friend has written in the group, people also just talk there, so the format is said once and then not again until an expense is kept or something is asked for.
+Alone in the group, the person is told the format every time. Once a friend has written in the group, people also just talk there, so the format is said once and then not again until an expense is kept or something is asked for. In a group the person already had, the note on joining counts as that one time.
 
 Limits: 500 expenses a trip, 20 lines a message, 80 characters for what it was, 40 for a trip's name. A list shows the newest 40.
 
-These choices are the plugin author's and were not confirmed by the owner: no splitting, anyone in the group may end a trip or correct any expense, `undo` removes only your own last one, the quiet rule for chatter above, an amount at the start of a line counting, a closed trip never changing, and the limits.
+These choices are the plugin author's and were not confirmed by the owner: no splitting, anyone in the group may end a trip or correct any expense, `undo` removes only your own last one, the quiet rule for chatter above, an amount at the start of a line counting, a closed trip never changing, trips kept apart per group, a changed description closing the open trip and not only renaming it, and the limits.
 
 ## Data
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `trips` | trip id | `{ n, name, currency, asked?, startedAt, endedAt, seq?, count?, sums? }` | started (ms) |
+| `trips` | trip id | `{ n, home?, name, currency, asked?, startedAt, endedAt, seq?, count?, sums? }` | started (ms) |
 | `expenses` | `<trip id>:<id>` | `{ what, amount, currency, by, name, at }` | its place in the trip |
+| `homes` | group key | `{ name }`: a group the person handed over | when (ms) |
 | `state` | `open` | `{ trip }`: the trip expenses go to now | none |
 | `state` | `n` | how many trips were started | none |
 | `state` | `taught` | `1` once the first-expense note was sent | none |
 | `state` | `shared` | `1` once someone other than the owner wrote in the group | none |
 | `state` | `prompted` | `1` after the format was said, until something is kept | none |
+
+The `state` keys above are the app's own group's. A handed-over group has the same set as `<key>@<group key>`, and its trips carry `home: <group key>`.
 
 An expense's `currency` is null when it was a plain amount: it is in the trip's currency. `by` is the sender's id (not a phone number) and `name` their WhatsApp name when it was sent. A trip's `asked` holds the currencies offered while its question is open. `count` and `sums` (`{ INR: 750 }`) are written when it ends, with its `currency` fixed.
 
@@ -70,9 +82,9 @@ Refs: `{ kind: "expense", trip, ids }` on the person's own expense message (thro
 
 ## Privacy
 
-Permission: `members`, so friends added to the group can send expenses.
+Permissions: `members`, so friends added to the group can send expenses, and `groups`, so it can be given a group the person already had.
 
-Reads only the messages in its own group, its own stored data, the time zone of the person who added it, and the currency Zelfred knows they count in. Stores what each expense was, the amount, and the name of who sent it. Everyone in the group sees everything it posts there, as with any WhatsApp group.
+Reads only the messages in its own groups, a new name or description of those groups, its own stored data, the time zone of the person who added it, and the currency Zelfred knows they count in. Stores what each expense was, the amount, and the name of who sent it. Everyone in the group sees everything it posts there, as with any WhatsApp group.
 
 It tells Zelfred one thing about the person who added it: the currency they count in, the first time they say it. Other apps can read that so they don't ask again.
 

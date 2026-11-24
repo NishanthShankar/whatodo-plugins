@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.27.0";
+export const SDK_VERSION = "1.28.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -574,6 +574,21 @@ export interface GroupEvent {
   name: string;
 }
 
+/**
+ * Someone in one of the plugin's groups gave the group a new name or a new description.
+ * Zelfred's own changes (the name it gives a group, the description it writes) never arrive.
+ * Zelfred finds out when the next message in that group comes in, and tells the plugin first,
+ * so this always runs before the `onMessage` of that message. `kit.send` posts in that group.
+ * Since SDK 1.28.0.
+ */
+export interface GroupInfoEvent {
+  /** The key of the extra group it happened in; null or unset for the main group. */
+  group?: string | null;
+  what: "name" | "description";
+  /** The new name (without Zelfred's ending), or the new description. Empty when it was removed. */
+  value: string;
+}
+
 export interface HookEvent {
   /** The key the hook was made with (`kit.hooks.url(key)`). */
   key: string;
@@ -782,6 +797,11 @@ export interface PluginDef {
    */
   onGroup?(event: GroupEvent, kit: Kit): Promise<void>;
   /**
+   * A group of the plugin's got a new name or description from someone in it. Having this
+   * makes Zelfred look at both whenever a message arrives there. Since SDK 1.28.0.
+   */
+  onGroupInfo?(event: GroupInfoEvent, kit: Kit): Promise<void>;
+  /**
    * An entry was added, edited or removed in this plugin's vault. Needs the "vault" permission,
    * and is the only word a vault plugin gets about what people write. Since SDK 1.21.0.
    */
@@ -845,6 +865,7 @@ export function definePlugin(def: PluginDef): PluginDef {
     if (def.onMessage) throw new Error(`${def.id}: a "vault" plugin can't have onMessage (it never sees what people write; use onEntry)`);
     if (def.understand || def.onIntent) throw new Error(`${def.id}: a "vault" plugin can't have understand (nothing written there is read)`);
     if (def.onGroup) throw new Error(`${def.id}: a "vault" plugin can't take groups the person already had (onGroup)`);
+    if (def.onGroupInfo) throw new Error(`${def.id}: a "vault" plugin isn't told about its group's name or description (onGroupInfo)`);
     for (const p of ["links", "members", "photos", "location"] as const) {
       if (def.permissions.includes(p)) throw new Error(`${def.id}: "vault" and "${p}" can't be used together`);
     }

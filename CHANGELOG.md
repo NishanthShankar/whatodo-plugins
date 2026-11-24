@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.28.0] - 2026-11-24
+
+### Added
+- `onGroupInfo(event, kit)` with `GroupInfoEvent` (`{ group, what: "name" | "description", value }`): someone gave one of the plugin's groups a new name or description. Zelfred looks when a message arrives in a group of a plugin that has the handler, and tells the plugin before that message. Its own changes never arrive. Not for `"vault"` plugins.
+- Test kit: `t.groupInfo(plugin, what, value, group?)`.
+- TripExpenses 1.1.0 (`expense-tracker`) is the first to use it.
+
 ## [1.27.0] - 2026-11-23
 
 ### Added
