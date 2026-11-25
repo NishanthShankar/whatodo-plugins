@@ -1,5 +1,13 @@
 # Changelog: TripExpenses
 
+## [1.8.0] - 2026-11-25
+
+### Added
+- When expenses keep arriving between 3am and 5am by the trip's clock (the third message with one), and nobody has said where the trip is, it asks once what time it is there. The time on its own ("9pm"), a place ("tokyo") or `same` answers it; `same` gets a 👍 and it is not asked again on that trip.
+
+### Data
+- A trip may carry `zoneBy`, `odd` and `timeAsked`.
+
 ## [1.7.0] - 2026-11-25
 
 ### Added

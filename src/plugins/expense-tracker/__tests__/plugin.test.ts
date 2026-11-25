@@ -1113,3 +1113,73 @@ describe("a trip's own clock", () => {
     expect(await night()).toBe(0);
   });
 });
+
+describe("expenses in the small hours", () => {
+  const home = { person: { name: "Asha", timezone: "Asia/Kolkata", currency: "INR" } };
+  /** A started trip, with the kit's clock moved to 3am. */
+  const late = async () => {
+    const t = await started(home);
+    t.setHour(3);
+    return t;
+  };
+  const asked = (t: T) => t.sent.filter((x) => x.text.includes("What time is it where you are?"));
+
+  it("asks what time it is there on the third one, once", async () => {
+    const t = await late();
+    await t.message(plugin, "bar 900");
+    await t.message(plugin, "cab 300");
+    expect(asked(t)).toHaveLength(0);
+    await t.message(plugin, "noodles 150");
+    expect(asked(t)).toHaveLength(1);
+    expect(last(t)).toMatch(/3am/);
+    expect(last(t)).toContain("say _same_ and I won't ask again");
+    // Kept all the same, with its 👍.
+    expect(expenses(t)).toHaveLength(4);
+    await t.message(plugin, "water 20");
+    expect(asked(t)).toHaveLength(1);
+  });
+
+  it("does not count the daytime, or a trip someone already put on a clock", async () => {
+    const day = await started(home);
+    day.setHour(5);
+    for (const line of ["bar 900", "cab 300", "noodles 150"]) await day.message(plugin, line);
+    expect(asked(day)).toHaveLength(0);
+    const set = await started(home);
+    await set.message(plugin, "time zone tokyo");
+    // 18:00 UTC is 3am in Tokyo.
+    set.setHour(18);
+    for (const line of ["bar 900", "cab 300", "noodles 150"]) await set.message(plugin, line);
+    expect(asked(set)).toHaveLength(0);
+  });
+
+  it("takes the time on its own, or a place, as the answer", async () => {
+    const t = await late();
+    for (const line of ["bar 900", "cab 300", "noodles 150"]) await t.message(plugin, line);
+    // 03:00 UTC by the kit, and they say it is noon: nine hours ahead.
+    await t.message(plugin, "12pm");
+    expect(last(t)).toBe("This trip is on GMT+9 time now. It's 12pm there.");
+    expect(trips(t)[0]).toMatchObject({ zone: "Etc/GMT-9", zoneBy: "said", timeAsked: "done" });
+    const u = await late();
+    for (const line of ["bar 900", "cab 300", "noodles 150"]) await u.message(plugin, line);
+    await u.message(plugin, "Tokyo");
+    expect(trips(u)[0].zone).toBe("Asia/Tokyo");
+  });
+
+  it("takes same as my clock being right: a thumbs up, and never asked again", async () => {
+    const t = await late();
+    for (const line of ["bar 900", "cab 300", "noodles 150"]) await t.message(plugin, line);
+    const reactions = t.reactions.length;
+    const sent = t.sent.length;
+    await t.message(plugin, "same");
+    expect(t.reactions.slice(reactions)).toEqual(["👍"]);
+    expect(t.sent).toHaveLength(sent);
+    for (const line of ["chai 20", "toast 60", "eggs 90", "juice 80"]) await t.message(plugin, line);
+    expect(asked(t)).toHaveLength(1);
+    // An expense that happens to end in a time-like number is still an expense while the question is open.
+    const u = await late();
+    for (const line of ["bar 900", "cab 300", "noodles 150"]) await u.message(plugin, line);
+    await u.message(plugin, "tea 12");
+    expect(expenses(u).map((e) => e.what)).toContain("tea");
+    expect(trips(u)[0].timeAsked).toBe("open");
+  });
+});

@@ -228,8 +228,10 @@ export function zoneNamed(text: string): string | null {
  * half hour's difference from the real time. Null when that isn't what the text says, or the time has no am, pm or minutes
  * to tell it from a bare number.
  */
-export function zoneFromTime(text: string, now: number): string | null {
-  const m = text.toLowerCase().replace(/[.!?]+$/, "").replace(/\s+/g, " ").trim().match(/^(?:it'?s|it is|the time is|time is|it'?s now|now it'?s|local time is)\s+(\d{1,2})(?:[:.](\d{2}))?\s?(am|pm)?(?:\s+(?:here|now|local time|local|over here))*$/);
+export function zoneFromTime(text: string, now: number, bare = false): string | null {
+  // `bare`: the time on its own counts too ("9pm", "21:30"), as an answer to "what time is it there?".
+  const lead = String.raw`(?:it'?s|it is|the time is|time is|it'?s now|now it'?s|local time is)`;
+  const m = text.toLowerCase().replace(/[.!?]+$/, "").replace(/\s+/g, " ").trim().match(new RegExp(String.raw`^(?:${lead}\s+)${bare ? "?" : ""}(\d{1,2})(?:[:.](\d{2}))?\s?(am|pm)?(?:\s+(?:here|now|local time|local|over here))*$`));
   if (!m || (!m[2] && !m[3])) return null;
   let hour = Number(m[1]);
   const minute = Number(m[2] ?? 0);

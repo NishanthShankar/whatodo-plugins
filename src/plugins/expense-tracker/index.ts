@@ -1,6 +1,6 @@
 import { definePlugin, type Json, type Kit, type Photo, type Sender } from "../../sdk";
 import { clock, placeOf, sayTime, zoneFromTime, zoneNamed, zoneOfCurrency } from "./zone";
-import { copy, MINE, SAVED, type Owes, type Row, type Shown } from "./copy";
+import { copy, MINE, SAME_TIME, SAVED, type Owes, type Row, type Shown } from "./copy";
 import { add, cleanTag, COMMON, currencyOf, guessCurrency, label, MAX_TAGS, money, readAmount, readExpense, sayDay, sign, takeTags, total, type Read, type Sums } from "./money";
 
 /**
@@ -79,6 +79,12 @@ export interface Trip {
   endedAt: number | null;
   /** The time zone it runs on ("Asia/Bangkok"), when that isn't the zone of the person who added the app. */
   zone?: string | null;
+  /** How its clock was last settled: someone "said" (a place, the time, or that it is right), or it was a "guess" from the currency. */
+  zoneBy?: "said" | "guess";
+  /** How many messages with expenses came between 3am and 5am on its clock: a sign the clock may be wrong. */
+  odd?: number;
+  /** The question "what time is it where you are?": "open" while it waits for an answer, "done" after. Asked once a trip. */
+  timeAsked?: "open" | "done";
   /** How many expenses were ever sent to it: the next one's place in the list. */
   seq?: number;
   /** Set when it ends: how many expenses, and their sums by currency. */
@@ -164,7 +170,11 @@ const expensesOf = (kit: Kit, tripId: string) => kit.store.list<Expense>("expens
 const titleOf = (trip: Trip) => trip.name ?? `Trip ${trip.n}`;
 /** The day and hour it is for a trip at an instant: in its own zone when it has one, else where the person who added the app is. */
 function when(kit: Kit, trip: Trip, ms: number): { day: string; hour: number; minute: number } {
-  return (trip.zone ? clock(trip.zone, ms) : null) ?? clock(kit.person.timezone, ms) ?? { day: kit.time.day(ms), hour: kit.time.hour(ms), minute: 0 };
+  const there = trip.zone ? clock(trip.zone, ms) : null;
+  if (there) return there;
+  // No zone of its own: the kit's clock is the person's. Their zone gives the minutes, where it agrees with the kit on the hour.
+  const home = clock(kit.person.timezone, ms);
+  return home && home.hour === kit.time.hour(ms) ? home : { day: kit.time.day(ms), hour: kit.time.hour(ms), minute: 0 };
 }
 /** The same, as the kit tells it when the trip has no zone of its own (the kit's day is the person's day). */
 const dayFor = (kit: Kit, trip: Trip, ms: number) => (trip.zone ? when(kit, trip, ms).day : kit.time.day(ms));
@@ -175,12 +185,18 @@ const dayOfExpense = (kit: Kit, trip: Trip, e: Expense) => e.day ?? dayFor(kit, 
 /**
  * Put a trip on a zone. Its expenses so far keep the days they had: each is stamped with its day on the old clock first.
  */
-async function setZone(kit: Kit, f: Found, zone: string | null): Promise<void> {
-  if ((f.trip.zone ?? null) === zone) return;
-  for (const { key, data: e } of await expensesOf(kit, f.id)) if (!e.day) await kit.store.put("expenses", key, { ...e, day: dayFor(kit, f.trip, e.at) } as unknown as Json);
-  f.trip = { ...f.trip, zone };
+async function setZone(kit: Kit, f: Found, zone: string | null, by: "said" | "guess"): Promise<void> {
+  if ((f.trip.zone ?? null) !== zone) for (const { key, data: e } of await expensesOf(kit, f.id)) if (!e.day) await kit.store.put("expenses", key, { ...e, day: dayFor(kit, f.trip, e.at) } as unknown as Json);
+  // Once someone has said where the trip is, the question about odd hours is answered for good.
+  f.trip = { ...f.trip, zone, zoneBy: by, ...(by === "said" ? { timeAsked: "done" as const, odd: 0 } : {}) };
   await save(kit, f);
 }
+
+/** The first and last hours (on the trip's clock) that make it look like the clock is wrong: 3am up to 5am. */
+const ODD_FROM = 3;
+const ODD_TO = 5;
+/** How many messages with expenses in those hours it takes before the trip asks what time it is. */
+export const ODD_MESSAGES = 3;
 
 function daysOf(kit: Kit, trip: Trip): string {
   const from = dayFor(kit, trip, trip.startedAt);
@@ -341,7 +357,7 @@ async function settle(kit: Kit, f: Found, currency: string, sender: Sender): Pro
   const a = clock(there, kit.now);
   const b = clock(kit.person.timezone, kit.now);
   if (!a || (b && a.day === b.day && a.hour === b.hour && a.minute === b.minute)) return null;
-  await setZone(kit, f, there);
+  await setZone(kit, f, there, "guess");
   return placeOf(there);
 }
 
@@ -376,7 +392,9 @@ async function keep(kit: Kit, here: Here, reads: Kept[], bad: string[], sender: 
     await kit.store.put("expenses", `${f.id}:${ids[i]}`, expense as unknown as Json, seq + i + 1);
   }
   // Saved before anything below reads the trip again.
-  f.trip = { ...f.trip, seq: seq + reads.length };
+  const hour = hourFor(kit, f.trip, kit.now);
+  const odd = hour >= ODD_FROM && hour < ODD_TO;
+  f.trip = { ...f.trip, seq: seq + reads.length, ...(odd ? { odd: (f.trip.odd ?? 0) + 1 } : {}) };
   await save(kit, f);
   kit.mark({ kind: "expense", trip: f.id, ids } as unknown as Json);
   await heard(kit, here);
@@ -410,6 +428,14 @@ async function keep(kit: Kit, here: Here, reads: Kept[], bad: string[], sender: 
     kit.react(SAVED);
   }
   if (bad.length) kit.send(copy.someNotKept({ kept: reads.length, lines: bad }));
+  // Expenses keep coming in the small hours, by the trip's clock, and nobody has said where the trip is: they have
+  // probably travelled. Ask once what time it is there. Not in the same breath as the first-ever note or a question.
+  if (odd && taught && !ask && (f.trip.odd ?? 0) >= ODD_MESSAGES && !f.trip.timeAsked && f.trip.zoneBy !== "said") {
+    f.trip = { ...f.trip, timeAsked: "open" };
+    await save(kit, f);
+    const c = when(kit, f.trip, kit.now);
+    kit.send(copy.whatTime({ time: sayTime(c.hour, c.minute) }));
+  }
   return true;
 }
 
@@ -678,6 +704,23 @@ async function command(kit: Kit, here: Here, text: string, lower: string, sender
     await undo(kit, here, sender);
     return true;
   }
+  // An answer to "what time is it where you are?": the time on its own, a place on its own, or that my clock is right.
+  const waiting = await openTrip(kit, here);
+  if (waiting?.trip.timeAsked === "open") {
+    if (SAME_TIME.test(lower)) {
+      waiting.trip = { ...waiting.trip, timeAsked: "done", zoneBy: "said", odd: 0 };
+      await save(kit, waiting);
+      kit.react(SAVED);
+      return true;
+    }
+    const zone = zoneFromTime(lower, kit.now, true) ?? (readExpense(text) ? null : zoneNamed(lower));
+    const c = zone ? clock(zone, kit.now) : null;
+    if (zone && c) {
+      await setZone(kit, waiting, zone, "said");
+      kit.send(copy.zoneSet({ place: placeOf(zone), time: sayTime(c.hour, c.minute) }));
+      return true;
+    }
+  }
   // The trip's clock: "time zone tokyo", "timezone +7", or the time where they are ("it's 9pm here").
   const tz = lower.match(/^(?:time ?zone|tz|clock)(?:\s+(?:is\s+|to\s+|in\s+)?(.+))?$/);
   const told = tz ? null : zoneFromTime(lower, kit.now);
@@ -690,7 +733,7 @@ async function command(kit: Kit, here: Here, text: string, lower: string, sender
       kit.send(copy.zoneNow({ place: placeOf(z), time: sayTime(c.hour, c.minute) }));
     } else if (!zone || !f || !clock(zone, kit.now)) kit.send(copy.zoneUnknown());
     else {
-      await setZone(kit, f, zone);
+      await setZone(kit, f, zone, "said");
       const c = clock(zone, kit.now)!;
       kit.send(copy.zoneSet({ place: placeOf(zone), time: sayTime(c.hour, c.minute) }));
     }
@@ -899,7 +942,7 @@ async function page(kit: Kit, args: Record<string, Json>): Promise<Json> {
 
 export default definePlugin({
   id: "expense-tracker",
-  version: "1.7.0",
+  version: "1.8.0",
   sdk: "1",
   name: "TripExpenses",
   icon: "🧾",
