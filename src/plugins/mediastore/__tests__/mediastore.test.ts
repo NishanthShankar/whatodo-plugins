@@ -493,7 +493,7 @@ describe("moving a link to another group", () => {
     await t.message(plugin, yoga.url, null, null, asha, [yoga]);
     const ref = t.marks.at(-1)!;
     await t.message(plugin, "move", ref, null, asha);
-    expect(t.sent.at(-1)!.text).toBe("No groups in common. You can move it on app.whatodo.today, or forward it to your own group.");
+    expect(t.sent.at(-1)!.text).toBe("No groups in common. You can move it on app.zelfred.com, or forward it to your own group.");
     // The owner asking about Asha's link is held to the groups Asha is in as well.
     await t.message(plugin, "move", ref);
     expect(t.sent.at(-1)!.text).toMatch(/^No groups in common/);

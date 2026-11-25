@@ -122,7 +122,7 @@ describe("wishlist copy: sharing", () => {
     const out: string[] = [];
     for (let i = 0; i < copy.shareText.wordings; i++) {
       useRandom(() => i / copy.shareText.wordings);
-      out.push(copy.shareText({ name: "Wishlist", url: "https://whatodo.today/s/abc", first: true }), copy.shareText({ name: "Diwali", url: "https://whatodo.today/s/abc", first: false }));
+      out.push(copy.shareText({ name: "Wishlist", url: "https://zelfred.com/s/abc", first: true }), copy.shareText({ name: "Diwali", url: "https://zelfred.com/s/abc", first: false }));
     }
     expect(out).toMatchSnapshot();
   });

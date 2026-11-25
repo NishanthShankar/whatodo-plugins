@@ -1,5 +1,10 @@
 # Changelog: MediaStore
 
+## [1.7.2] - 2026-11-25
+
+### Changed
+- Messages name the app's new address, app.zelfred.com. The old one, app.whatodo.today, still leads there.
+
 ## [1.7.1] - 2026-11-19
 
 ### Changed

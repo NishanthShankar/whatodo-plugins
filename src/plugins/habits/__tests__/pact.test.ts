@@ -394,7 +394,7 @@ describe("a friend in the private Habits group", () => {
   it("is told to log in before having a group of their own, here and in a pact", async () => {
     const t = createTestKit();
     await pact(t);
-    const want = "To have a group of your own, log in at app.whatodo.today and add Habits there. It takes a minute, and then I'll make it for you.";
+    const want = "To have a group of your own, log in at app.zelfred.com and add Habits there. It takes a minute, and then I'll make it for you.";
     await t.message(habits, "new pact study", null, null, ravi);
     expect(t.sent.at(-1)!.text).toBe(want);
     await t.message(habits, "I want to make my own group", null, P, ravi);

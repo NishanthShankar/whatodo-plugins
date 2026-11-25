@@ -78,7 +78,7 @@ function line(row: Row, n?: number): string {
 const things = (n: number) => `${n} thing${n === 1 ? "" : "s"}`;
 
 function listing(title: string, { rows, more }: Listing): string {
-  const tail = more > 0 ? `\n\n_${more} more on app.whatodo.today._` : "";
+  const tail = more > 0 ? `\n\n_${more} more on app.zelfred.com._` : "";
   return `${title}\n\n${rows.map((r, i) => line(r, rows.length > 1 ? i + 1 : undefined)).join("\n\n")}${tail}`;
 }
 
@@ -105,7 +105,7 @@ export const copy = {
       "",
       `_${SHARE}_ gives you a link to this list that anyone can open. _${STOP_SHARING}_ closes it.`,
       "",
-      "Everything is on app.whatodo.today too, with pictures.",
+      "Everything is on app.zelfred.com too, with pictures.",
     ].join("\n"),
   ]),
   /** The main group's name. */
@@ -127,7 +127,7 @@ export const copy = {
   /** A link on its own went to a list that isn't the chat's first one: say which. */
   addedTo: msg<{ name: string }>([({ name }) => `In *${name}*.`]),
   listFull: msg<{ name: string; max: number }>([({ name, max }) => `*${name}* is full (${max} things). Remove some first, or start another list with _${NEW_LIST}_ and a name.`]),
-  tooMany: msg<{ max: number }>([({ max }) => `That's the most I can keep (${max} things). Remove some on app.whatodo.today first.`]),
+  tooMany: msg<{ max: number }>([({ max }) => `That's the most I can keep (${max} things). Remove some on app.zelfred.com first.`]),
 
   // ── Showing ──
   nothingYet: msg([`Nothing on the list yet. Send a link to something you want, or type it: _${TYPED_EXAMPLE}_.`]),

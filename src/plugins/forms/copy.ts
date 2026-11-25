@@ -54,7 +54,7 @@ export const copy = {
       `_${CLOSE_EXAMPLE}_ stops a form taking submissions`,
       "",
       "Each submission arrives here as a message. React ✅ when you've dealt with it.",
-      "Everything is kept on app.whatodo.today, where you can open the files and delete things.",
+      "Everything is kept on app.zelfred.com, where you can open the files and delete things.",
     ].join("\n"),
   ]),
   /** The main group's name. */
@@ -68,7 +68,7 @@ export const copy = {
   /** Also shown on the web page (without the _ and *). */
   formExists: msg<{ name: string; key: string }>([({ name, key }) => `You already have a form called *${name}*. Send _${ADDRESS} ${key}_ for its address.`]),
   /** Also shown on the web page (without the _ and *). */
-  tooManyForms: msg<{ max: number }>([({ max }) => `That's the most forms I can keep (${max}). Delete one on app.whatodo.today first.`]),
+  tooManyForms: msg<{ max: number }>([({ max }) => `That's the most forms I can keep (${max}). Delete one on app.zelfred.com first.`]),
   /** A form's address. `fresh`: it was just made (or opened again). `ownGroup`: it has a WhatsApp group of its own. */
   address: msg<{ key: string; name: string; url: string; fresh: boolean; ownGroup: boolean }>([
     ({ key, name, url, fresh, ownGroup }) =>
@@ -125,18 +125,18 @@ export const copy = {
       if (more > 0) lines.push(`_and ${more} more fields_`);
       if (!fields.length && !files.length) lines.push("_An empty submission._");
       if (files.length) lines.push(`📎 ${files.map((f) => `${f.name} (${f.size})`).join(", ")}`);
-      if (files.length) lines.push("_Open the files on app.whatodo.today._");
+      if (files.length) lines.push("_Open the files on app.zelfred.com._");
       return lines.join("\n");
     },
   ]),
   nothingYet: msg(["Nothing has come in yet."]),
   /** Said once on the day a form goes past its daily number of messages. */
   tooManyToday: msg<{ name: string; limit: number }>([
-    ({ name, limit }) => `📬 *${name}* has had more than ${limit} submissions today. I'll stop messaging about it until tomorrow. They're all on app.whatodo.today.`,
+    ({ name, limit }) => `📬 *${name}* has had more than ${limit} submissions today. I'll stop messaging about it until tomorrow. They're all on app.zelfred.com.`,
   ]),
 
   // ── Closing ──
-  closed: msg<{ name: string }>([({ name }) => `*${name}* is closed. Its address no longer works. What it received is still on app.whatodo.today.`]),
+  closed: msg<{ name: string }>([({ name }) => `*${name}* is closed. Its address no longer works. What it received is still on app.zelfred.com.`]),
 
   // ── A form's own group ──
   /** The WhatsApp group's name. index.ts cuts it to the 25 characters a group name can have. */

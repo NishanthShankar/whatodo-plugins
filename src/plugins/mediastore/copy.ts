@@ -72,7 +72,7 @@ function line(row: Row, n?: number): string {
 
 /** A title, then the links (numbered when there is more than one), then how many were left out. */
 function listing(title: string, { rows, more }: Listing): string {
-  const tail = more > 0 ? `\n\n_${more} more on app.whatodo.today._` : "";
+  const tail = more > 0 ? `\n\n_${more} more on app.zelfred.com._` : "";
   return `${title}\n\n${rows.map((r, i) => line(r, rows.length > 1 ? i + 1 : undefined)).join("\n\n")}${tail}`;
 }
 
@@ -97,7 +97,7 @@ export const copy = {
       `_${NEW_GROUP_EXAMPLE}_ makes a WhatsApp group just for one kind of link`,
       `_${GROUPS}_ lists them, _${CLOSE_GROUP_EXAMPLE}_ stops one`,
       "",
-      "Everything is on app.whatodo.today too, with pictures and filters.",
+      "Everything is on app.zelfred.com too, with pictures and filters.",
     ].join("\n"),
   ]),
   /** The main group's name. */
@@ -118,7 +118,7 @@ export const copy = {
         "From now on you'll just get a 👍.",
       ].join("\n"),
   ]),
-  tooManyLinks: msg<{ max: number }>([({ max }) => `That's the most links I can keep (${max}). Delete some on app.whatodo.today first.`]),
+  tooManyLinks: msg<{ max: number }>([({ max }) => `That's the most links I can keep (${max}). Delete some on app.zelfred.com first.`]),
 
   // ── Finding and listing ──
   nothingSavedYet: msg(["Nothing is saved yet. Send or forward a link and I'll keep it."]),
@@ -139,7 +139,7 @@ export const copy = {
   // ── Replying to a link ──
   linkGone: msg(["That link isn't saved any more."]),
   noGroupToMoveTo: msg<{ name: string }>([({ name }) => `I don't have a group called "${name}". Send _${NEW_GROUP} ${name}_ to make it.`]),
-  noGroupsInCommon: msg(["No groups in common. You can move it on app.whatodo.today, or forward it to your own group."]),
+  noGroupsInCommon: msg(["No groups in common. You can move it on app.zelfred.com, or forward it to your own group."]),
   /** The poll's question. index.ts takes every * out of it: a poll shows them as they are. */
   moveQuestion: msg<{ title: string }>([({ title }) => `Move *${title}* to which group?`]),
   moved: msg<{ name: string }>([({ name }) => `Moved to *${name}*.`]),

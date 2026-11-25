@@ -313,7 +313,7 @@ async function command(kit: Kit, lower: string): Promise<boolean> {
 
 export default definePlugin({
   id: "safebutwhere",
-  version: "1.1.0",
+  version: "1.1.1",
   sdk: "1",
   name: "SafeButWhere",
   icon: "📍",

@@ -13,7 +13,7 @@
 import { msg } from "../../sdk";
 
 /** Where the journal is read. */
-export const PAGE = "app.whatodo.today/plugins/journal";
+export const PAGE = "app.zelfred.com/plugins/journal";
 
 export const copy = {
   /** The main group's name. */

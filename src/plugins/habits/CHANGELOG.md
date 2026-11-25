@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [4.1.1] - 2026-11-25
+
+### Changed
+- Messages name the app's new address, app.zelfred.com. The old one, app.whatodo.today, still leads there.
+
 ## [4.1.0] - 2026-11-21
 
 ### Added
