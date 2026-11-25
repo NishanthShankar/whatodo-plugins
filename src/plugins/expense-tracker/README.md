@@ -37,6 +37,9 @@ On an expense you sent:
 | reply `delete` (also `remove`) | Removed, and its bill with it. 👍 |
 | reply with a photo | That photo is its bill (it replaces the one before). 👍. Works after the trip closed too. |
 | `split` (also `settle`, `tally`, `who owes`) | Who owes whom, with the trip shared equally by everyone on it: "Ravi pays Asha ₹75". Everyone on it means whoever spent, wrote, reacted or was tagged in the group while the trip was open. |
+| `next` (also `who?`, `who next`, `whose turn`) | Who should pay next to even things out: whoever is furthest under an equal share. |
+| `time zone tokyo` (also `timezone +7`, `it's 9pm here`) | Puts this trip on the time where you are. `time zone` alone says what it is on. A trip counted in a currency that isn't your own, like baht or yen, moves there by itself. |
+| `split off`, `split on` | Stops and starts the split I send at 9pm on a day something was spent. It is on by itself with more than two people, and with two once they ask for a split or tag each other on an expense. |
 | reply and tag someone, like `@Ravi` | It is theirs: they spent it. 👍. Anyone may, for anyone's expense. Works after the trip closed too. |
 | reply `mine` (also `me`, `I paid`) | It is yours. 👍 |
 | reply `#food` | The label is added. 👍. Works after the trip closed too. |
@@ -71,6 +74,12 @@ Limits: 500 expenses a trip, 20 lines a message, 80 characters for what it was, 
 
 These choices are the plugin author's and were not confirmed by the owner: no splitting, anyone in the group may end a trip or correct any expense, `undo` removes only your own last one, the quiet rule for chatter above, an amount at the start of a line counting, a closed trip never changing, trips kept apart per group, a changed description closing the open trip and not only renaming it, labels and bills and the day being changeable after a trip closed, the tier staying 1 with bills kept, and the limits.
 
+## Schedules
+
+| Id | When | What it sends |
+|---|---|---|
+| `split` | Every hour, acting at 9pm on each trip's own clock | Who owes whom on each group's open trip, with who should pay next. Only on a day something was spent, when someone owes, and where it is wanted: with more than two people on the trip, or with two once they asked for a split or tagged each other on an expense. `split off` stops it |
+
 ## Web page
 
 `web.load` gives every group the app runs in (its own first), each with its open trip and that trip's expenses, and the trips that ended (the newest 50) with their totals. `args.trip` adds one trip in full. A trip that was only named and has no expense yet is not shown. Each expense carries the day it was paid, its labels and the id of its bill's photo, and a trip carries what each label adds up to. Actions: `remove` takes an expense out of the open trip (the page asks first, and a closed trip is refused); `setDay` sets the day an expense was paid; `setTags` sets its labels; `setMark` sets or clears the emoji it is grouped under; `setBill` keeps a photo the page added as its bill, or takes the bill away. The last three also work on a closed trip, since they leave its sum alone. Everything else is done in WhatsApp. `lockable`: the page can sit behind the PIN. There is no `loadFor`: a friend in the group sees nothing of it on their own page.
@@ -79,7 +88,8 @@ These choices are the plugin author's and were not confirmed by the owner: no sp
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `trips` | trip id | `{ n, home?, name, currency, asked?, startedAt, endedAt, seq?, count?, sums? }` | started (ms) |
+| `trips` | trip id | `{ n, home?, name, currency, asked?, startedAt, endedAt, zone?, crew?, seq?, count?, sums?, used? }` | started (ms) |
+| `people` | a person's id | `{ name }`: the name they were last heard under | |
 | `expenses` | `<trip id>:<id>` | `{ what, amount, currency, by, name, at, day?, tags?, bill?, mark? }` | its place in the trip |
 | `homes` | group key | `{ name }`: a group the person handed over | when (ms) |
 | `state` | `open` | `{ trip }`: the trip expenses go to now | none |
