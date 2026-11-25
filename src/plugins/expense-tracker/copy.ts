@@ -30,6 +30,8 @@ export const DELETE = fixed("delete");
 export const BILL = fixed("bill");
 export const TAG_EXAMPLE = fixed("lunch 450 #food");
 export const TAG_REPLY = fixed("#food");
+/** Who owes whom, when everyone shares the trip equally. */
+export const SPLIT = fixed("split");
 /** Sent as a reply to an expense: the person who says it spent it. */
 export const MINE_EXAMPLE = fixed("mine");
 /** Every way of saying that, as the parser reads it: lower case, with no full stop at the end. */
@@ -55,6 +57,16 @@ export interface Row {
   mark?: string | null;
 }
 
+/** Who owes whom when a trip's cost is shared equally by everyone on it. */
+export interface Owes {
+  /** How many people share it. */
+  n: number;
+  /** One person's share, each currency on its own: "₹400 + $10". */
+  each: string;
+  /** The payments that settle it, as few as it takes. Empty when everyone has paid their share. */
+  pays: { from: string; to: string; amount: string }[];
+}
+
 /** A trip as an answer shows it. */
 export interface Shown {
   /** "Goa" or "Trip 2". */
@@ -74,7 +86,11 @@ export interface Shown {
   labels?: string[];
   /** What each emoji's group adds up to, when any expense has one: "🍕 ₹450". */
   marks?: string[];
+  /** Who owes whom, when more than one person is on the trip. */
+  owes?: Owes | null;
 }
+
+const owing = (o: Owes) => (o.pays.length ? o.pays.map((p) => `${p.from} pays ${p.to} ${p.amount}`).join("\n") : "Everyone has paid their share.");
 
 const row = (r: Row, n: number) => `${n}. ${r.what} ${r.amount}${r.tags?.length ? ` ${r.tags.map((t) => `#${t}`).join(" ")}` : ""}${r.mark ? ` ${r.mark}` : ""}${r.bill ? " 📎" : ""}${r.who ? ` · ${r.who}` : ""}`;
 const expenses = (n: number) => `${n} ${n === 1 ? "expense" : "expenses"}`;
@@ -105,6 +121,7 @@ export const copy = {
       `_${TOTAL}_ shows the list and the sum so far`,
       `_${END}_ closes the list. The next expense starts a new trip`,
       "A new description for this group starts a new trip too, called what you wrote",
+      `_${SPLIT}_ shows who owes whom, with the trip shared equally by everyone here`,
       `_${TRIPS}_ shows the trips you have ended`,
       `_${NAME_EXAMPLE}_ names this trip`,
       `_${CURRENCY_EXAMPLE}_ changes what I count plain amounts in for this trip`,
@@ -189,7 +206,11 @@ export const copy = {
 
   // ── Showing ──
   total: msg<Shown>([(t) => `*${t.title}, so far*\n\n${list(t)}`]),
-  ended: msg<Shown>([(t) => `*${t.title}* · ${t.days}\n\n${list(t)}\n\nThis list is closed. The next expense starts a new trip.`]),
+  ended: msg<Shown>([(t) => `*${t.title}* · ${t.days}\n\n${list(t)}${t.owes ? `\n\nShared equally by ${t.owes.n}, that is ${t.owes.each} each:\n${owing(t.owes)}` : ""}\n\nThis list is closed. The next expense starts a new trip.`]),
+  /** `split`: who owes whom on the open trip. */
+  split: msg<{ title: string; owes: Owes }>([({ title, owes }) => `*${title}, shared equally by ${owes.n}*\n${owes.each} each.\n\n${owing(owes)}`]),
+  /** `split` with one person on the trip. */
+  splitAlone: msg(["You're the only one on this trip so far, so there is nothing to share out. I count a friend in once they write here or are tagged on an expense."]),
   nothingYet: msg([`Nothing to add up yet. Send an expense like _${EXAMPLE}_.`]),
   nothingToEnd: msg([`There's nothing to end. Send an expense like _${EXAMPLE}_ and a trip starts.`]),
   trips: msg<{ trips: { title: string; days: string; count: number; total: string; open: boolean }[] }>([
