@@ -13,9 +13,9 @@ Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines are the 
 | Field | For Chores |
 |---|---|
 | The promise | "Your home's jobs, taken in turns." |
-| The aside | "I keep count, so nobody has to." |
+| The aside | "I remember whose turn it is, so nobody has to." |
 | The first thing to send | `bins every day, Ravi Asha Kiran` |
-| The first time line | When the first tick lands: "*Bins*: done by Ravi. Next time it is Asha's. That is all there is to it. Each morning at 8am I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on. From now on a ✅ means done." |
+| The first time line | When the first tick lands: "*Bins*: done by Ravi. Next time it is Asha's. That is all there is to it. Each morning at 8am I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on. From now on I answer a tick with ✅ and say nothing more." |
 | The moment it clicks | Minutes in: the first job is due today, and a 👍 on Zelfred's answer ticks it. Then the first morning list, at 8am the next day. |
 | The setup steps | None beyond adding the app. |
 | What to learn | Which name in the first rota is the person who sent it. Taken from their WhatsApp name; asked once as a poll only when the name doesn't say. |
@@ -23,16 +23,22 @@ Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines are the 
 What a new home meets, in order. Each is said once per home and never again.
 
 1. **The welcome** asks for nothing and names one thing to send.
-2. **The first job** is answered with what was understood and, in the same message, the one thing to do next: "It is due today, so try it now. React 👍 to this message when it's done." That message is the day's list, so the morning list doesn't also go out that day. A first job that falls on a later day is told its first day and hour; one with no fixed day is told how to say it is needed.
+2. **The first job** is answered with what was understood and, in the same message, the one thing to do next: "It is due today. React 👍 to this message once it's done." That message is the day's list, so the morning list doesn't also go out that day. A first job that falls on a later day is told its first day and hour; one with no fixed day is told how to say it is needed.
 3. **Who are you**, only when it can't be told: "Which of these is you?" with the rota's names and "None of them". Only the person asked can answer, a typed `I'm Nish` counts, and step 2's "try it now" waits for the answer. No answer: nothing breaks, the morning list still comes.
 4. **The first tick**, by a reaction or by words, is answered with the first time line. In the app's own group, when names in the rotas have not been seen there, one more paragraph says to add them: "They install nothing."
-5. **The usual jobs**, offered once as a tick list ("What else does your home do?") right after the first tick (or with the first job, when that isn't due today), leaving out what the home already has. Silence adds nothing.
+5. **The usual jobs**, offered once as a tick list ("Which other jobs does your home have?") right after the first tick (or with the first job, when that isn't due today), leaving out what the home already has. Silence adds nothing.
 6. **The first morning list** opens with one line on how it works, unless step 4 already said it.
 7. **The first time someone does another person's job:** one line on who got the credit and where the turn went, with the message that changes the rule.
 
+8. **The page**, mentioned once, with the first list after the home's first real day: "There is a page for this home too, with the week ahead and who did what", and its address.
+
+**Starting on the page instead.** A home with no jobs opens on a three step setup (who takes turns, which jobs, when the list goes out; `web.actions.setup`). The first name given is the person themselves, so "which of these is you" is never asked. One message in the group then says what was set up, and today's list follows at once when something is due. The usual jobs are not offered again.
+
+**The welcome card.** Zelfred sends the welcome as the caption of a picture card (drawn in the `whatodo` repo, `scripts/onboarding-cards.mjs`): the promise as its headline, the aside under it, and the first thing to send. The caption works alone when the picture can't go.
+
 Later firsts explain themselves in the message they need anyway: the first missed job ("Not ticked yesterday"), the first away (the day back).
 
-Owed, because a plugin can't do them yet (`docs/plugin-onboarding.md`): a picture card of its own, a link to the page after the first real day, and counting each step with `track`. Today the steps show only as the usual app events.
+Owed, because a plugin can't do them yet (`docs/plugin-onboarding.md`): a link that signs the person in to the page (the address is sent plain), and counting each step with `track`. Today the steps show only as the usual app events.
 
 ## Commands
 
@@ -130,7 +136,7 @@ Kept per home, in its `homes` record, not in the install's settings: `hour` (0 t
 
 ## Web page
 
-`web.load` gives `{ today, month, homes }`. Each home: `key` (null for the app's own group), `name`, `hour`, `turns`, `weekly`, and
+`web.load` gives `{ today, month, homes, ideas, me }`: `ideas` are the usual jobs (`{ id, name, rhythm }`) for the setup, `me` the person's first name. Each home: `key` (null for the app's own group), `name`, `hour`, `turns`, `weekly`, and
 
 - `today`: the jobs due today, `{ id, name, who }`, and the ones ticked today, `{ id, name, who: null, done: { by } }`
 - `week`: the next 6 days, each `{ day, jobs: [{ id, name, who }] }`, with whose turn each job would be if every turn before it is taken
@@ -142,6 +148,7 @@ Actions. Each takes `home` (the group's key, null for the app's own group) and t
 
 | Action | Arguments | Does |
 |---|---|---|
+| `setup` | `people` (first names, the person's own first), `jobs` (`{ name, rhythm, turns }`), `hour` | Sets up a home that has no jobs, in one go. Jobs with `turns` get everyone as their rota, each starting one person further on. Said once in the group; today's list follows when something is due. |
 | `addJob` | `name`, `rhythm`, `rota` (names) | A new job. Returns `{ id }`. |
 | `setJob` | `id`, any of `name`, `rhythm`, `rota` (names, in order) | Changes a job. A reordered rota keeps the turn with the person whose it was. |
 | `removeJob` | `id` | Takes a job away. The page asks first. |
@@ -165,7 +172,7 @@ Every key starts with the home: `main` for the app's own group, or the key of a 
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `homes` | home | `{ name, hour, turns, weekly, sent?, last?, taught?, taughtList?, taughtDone?, taughtCover?, toldPeople?, offered?, asking?, shared?, left?, made }` | first kept (ms) |
+| `homes` | home | `{ name, hour, turns, weekly, sent?, last?, taught?, taughtList?, taughtDone?, taughtCover?, toldPeople?, offered?, firstTick?, toldPage?, asking?, shared?, left?, made }` | first kept (ms) |
 | `jobs` | `<home>:<id>` | `{ name, rhythm, rota, at, over, open, last, made, idea? }` | made (ms) |
 | `people` | `<home>:<id>` | `{ name, sender, back, child?, made }` | first known (ms) |
 | `done` | `<home>:<id>` | `{ job, name, occ, by, who, turn, at }` | the day it was ticked |

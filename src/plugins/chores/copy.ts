@@ -35,6 +35,9 @@ export const TURNS_MOVE = fixed("turns move on");
 export const WEEKLY_ON = fixed("weekly count on");
 export const WEEKLY_OFF = fixed("weekly count off");
 
+/** The app's page, as people are told about it. */
+export const PAGE = fixed("app.whatodo.today/plugins/chores");
+
 // ── Reactions ──
 
 /** On a change that was kept. */
@@ -122,7 +125,7 @@ export const copy = {
   // ── What the plugin says about itself ──
   /** Asks for nothing: one thing to send, and the rest is shown as it happens. */
   welcome: msg([
-    `🧹 *Chores*. Your home's jobs, taken in turns. I keep count, so nobody has to.\n\nStart with one job. Tell me what it is, how often it comes round and who takes turns, like:\n\n_${EXAMPLE}_\n\nUse the first names of the people you live with. I'll show you the rest as we go.`,
+    `🧹 *Chores*. Your home's jobs, taken in turns. I remember whose turn it is, so nobody has to.\n\nStart with one job. Tell me what it is, how often it comes round and who takes turns, like:\n\n_${EXAMPLE}_\n\nUse the first names of the people you live with. I'll show you the rest as we go.`,
   ]),
   help: msg([
     [
@@ -170,9 +173,9 @@ export const copy = {
   whichIsYou: msg(["Which of these is you?"]),
   /** The last option of that question. Matched by its place, not its text. */
   noneOfThem: msg(["None of them"]),
-  youAre: msg<{ name: string }>([({ name }) => `Noted: you are ${name} in the rotas.`]),
+  youAre: msg<{ name: string }>([({ name }) => `Noted. You are ${name} here.`]),
   /** The first job is due today: learn the tick by doing it. Sent on a message that takes the reaction. */
-  tryNow: msg(["It is due today, so try it now. React 👍 to this message when it's done."]),
+  tryNow: msg(["It is due today. React 👍 to this message once it's done."]),
   /** The first job comes up on a later day. */
   firstLater: msg<{ day: string; hour: number }>([({ day, hour }) => `It first comes up on ${sayWeekday(day)}. That morning at ${sayHour(hour)} I send it here to tick. Whoever ticks a job did it, and the turn moves on.`]),
   /** The first job has no fixed day. */
@@ -180,7 +183,7 @@ export const copy = {
   /** The first tick in a home, by a reaction or by words: what just happened, and what comes every morning. */
   firstDone: msg<{ name: string; by: string | null; next: string | null; hour: number }>([
     ({ name, by, next, hour }) =>
-      `*${name}*: done${by ? ` by ${by}` : ""}.${next ? ` Next time it is ${next}'s.` : ""}\n\nThat is all there is to it. Each morning at ${sayHour(hour)} I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on.\n\nFrom now on a ${DONE} means done.`,
+      `*${name}*: done${by ? ` by ${by}` : ""}.${next ? ` Next time it is ${next}'s.` : ""}\n\nThat is all there is to it. Each morning at ${sayHour(hour)} I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on.\n\nFrom now on I answer a tick with ${DONE} and say nothing more.`,
   ]),
   /** People named in a rota who haven't been seen in the app's own group. Said once. */
   addThem: msg<{ names: string[] }>([({ names }) => `${and(names)} ${names.length === 1 ? "needs" : "need"} to be in this group to tick ${names.length === 1 ? "a job" : "their jobs"}. Add them here if they aren't yet. They install nothing.`]),
@@ -191,8 +194,22 @@ export const copy = {
         ? `${by} did *${name}*, which was ${turn}'s turn. The credit is ${by}'s, and the turn moves on${next ? ` to ${next}` : ""} all the same. ${owner ?? "The person who added me"} can change that with _${TURNS_STAY}_.`
         : `${by} did *${name}*, which was ${turn}'s turn. The credit is ${by}'s, and it is still ${turn}'s turn next time.`,
   ]),
+  /**
+   * The home was set up on the page: said in its group, so everyone there knows what was kept.
+   * `today`: something is due today and the list follows this message. `add`: names not seen in the group.
+   */
+  setUp: msg<{ jobs: string[]; people: string[]; today: boolean; hour: number; add: string[] }>([
+    ({ jobs, people, today, hour, add }) =>
+      [
+        `This home is set up: ${and(jobs)}${people.length > 1 ? `, taken in turns by ${and(people)}` : ""}. Send _${JOBS}_ to see whose turn each is.`,
+        today ? "Today's jobs are next. Whoever ticks a job did it, and the turn moves on." : `The first list arrives at ${sayHour(hour)} on the first morning a job is due. Whoever ticks a job did it, and the turn moves on.`,
+        ...(add.length ? [`${and(add)} ${add.length === 1 ? "needs" : "need"} to be in this group to tick ${add.length === 1 ? "a job" : "their jobs"}. Add them here if they aren't yet. They install nothing.`] : []),
+      ].join("\n\n"),
+  ]),
+  /** Said once, with the list of the morning after a home's first tick: there is a page. */
+  thePage: msg([`There is a page for this home too, with the week ahead and who did what: ${PAGE}`]),
   /** The usual jobs, offered once, unasked, after the first job. The poll's own question: nothing is sent before it. */
-  ideasOffer: msg(["What else does your home do? Tick any of these and I add each one, for anyone to do."]),
+  ideasOffer: msg(["Which other jobs does your home have? Tick any and I add each one, for anyone to do."]),
 
   /** "take turns" was said and fewer than two people are known here. */
   whoTakesTurns: msg<{ name: string; known: string[] }>([
@@ -219,9 +236,9 @@ export const copy = {
   /** Jobs from an earlier day that nobody ticked. */
   missed: msg<{ names: string[] }>([({ names }) => `Not ticked yesterday: ${and(names)}. ${names.length === 1 ? "It stays" : "They stay"} with the same person and ${names.length === 1 ? "is" : "are"} on today's list.`]),
   /** A day with one job: no list, a line to react to. */
-  todayOne: msg<{ name: string; who: string | null; missed: boolean; teach: boolean }>([
-    ({ name, who: w, missed, teach }) =>
-      `${missed ? `*${name}* (${who(w)}) wasn't ticked yesterday, so it is today's job again.` : `Today: *${name}* (${who(w)}).`} React 👍 when it's done.${teach ? " Whoever reacts did it, and the turn moves on to the next person." : ""}`,
+  todayOne: msg<{ name: string; who: string | null; missed: boolean; teach: boolean; page?: boolean }>([
+    ({ name, who: w, missed, teach, page }) =>
+      `${page ? `There is a page for this home too, with the week ahead and who did what: ${PAGE}\n\n` : ""}${missed ? `*${name}* (${who(w)}) wasn't ticked yesterday, so it is today's job again.` : `Today: *${name}* (${who(w)}).`} React 👍 when it's done.${teach ? " Whoever reacts did it, and the turn moves on to the next person." : ""}`,
   ]),
   today: msg<{ rows: DayRow[] }>([
     ({ rows }) => `*Today*\n\n${rows.map((r) => (r.done ? `${DONE} ${r.name}${r.done.by ? ` · ${r.done.by}` : ""}` : `☐ ${r.name} (${who(r.who)})`)).join("\n")}`,

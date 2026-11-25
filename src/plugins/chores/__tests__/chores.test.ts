@@ -17,7 +17,7 @@ type T = ReturnType<typeof fresh>;
 /** A home that is past its first job, so what is said the first time doesn't get in the way of what a test is about. */
 const home = (opts: { today?: string; hour?: number } = {}) => {
   const t = fresh(opts);
-  void t.kit.store.put("homes", "main", { name: null, hour: 8, turns: "move", weekly: false, taught: 1, offered: 1, toldPeople: 1, made: 1 }, 1);
+  void t.kit.store.put("homes", "main", { name: null, hour: 8, turns: "move", weekly: false, taught: 1, offered: 1, toldPeople: 1, toldPage: 1, made: 1 }, 1);
   return t;
 };
 
@@ -119,13 +119,13 @@ describe("the first five minutes", () => {
     await t.message(chores, "bins every day, Ravi Asha Kiran");
     // One message: what was understood, and the one thing to do now.
     expect(t.sent).toHaveLength(1);
-    expect(t.sent[0].text).toBe("*Bins*, every day. Ravi, Asha and Kiran take turns, Ravi first.\n\nIt is due today, so try it now. React 👍 to this message when it's done.");
+    expect(t.sent[0].text).toBe("*Bins*, every day. Ravi, Asha and Kiran take turns, Ravi first.\n\nIt is due today. React 👍 to this message once it's done.");
     expect(t.asked).toHaveLength(0);
 
     await t.react(chores, "👍", t.sent[0].ref);
     expect(t.sent).toHaveLength(2);
     expect(t.sent[1].text).toBe(
-      "*Bins*: done by Ravi. Next time it is Asha's.\n\nThat is all there is to it. Each morning at 8am I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on.\n\nFrom now on a ✅ means done.\n\nAsha and Kiran need to be in this group to tick their jobs. Add them here if they aren't yet. They install nothing.",
+      "*Bins*: done by Ravi. Next time it is Asha's.\n\nThat is all there is to it. Each morning at 8am I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on.\n\nFrom now on I answer a tick with ✅ and say nothing more.\n\nAsha and Kiran need to be in this group to tick their jobs. Add them here if they aren't yet. They install nothing.",
     );
     // Then, once, the usual jobs to pick from. Bins is left out: the home has it.
     expect(ideas(t)).toMatchObject({ question: copy.ideasOffer(), intro: null, multiple: true });
@@ -140,7 +140,11 @@ describe("the first five minutes", () => {
     expect(t.sent).toHaveLength(2);
     await morning(t, MON);
     expect(openList(t).options).toEqual(["Bins (Asha)", "Dishes (anyone)"]);
-    expect(openList(t).intro).toBeNull();
+    // The first list after the first real day mentions the page, once. How the list works was learnt already.
+    expect(openList(t).intro).toBe(copy.thePage());
+    await morning(t, TUE);
+    expect(openList(t).intro).toBe(copy.missed({ names: ["Bins", "Dishes"] }));
+    t.setToday(MON);
 
     // From here on a job that is added, and a tick, get the short answer.
     await t.message(chores, "bathroom every sunday, Ravi Asha");
@@ -160,7 +164,7 @@ describe("the first five minutes", () => {
     expect(t.sent).toHaveLength(1);
     await t.answer(chores, t.asked[0].ref, 0);
     expect(t.asked[0].open).toBe(false);
-    expect(last(t)).toBe("Noted: you are Nish in the rotas.\n\nIt is due today, so try it now. React 👍 to this message when it's done.");
+    expect(last(t)).toBe("Noted. You are Nish here.\n\nIt is due today. React 👍 to this message once it's done.");
     await t.react(chores, "👍", t.sent.at(-1)!.ref);
     expect(done(t)[0].who).toBe("Nish");
     expect(people(t).map((p) => p.name)).toEqual(["Nish", "Asha"]);
@@ -173,12 +177,12 @@ describe("the first five minutes", () => {
     await t.message(chores, "bins every day, Nish Asha");
     await t.message(chores, "I'm Nish");
     expect(t.asked[0].open).toBe(false);
-    expect(last(t)).toContain("Noted: you are Nish in the rotas.");
+    expect(last(t)).toContain("Noted. You are Nish here.");
 
     const u = fresh({ hour: 15, name: "Nishanth" });
     await u.message(chores, "bins every day, Meera Asha");
     await u.answer(chores, u.asked[0].ref, 2);
-    expect(last(u)).toBe("It is due today, so try it now. React 👍 to this message when it's done.");
+    expect(last(u)).toBe("It is due today. React 👍 to this message once it's done.");
     expect(people(u).map((p) => p.name)).toEqual(["Meera", "Asha", "Nishanth"]);
   });
 
@@ -227,11 +231,71 @@ describe("the first five minutes", () => {
     await t.group(chores, "joined", "x-flat", "Flat 4B");
     expect(last(t)).not.toContain("?");
     await t.message(chores, "bins every day, Ravi Asha", null, "x-flat", "Asha");
-    expect(t.sent.at(-1)).toMatchObject({ group: "x-flat", text: "*Bins*, every day. Ravi and Asha take turns, Ravi first.\n\nIt is due today, so try it now. React 👍 to this message when it's done." });
+    expect(t.sent.at(-1)).toMatchObject({ group: "x-flat", text: "*Bins*, every day. Ravi and Asha take turns, Ravi first.\n\nIt is due today. React 👍 to this message once it's done." });
     await t.react(chores, "✅", t.sent.at(-1)!.ref, "x-flat", "Asha");
     // Everyone is in such a group already: nobody is told to add anyone.
     expect(last(t)).not.toContain("Add them");
     expect(last(t)).toContain("*Bins*: done by Asha.");
+  });
+});
+
+describe("setting a home up on the page", () => {
+  const setup = (t: T, more: Record<string, Json> = {}) =>
+    t.act(chores, "setup", {
+      home: null,
+      people: ["Ravi", "Asha", "Kiran"],
+      jobs: [
+        { name: "Bins", rhythm: { kind: "daily" }, turns: true },
+        { name: "Dishes", rhythm: { kind: "daily" }, turns: true },
+        { name: "Book the gas", rhythm: { kind: "asked" }, turns: false },
+      ],
+      hour: 7,
+      ...more,
+    });
+
+  it("keeps the people and jobs, says so in the group, and sends today's list at once", async () => {
+    const t = fresh({ hour: 15 });
+    await setup(t);
+    expect(jobs(t).map((j) => [j.name, j.rota.length, j.at])).toEqual([["Bins", 3, 0], ["Dishes", 3, 1], ["Book the gas", 0, 0]]);
+    // The first name is the person who set it up.
+    expect(people(t).map((p) => [p.name, p.sender])).toEqual([["Ravi", "owner"], ["Asha", null], ["Kiran", null]]);
+    expect(t.sent).toHaveLength(1);
+    expect(t.sent[0].text).toBe(
+      "This home is set up: Bins, Dishes and Book the gas, taken in turns by Ravi, Asha and Kiran. Send _jobs_ to see whose turn each is.\n\nToday's jobs are next. Whoever ticks a job did it, and the turn moves on.\n\nAsha and Kiran need to be in this group to tick their jobs. Add them here if they aren't yet. They install nothing.",
+    );
+    // Each job starts one person further on.
+    expect(openList(t)).toMatchObject({ options: ["Bins (Ravi)", "Dishes (Asha)"], intro: copy.teachList() });
+    // Nothing more that day, no question about who he is, and no offer of jobs he already chose from.
+    t.setHour(16);
+    await t.schedule(chores, "day");
+    expect(t.asked).toHaveLength(1);
+    await t.answer(chores, openList(t).ref, [0]);
+    expect(done(t)[0].who).toBe("Ravi");
+    expect(t.asked).toHaveLength(1);
+    const page = (await t.load(chores)) as unknown as { ideas: { id: string; name: string }[]; me: string; homes: { hour: number }[] };
+    expect(page.homes[0].hour).toBe(7);
+    expect(page.me).toBe("Ravi");
+    expect(page.ideas).toHaveLength(IDEA_JOBS.length);
+  });
+
+  it("says when the first list comes when nothing is due today", async () => {
+    const t = fresh();
+    await setup(t, { people: [], jobs: [{ name: "Bathroom", rhythm: { kind: "weekdays", days: [6] }, turns: true }] });
+    expect(t.sent[0].text).toBe("This home is set up: Bathroom. Send _jobs_ to see whose turn each is.\n\nThe first list arrives at 7am on the first morning a job is due. Whoever ticks a job did it, and the turn moves on.");
+    expect(t.asked).toHaveLength(0);
+    expect(job(t, "Bathroom").rota).toEqual([]);
+  });
+
+  it("refuses a home that has jobs, and a setup with nothing or nonsense in it", async () => {
+    const t = fresh();
+    await expect(setup(t, { jobs: [] })).rejects.toThrow("at least one job");
+    await expect(setup(t, { jobs: [{ name: "Bins", rhythm: { kind: "sometimes" }, turns: true }] })).rejects.toThrow("how often");
+    await expect(setup(t, { jobs: [{ name: "Bins", rhythm: { kind: "daily" } }, { name: "bins", rhythm: { kind: "daily" } }] })).rejects.toThrow("twice");
+    await expect(setup(t, { hour: 30 })).rejects.toThrow("Pick an hour");
+    await expect(setup(t, { people: ["r2d2"] })).rejects.toThrow("letters only");
+    expect(t.sent).toEqual([]);
+    await setup(t);
+    await expect(setup(t)).rejects.toThrow("already has jobs");
   });
 });
 
@@ -452,7 +516,7 @@ describe("ticking with words", () => {
     await t.message(chores, "dishes daily, Asha Ravi");
     // Before the list has gone out, a job due today can already be ticked.
     await t.message(chores, "bins done", null, null, "Asha");
-    expect(last(t)).toBe("*Bins*: done by Asha. Next time it is Asha's.\n\nThat is all there is to it. Each morning at 8am I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on.\n\nFrom now on a ✅ means done.");
+    expect(last(t)).toBe("*Bins*: done by Asha. Next time it is Asha's.\n\nThat is all there is to it. Each morning at 8am I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on.\n\nFrom now on I answer a tick with ✅ and say nothing more.");
     await t.message(chores, "did the dishes", null, null, "Asha");
     expect(t.reactions).toEqual(["✅"]);
     await t.message(chores, "bins done");
