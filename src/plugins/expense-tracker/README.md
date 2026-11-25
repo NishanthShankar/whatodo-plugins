@@ -88,7 +88,8 @@ These choices are the plugin author's and were not confirmed by the owner: no sp
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `trips` | trip id | `{ n, home?, name, currency, asked?, startedAt, endedAt, seq?, count?, sums? }` | started (ms) |
+| `trips` | trip id | `{ n, home?, name, currency, asked?, startedAt, endedAt, zone?, crew?, seq?, count?, sums?, used? }` | started (ms) |
+| `people` | a person's id | `{ name }`: the name they were last heard under | |
 | `expenses` | `<trip id>:<id>` | `{ what, amount, currency, by, name, at, day?, tags?, bill?, mark? }` | its place in the trip |
 | `homes` | group key | `{ name }`: a group the person handed over | when (ms) |
 | `state` | `open` | `{ trip }`: the trip expenses go to now | none |
