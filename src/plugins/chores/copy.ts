@@ -120,8 +120,9 @@ export const ideaOption = (i: { name: string; rhythm: Rhythm }): string => `${i.
 
 export const copy = {
   // ── What the plugin says about itself ──
+  /** Asks for nothing: one thing to send, and the rest is shown as it happens. */
   welcome: msg([
-    `🧹 You've added *Chores*.\n\nAdd the people you share a home with to this group. Then tell me a job, how often it comes round and who takes turns, like _${EXAMPLE}_.\n\nEach morning I send the day's jobs as a list to tick. Whoever ticks a job did it, and the turn moves on to the next person.\n\nSend _${IDEAS}_ for jobs to pick from, or _${HELP}_ for more.`,
+    `🧹 *Chores*. Your home's jobs, taken in turns. I keep count, so nobody has to.\n\nStart with one job. Tell me what it is, how often it comes round and who takes turns, like:\n\n_${EXAMPLE}_\n\nUse the first names of the people you live with. I'll show you the rest as we go.`,
   ]),
   help: msg([
     [
@@ -131,6 +132,7 @@ export const copy = {
       `_${EXAMPLE}_`,
       `_${EXAMPLE_TURNS}_`,
       `_${EXAMPLE_MONTHLY}_`,
+      "Tagging people with an @ works in place of typing their names.",
       `_${EXAMPLE_ASKED}_ has no fixed day. Say _${NEEDED_EXAMPLE}_ and it joins the list.`,
       "",
       "Each morning I send the day's jobs as a list. Tick what you did. Whoever ticks a job did it.",
@@ -154,21 +156,44 @@ export const copy = {
 
   /** Said once in a group the home already had, when it becomes this app's. */
   joinedGroup: msg([
-    `🧹 I keep this home's jobs now.\n\nTell me a job, how often it comes round and who takes turns, like _${EXAMPLE}_. Each morning I send the day's jobs as a list to tick. Whoever ticks a job did it, and the turn moves on to the next person.\n\nSend _${IDEAS}_ for jobs to pick from, or _${HELP}_ for more.`,
+    `🧹 I keep this home's jobs now, and whose turn each one is.\n\nStart with one job. Tell me what it is, how often it comes round and who takes turns, like:\n\n_${EXAMPLE}_\n\nI'll show you the rest as we go. Nobody here installs anything.`,
   ]),
 
   // ── Jobs ──
-  /**
-   * A job was added or changed: what I understood. `first`: the first job ever kept in this
-   * home, so the morning list is explained once.
-   */
-  jobSaid: msg<{ name: string; rhythm: Rhythm; rota: string[]; next: string | null; first: boolean; hour: number }>([
-    ({ name, rhythm, rota, next, first, hour }) =>
-      [
-        `*${name}*, ${sayRhythm(rhythm)}. ${rota.length > 1 ? `${and(rota)} take turns, ${next ?? rota[0]} first.` : rota.length === 1 ? `It is ${rota[0]}'s each time.` : "Anyone can do it."}`,
-        ...(first ? ["", `Each morning at ${sayHour(hour)} I send the day's jobs as a list to tick. Whoever ticks a job did it, and the turn moves on. _${JOBS}_ shows them all.`] : []),
-      ].join("\n"),
+  /** A job was added or changed: what I understood. */
+  jobSaid: msg<{ name: string; rhythm: Rhythm; rota: string[]; next: string | null }>([
+    ({ name, rhythm, rota, next }) => `*${name}*, ${sayRhythm(rhythm)}. ${rota.length > 1 ? `${and(rota)} take turns, ${next ?? rota[0]} first.` : rota.length === 1 ? `It is ${rota[0]}'s each time.` : "Anyone can do it."}`,
   ]),
+
+  // ── The first time: one step at a time, each said once in a home ──
+  /** After the first job, when I can't tell which name in its rota is the person who sent it. */
+  whichIsYou: msg(["Which of these is you?"]),
+  /** The last option of that question. Matched by its place, not its text. */
+  noneOfThem: msg(["None of them"]),
+  youAre: msg<{ name: string }>([({ name }) => `Noted: you are ${name} in the rotas.`]),
+  /** The first job is due today: learn the tick by doing it. Sent on a message that takes the reaction. */
+  tryNow: msg(["It is due today, so try it now. React 👍 to this message when it's done."]),
+  /** The first job comes up on a later day. */
+  firstLater: msg<{ day: string; hour: number }>([({ day, hour }) => `It first comes up on ${sayWeekday(day)}. That morning at ${sayHour(hour)} I send it here to tick. Whoever ticks a job did it, and the turn moves on.`]),
+  /** The first job has no fixed day. */
+  firstAsked: msg<{ name: string }>([({ name }) => `It has no fixed day. Say _${name.toLowerCase()} needed_ when it is, and it joins the day's list.`]),
+  /** The first tick in a home, by a reaction or by words: what just happened, and what comes every morning. */
+  firstDone: msg<{ name: string; by: string | null; next: string | null; hour: number }>([
+    ({ name, by, next, hour }) =>
+      `*${name}*: done${by ? ` by ${by}` : ""}.${next ? ` Next time it is ${next}'s.` : ""}\n\nThat is all there is to it. Each morning at ${sayHour(hour)} I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on.\n\nFrom now on a ${DONE} means done.`,
+  ]),
+  /** People named in a rota who haven't been seen in the app's own group. Said once. */
+  addThem: msg<{ names: string[] }>([({ names }) => `${and(names)} ${names.length === 1 ? "needs" : "need"} to be in this group to tick ${names.length === 1 ? "a job" : "their jobs"}. Add them here if they aren't yet. They install nothing.`]),
+  /** The first time someone does a job that was another person's turn. */
+  firstCover: msg<{ name: string; by: string; turn: string; next: string | null; turns: "move" | "stay"; owner: string | null }>([
+    ({ name, by, turn, next, turns, owner }) =>
+      turns === "move"
+        ? `${by} did *${name}*, which was ${turn}'s turn. The credit is ${by}'s, and the turn moves on${next ? ` to ${next}` : ""} all the same. ${owner ?? "The person who added me"} can change that with _${TURNS_STAY}_.`
+        : `${by} did *${name}*, which was ${turn}'s turn. The credit is ${by}'s, and it is still ${turn}'s turn next time.`,
+  ]),
+  /** The jobs offered once, unasked, after the first job. */
+  ideasOffer: msg([`What else does your home do? Tick any of these and I add each one, for anyone to do. Then tell me who takes turns, like _${ROTA_EXAMPLE}_.`]),
+
   /** "take turns" was said and fewer than two people are known here. */
   whoTakesTurns: msg<{ name: string; known: string[] }>([
     ({ name, known }) => `*${name}* is kept, for anyone to do. ${known.length ? `I only know ${and(known)} here so far.` : "I don't know who lives here yet."} Tell me who takes turns, like _${name.toLowerCase()} rota Ravi Asha Kiran_.`,
@@ -189,8 +214,8 @@ export const copy = {
   todayQuestion: msg<{ part: number; parts: number }>([({ part, parts }) => (parts > 1 ? `Today's jobs, ${part} of ${parts}. Tick what you did.` : "Today's jobs. Tick what you did.")]),
   /** A job as its option on the tick list reads. */
   todayOption: msg<{ name: string; who: string | null }>([({ name, who: w }) => `${name.slice(0, 60)} (${who(w).slice(0, 30)})`]),
-  /** Said once in a home, with its first list. */
-  teachList: msg(["Whoever ticks a job did it, and the turn moves on to the next person."]),
+  /** Said once in a home, with its first list, when ticking wasn't learnt already. */
+  teachList: msg(["Here is today's list. Whoever ticks a job did it, and the turn moves on to the next person."]),
   /** Jobs from an earlier day that nobody ticked. */
   missed: msg<{ names: string[] }>([({ names }) => `Not ticked yesterday: ${and(names)}. ${names.length === 1 ? "It stays" : "They stay"} with the same person and ${names.length === 1 ? "is" : "are"} on today's list.`]),
   /** A day with one job: no list, a line to react to. */
@@ -202,10 +227,6 @@ export const copy = {
     ({ rows }) => `*Today*\n\n${rows.map((r) => (r.done ? `${DONE} ${r.name}${r.done.by ? ` · ${r.done.by}` : ""}` : `☐ ${r.name} (${who(r.who)})`)).join("\n")}`,
   ]),
   nothingToday: msg(["Nothing is due today."]),
-  /** Said once in a home, the first time a job is ticked with words. */
-  firstDone: msg<{ name: string; by: string | null; next: string | null }>([
-    ({ name, by, next }) => `*${name}*: done${by ? ` by ${by}` : ""}.${next ? ` Next time it is ${next}'s.` : ""} From now on a ${DONE} means done.`,
-  ]),
   alreadyDone: msg<{ name: string; by: string | null }>([({ name, by }) => `*${name}* is already ticked${by ? `, by ${by}` : ""}.`]),
   notDue: msg<{ name: string; next: string | null; who: string | null }>([
     ({ name, next, who: w }) => `*${name}* isn't on today's list.${next ? ` It is next due on ${sayWeekday(next)}${w ? `, with ${w}` : ""}.` : ""}`,

@@ -6,13 +6,42 @@ What sets it apart from a repeating todo: the next person in the rota gets the j
 
 The design is `docs/chores-brief.md` in the `whatodo` repo.
 
+## First five minutes
+
+Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines are the author's and wait for the owner's pick. A home learns the app by doing one thing at a time; nothing is listed up front.
+
+| Field | For Chores |
+|---|---|
+| The promise | "Your home's jobs, taken in turns." |
+| The aside | "I keep count, so nobody has to." |
+| The first thing to send | `bins every day, Ravi Asha Kiran` |
+| The first time line | When the first tick lands: "*Bins*: done by Ravi. Next time it is Asha's. That is all there is to it. Each morning at 8am I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on. From now on a ✅ means done." |
+| The moment it clicks | Minutes in: the first job is due today, and a 👍 on Zelfred's answer ticks it. Then the first morning list, at 8am the next day. |
+| The setup steps | None beyond adding the app. |
+| What to learn | Which name in the first rota is the person who sent it. Taken from their WhatsApp name; asked once as a poll only when the name doesn't say. |
+
+What a new home meets, in order. Each is said once per home and never again.
+
+1. **The welcome** asks for nothing and names one thing to send.
+2. **The first job** is answered with what was understood and, in the same message, the one thing to do next: "It is due today, so try it now. React 👍 to this message when it's done." That message is the day's list, so the morning list doesn't also go out that day. A first job that falls on a later day is told its first day and hour; one with no fixed day is told how to say it is needed.
+3. **Who are you**, only when it can't be told: "Which of these is you?" with the rota's names and "None of them". Only the person asked can answer, a typed `I'm Nish` counts, and step 2's "try it now" waits for the answer. No answer: nothing breaks, the morning list still comes.
+4. **The first tick**, by a reaction or by words, is answered with the first time line. In the app's own group, when names in the rotas have not been seen there, one more paragraph says to add them: "They install nothing."
+5. **The usual jobs**, offered once as a tick list right after the first tick (or with the first job, when that isn't due today), leaving out what the home already has. Silence adds nothing.
+6. **The first morning list** opens with one line on how it works, unless step 4 already said it.
+7. **The first time someone does another person's job:** one line on who got the credit and where the turn went, with the message that changes the rule.
+
+Later firsts explain themselves in the message they need anyway: the first missed job ("Not ticked yesterday"), the first away (the day back).
+
+Owed, because a plugin can't do them yet (`docs/plugin-onboarding.md`): a picture card of its own, a link to the page after the first real day, and counting each step with `track`. Today the steps show only as the usual app events.
+
 ## Commands
 
 Send these in the home's group. Anyone in the group can, except where it says otherwise.
 
 | Message | What happens |
 |---|---|
-| `bins every day, Ravi Asha Kiran` | The job is kept, and one line says what was understood: "*Bins*, every day. Ravi, Asha and Kiran take turns, Ravi first." The first job in a home also explains the morning list, once. |
+| `bins every day, Ravi Asha Kiran` | The job is kept, and one line says what was understood: "*Bins*, every day. Ravi, Asha and Kiran take turns, Ravi first." The first job in a home starts the first five minutes above. |
+| `bins every day @Ravi @Asha` | People tagged with an @ are the rota, in place of typed names, and are known in the group from then on. `bins rota @Ravi @Asha` works the same. |
 | `bathroom every Sunday, take turns` | The rota is everyone known in the home so far. With fewer than two known, the job is kept for anyone and the line asks who takes turns. |
 | `dishes every mon, wed and fri`, `plants on weekdays`, `mopping weekly`, `sweeping every 3 days`, `sheets every other week` | Other rhythms. A list of weekdays needs "every", so "see you on Sunday" is not a job. |
 | `society bill monthly on the 5th`, `rent on the 1st of every month` | Monthly. A date the month doesn't have falls on its last day. |
@@ -23,7 +52,7 @@ Send these in the home's group. Anyone in the group can, except where it says ot
 | `jobs` (also `chores`, `rota`) | Every job with its rhythm, whose turn is next and the rota. |
 | `today` | What is due today and whose turn, and what was ticked already. |
 | `whose turn is bins`, `bins?` | Whose turn, and when it is next due. |
-| `bins done` (also `did the bins`, `gas booked`, `help paid`) | Ticks the job for the sender. ✅. The first time in a home, one message says what happened and that a ✅ means done from now on. A job that isn't on today's list is said to be so, with its next day. |
+| `bins done` (also `did the bins`, `gas booked`, `help paid`) | Ticks the job for the sender. ✅. The first tick in a home is answered in words, once. A job that isn't on today's list is said to be so, with its next day. |
 | `bins not done` (also `undo bins`) | Takes your own tick back. 👍 |
 | `gas needed` (also `gas finished`, `book the gas`) | A job with no fixed day joins the list, and one line says whose turn it is. |
 | `who did what` (also `count`, `who did what last month`) | How many jobs each person ticked this month, or last. |
@@ -85,7 +114,7 @@ Alone with the person in the app's own group, every unreadable message goes to `
 
 Limits: 30 jobs and 20 people a home, 12 people in a rota, 40 characters and 5 words for a job's name.
 
-These choices are the plugin author's and were not confirmed by the owner: the count on request only, one hour for the whole home, the list of ideas and their rhythms, that `ideas` is a tick list sent on request and not with the welcome, a child being in a rota with nothing counted, one line of words for every job added or changed, anyone in the group being able to add, change and remove jobs and people, the first tick standing, a single job going out as a line to react to, the quiet rule above, a missed list going out later the same day, and the limits.
+These choices are the plugin author's and were not confirmed by the owner: the count on request only, one hour for the whole home, the list of ideas and their rhythms, that `ideas` is a tick list sent on request and not with the welcome, a child being in a rota with nothing counted, one line of words for every job added or changed, anyone in the group being able to add, change and remove jobs and people, the first tick standing, a single job going out as a line to react to, every line and the order of the first five minutes, asking which name is yours only when the WhatsApp name doesn't say, the quiet rule above, a missed list going out later the same day, and the limits.
 
 ## Schedules
 
@@ -136,7 +165,7 @@ Every key starts with the home: `main` for the app's own group, or the key of a 
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `homes` | home | `{ name, hour, turns, weekly, sent?, last?, taught?, taughtList?, taughtDone?, shared?, left?, made }` | first kept (ms) |
+| `homes` | home | `{ name, hour, turns, weekly, sent?, last?, taught?, taughtList?, taughtDone?, taughtCover?, toldPeople?, offered?, asking?, shared?, left?, made }` | first kept (ms) |
 | `jobs` | `<home>:<id>` | `{ name, rhythm, rota, at, over, open, last, made, idea? }` | made (ms) |
 | `people` | `<home>:<id>` | `{ name, sender, back, child?, made }` | first known (ms) |
 | `done` | `<home>:<id>` | `{ job, name, occ, by, who, turn, at }` | the day it was ticked |
@@ -146,7 +175,9 @@ Every key starts with the home: `main` for the app's own group, or the key of a 
 - A `done` record's `by` is a person's id (null for a child), `who` their name then, `turn` whose turn it was, `occ` the day the job had come due.
 - A home's `sent` is the day its list last went out, `last` the refs of that day's lists.
 
-Refs: `{ kind: "day", home, day, part, ids }` on a morning list, `{ kind: "one", home, day, job }` on a single job's line, `{ kind: "ideas", home }` on the ideas list.
+Refs: `{ kind: "day", home, day, part, ids }` on a morning list, `{ kind: "one", home, day, job }` on a single job's line and on the first job's answer, `{ kind: "ideas", home, ids }` on the ideas list, `{ kind: "me", home, sender }` on "Which of these is you?".
+
+A home's `taught*`, `toldPeople` and `offered` record what was already said once. `asking` holds the open "which is you" question: who was asked, about which job, and the people offered.
 
 ## Privacy
 

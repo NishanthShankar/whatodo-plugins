@@ -57,10 +57,18 @@ export interface Home {
   sent?: string | null;
   /** The tick lists of that day, to close when the next one goes out. */
   last?: Json[];
-  /** Set once the first job was kept, the first list went out, the first job was ticked with words. */
+  /** Each set once: the first job was kept, the first list was explained, the first tick was explained. */
   taught?: 1;
   taughtList?: 1;
   taughtDone?: 1;
+  /** Said once: what happens when someone does another person's job. */
+  taughtCover?: 1;
+  /** Said once: the people in the rotas need to be in the group. */
+  toldPeople?: 1;
+  /** The ideas were offered, unasked, once. */
+  offered?: 1;
+  /** The question "which of these is you?" is open: who was asked, about which job, and the people offered in the options' order. */
+  asking?: { sender: string; job: string; ids: string[] } | null;
   /** Someone besides the person who added the app is here: people also just talk. */
   shared?: 1;
   /** The person took the group back. Nothing is sent there any more. */
@@ -150,7 +158,16 @@ const isOneRef = (r: unknown): r is OneRef => !!r && typeof r === "object" && (r
 interface IdeasRef {
   kind: "ideas";
   home: string;
+  /** The ideas offered, in the options' order. Without it: all of them. */
+  ids?: string[];
 }
+
+interface MeRef {
+  kind: "me";
+  home: string;
+  sender: string;
+}
+const isMeRef = (r: unknown): r is MeRef => !!r && typeof r === "object" && (r as MeRef).kind === "me" && typeof (r as MeRef).home === "string" && typeof (r as MeRef).sender === "string";
 const isIdeasRef = (r: unknown): r is IdeasRef => !!r && typeof r === "object" && (r as IdeasRef).kind === "ideas" && typeof (r as IdeasRef).home === "string";
 
 /** Reactions that say "done" on a day with one job. */
@@ -270,7 +287,7 @@ function without(job: Job, id: string): Job {
   return { ...job, rota, at, over };
 }
 
-type Ticked = { status: "done"; by: string | null; next: string | null } | { status: "already"; by: string | null } | { status: "notDue" };
+type Ticked = { status: "done"; by: string | null; next: string | null; /** Whose turn it was, when someone else did it. */ covered: string | null } | { status: "already"; by: string | null } | { status: "notDue" };
 
 /** Someone did a job: they get the credit, and the turn moves on by the home's rule. */
 async function tick(kit: Kit, here: Here, home: Home, f: Found, sender: Sender, folk: Folk): Promise<Ticked> {
@@ -295,7 +312,7 @@ async function tick(kit: Kit, here: Here, home: Home, f: Found, sender: Sender, 
   if (job.rhythm.kind === "every") next.rhythm = { ...job.rhythm, from: kit.today };
   f.job = next;
   await saveJob(kit, here, f);
-  return { status: "done", by: by ? me.p.name : null, next: nameOf(folk, turnOf(next, folk, kit.today).who) };
+  return { status: "done", by: by ? me.p.name : null, next: nameOf(folk, turnOf(next, folk, kit.today).who), covered: who && who !== me.id ? nameOf(folk, who) : null };
 }
 
 /** Take a tick back. Only the person who ticked can, and only until the job comes due again. */
@@ -436,12 +453,79 @@ async function keepJob(kit: Kit, here: Here, home: Home, read: ReadJob, jobs: Fo
   return { status: "kept", f, first: isFirst, few };
 }
 
-function sayKept(kit: Kit, home: Home, a: Added, folk: Folk): void {
+/** People named in a rota that nobody has seen in the app's own group. Said once, so asking marks it said. */
+function unseen(here: Here, home: Home, folk: Folk): string[] {
+  if (here !== null || home.shared || home.toldPeople) return [];
+  const names = folk.filter((f) => !f.p.sender && !f.p.child).map((f) => f.p.name);
+  if (names.length) home.toldPeople = 1;
+  return names;
+}
+
+/** Offer the usual jobs once, unasked: the ones this home doesn't have yet. */
+function offerIdeas(kit: Kit, here: Here, home: Home, jobs: Found[]): void {
+  if (home.offered) return;
+  const left = IDEA_JOBS.filter((i) => !jobs.some((j) => norm(j.job.name) === norm(i.name)));
+  if (left.length < 2) return;
+  home.offered = 1;
+  const ref: IdeasRef = { kind: "ideas", home: hk(here), ids: left.map((i) => i.id) };
+  kit.ask(copy.ideasQuestion(), left.map(ideaOption), { multiple: true, ref: ref as unknown as Json, intro: copy.ideasOffer(), ...to(here) });
+}
+
+/**
+ * The step after a home's first job: when the job is due today, the person ticks it right
+ * there with a 👍, which is how the app is learnt. Otherwise they are told when it comes.
+ * `lead` is what was just understood, said in the same message.
+ */
+async function tryNow(kit: Kit, here: Here, home: Home, f: Found, jobs: Found[], folk: Folk, lead: string | null): Promise<void> {
+  const today = kit.today;
+  const due = home.sent !== today && f.job.last?.occ !== today && dueOn(f.job.rhythm, today);
+  const parts = lead ? [lead] : [];
+  if (due) {
+    // Today's list is this one message: the morning's doesn't go out a second time today.
+    f.job = { ...f.job, open: today };
+    await saveJob(kit, here, f);
+    home.sent = today;
+    home.last = [];
+    home.taughtList = 1;
+    const ref: OneRef = { kind: "one", home: hk(here), day: today, job: f.id };
+    kit.send([...parts, copy.tryNow()].join("\n\n"), { ref: ref as unknown as Json, ...to(here) });
+    return saveHome(kit, here, home);
+  }
+  const next = nextAfter(f.job.rhythm, today);
+  parts.push(next ? copy.firstLater({ day: next, hour: home.hour }) : copy.firstAsked({ name: f.job.name }));
+  const add = unseen(here, home, folk);
+  if (add.length) parts.push(copy.addThem({ names: add }));
+  kit.send(parts.join("\n\n"), to(here));
+  offerIdeas(kit, here, home, jobs);
+  await saveHome(kit, here, home);
+}
+
+async function sayKept(kit: Kit, here: Here, home: Home, a: Added, jobs: Found[], folk: Folk, sender: Sender): Promise<void> {
   if (a.status === "full") return kit.send(copy.jobsFull({ max: MAX_JOBS }));
   if (a.status === "peopleFull") return kit.send(copy.peopleFull({ max: MAX_PEOPLE }));
   const { job } = a.f;
-  if (a.few && !job.rota.length) return kit.send(copy.whoTakesTurns({ name: job.name, known: folk.map((f) => f.p.name) }));
-  kit.send(copy.jobSaid({ name: job.name, rhythm: job.rhythm, rota: job.rota.map((id) => nameOf(folk, id) ?? "Someone"), next: nameOf(folk, turnOf(job, folk, kit.today).who), first: a.first, hour: home.hour }));
+  const said =
+    a.few && !job.rota.length
+      ? copy.whoTakesTurns({ name: job.name, known: folk.map((f) => f.p.name) })
+      : copy.jobSaid({ name: job.name, rhythm: job.rhythm, rota: job.rota.map((id) => nameOf(folk, id) ?? "Someone"), next: nameOf(folk, turnOf(job, folk, kit.today).who) });
+  if (!a.first) return kit.send(said);
+
+  // The first job in this home. Which name in its rota is the person who sent it? When their
+  // WhatsApp name says, nothing is asked. When it doesn't, that is asked first, once.
+  const given = sender.name ?? (sender.owner ? kit.person.name : null);
+  const short = first(given);
+  const known = folk.some((f) => f.p.sender === sender.id || (!f.p.sender && ((given && same(f.p.name, given)) || (short && same(f.p.name, short)))));
+  const rota = job.rota.map((id) => folk.find((x) => x.id === id)).filter((x): x is Folk[number] => !!x && !x.p.sender);
+  if (!known && rota.length) {
+    home.asking = { sender: sender.id, job: a.f.id, ids: rota.map((p) => p.id) };
+    await saveHome(kit, here, home);
+    kit.send(said);
+    const ref: MeRef = { kind: "me", home: hk(here), sender: sender.id };
+    kit.ask(copy.whichIsYou(), [...rota.map((p) => p.p.name), copy.noneOfThem()], { ref: ref as unknown as Json, confirm: false });
+    return;
+  }
+  if (known) await meet(kit, here, sender, folk);
+  await tryNow(kit, here, home, a.f, jobs, folk, said);
 }
 
 async function removeJob(kit: Kit, here: Here, f: Found): Promise<void> {
@@ -495,19 +579,32 @@ async function showCount(kit: Kit, here: Here, folk: Folk, lastMonth: boolean): 
 }
 
 function askIdeas(kit: Kit, here: Here): void {
-  const ref: IdeasRef = { kind: "ideas", home: hk(here) };
+  const ref: IdeasRef = { kind: "ideas", home: hk(here), ids: IDEA_JOBS.map((i) => i.id) };
   kit.ask(copy.ideasQuestion(), IDEA_JOBS.map(ideaOption), { multiple: true, ref: ref as unknown as Json, intro: copy.ideasIntro(), ...to(here) });
 }
 
-/** Someone ticked a job with words, a reaction or the page: say so the way this home has learnt. */
-async function sayTicked(kit: Kit, here: Here, home: Home, f: Found, r: Ticked, folk: Folk, words: boolean): Promise<void> {
-  if (r.status === "already") return kit.send(copy.alreadyDone({ name: f.job.name, by: r.by }));
-  if (r.status === "notDue") return kit.send(copy.notDue({ name: f.job.name, next: nextAfter(f.job.rhythm, kit.today), who: nameOf(folk, turnOf(f.job, folk, kit.today).who) }));
-  if (words && !home.taughtDone) {
-    await saveHome(kit, here, { ...home, taughtDone: 1 });
-    return kit.send(copy.firstDone({ name: f.job.name, by: r.by, next: r.next }));
+/**
+ * A job was ticked. What is said depends on what this home has learnt: the first tick by a
+ * reaction or by words gets the whole picture, once; the first time someone does another
+ * person's job gets one line about credit and turns, once; after that, a ✅ or nothing.
+ */
+async function afterTick(kit: Kit, here: Here, home: Home, f: Found, r: Ticked, jobs: Found[], folk: Folk, via: "words" | "reaction" | "poll"): Promise<void> {
+  if (r.status === "already") return via === "words" ? kit.send(copy.alreadyDone({ name: f.job.name, by: r.by })) : undefined;
+  if (r.status === "notDue") return via === "words" ? kit.send(copy.notDue({ name: f.job.name, next: nextAfter(f.job.rhythm, kit.today), who: nameOf(folk, turnOf(f.job, folk, kit.today).who) })) : undefined;
+  if (via !== "poll" && !home.taughtDone) {
+    home.taughtDone = 1;
+    home.taughtList = 1;
+    const add = unseen(here, home, folk);
+    kit.send([copy.firstDone({ name: f.job.name, by: r.by, next: r.next, hour: home.hour }), ...(add.length ? [copy.addThem({ names: add })] : [])].join("\n\n"), to(here));
+    offerIdeas(kit, here, home, jobs);
+    return saveHome(kit, here, home);
   }
-  kit.react(DONE);
+  if (r.covered && r.by && !home.taughtCover) {
+    home.taughtCover = 1;
+    await saveHome(kit, here, home);
+    return kit.send(copy.firstCover({ name: f.job.name, by: r.by, turn: r.covered, next: r.next, turns: home.turns, owner: ownerName(kit) }), to(here));
+  }
+  if (via !== "poll") kit.react(DONE);
 }
 
 // ── People ──
@@ -553,9 +650,21 @@ async function swap(kit: Kit, here: Here, f: Found, a: Folk[number], b: Folk[num
 
 // ── Messages ──
 
-type Ctx = { kit: Kit; here: Here; home: Home; jobs: Found[]; folk: Folk; sender: Sender };
+type Ctx = { kit: Kit; here: Here; home: Home; jobs: Found[]; folk: Folk; sender: Sender; /** The people tagged in the message. */ tagged: Folk };
 
 const ownerName = (kit: Kit) => first(kit.person.name);
+
+/** "Which of these is you?" is settled: the question goes, and the first use carries on. */
+async function answered(kit: Kit, here: Here, home: Home, jobs: Found[], folk: Folk, lead: string | null): Promise<void> {
+  const asking = home.asking;
+  if (!asking) return;
+  kit.close({ kind: "me", home: hk(here), sender: asking.sender } as unknown as Json);
+  home.asking = null;
+  const f = jobs.find((j) => j.id === asking.job);
+  if (f) return tryNow(kit, here, home, f, jobs, folk, lead);
+  await saveHome(kit, here, home);
+  if (lead) kit.send(lead, to(here));
+}
 
 /** The ready-made messages. True when the text was one. */
 async function command(c: Ctx, text: string, lower: string): Promise<boolean> {
@@ -625,6 +734,7 @@ async function command(c: Ctx, text: string, lower: string): Promise<boolean> {
     if (target) {
       const r = await claim(kit, here, sender, target, folk, jobs);
       if (r === "taken") kit.send(copy.nameTaken({ name: target.p.name }));
+      else if (home.asking?.sender === sender.id) await answered(kit, here, home, jobs, await folkOf(kit, here), copy.youAre({ name: target.p.name }));
       else kit.react(SAVED);
       return true;
     }
@@ -691,8 +801,7 @@ async function command(c: Ctx, text: string, lower: string): Promise<boolean> {
   if ((m = lower.match(/^(?:done|did|finished|completed|ticked?)(?: with)?(?: the)? (.+)$/) ?? lower.match(/^(.+?) (?:is |are |all |was |were )?(?:done|finished|booked|paid|sorted|ticked|taken out|cleaned)$/))) {
     const f = findJob(jobs, m[1]);
     if (f) {
-      const r = await tick(kit, here, home, f, sender, folk);
-      await sayTicked(kit, here, home, f, r, folk, true);
+      await afterTick(kit, here, home, f, await tick(kit, here, home, f, sender, folk), jobs, folk, "words");
       return true;
     }
   }
@@ -724,16 +833,25 @@ async function command(c: Ctx, text: string, lower: string): Promise<boolean> {
     const rota = f ? readRota(m[2]) : undefined;
     if (f && rota !== undefined) {
       const a = await keepJob(kit, here, home, { name: f.job.name, rhythm: f.job.rhythm, rota: rota ?? [] }, jobs, folk);
-      return sayKept(kit, home, a, folk), true;
+      return await sayKept(kit, here, home, a, jobs, folk, sender), true;
     }
   }
   // "bins every monday": a new rhythm for a job, or a new job.
+  // People tagged with an @ stand for typed names: "bins rota @Ravi @Asha".
+  if (c.tagged.length && (m = text.match(/^(.+?)\s+(?:rota|turns)\s*[:,]?$/i))) {
+    const f = findJob(jobs, m[1]);
+    if (f) {
+      const a = await keepJob(kit, here, home, { name: f.job.name, rhythm: f.job.rhythm, rota: c.tagged.map((p) => p.p.name) }, jobs, folk);
+      return await sayKept(kit, here, home, a, jobs, folk, sender), true;
+    }
+  }
   const read = readJob(text, kit.today);
   if (read) {
+    if (c.tagged.length && read.rota === null) read.rota = c.tagged.map((p) => p.p.name);
     // Named like an existing job ("the bins every Monday"): that job changes.
     const known = findJob(jobs, read.name);
     const a = await keepJob(kit, here, home, known ? { ...read, name: known.job.name } : read, jobs, folk);
-    return sayKept(kit, home, a, folk), true;
+    return await sayKept(kit, here, home, a, jobs, folk, sender), true;
   }
   return false;
 }
@@ -814,7 +932,7 @@ async function ctxOf(kit: Kit, home: Json | undefined): Promise<Ctx> {
   const here: Here = typeof home === "string" && home !== MAIN ? home : null;
   const stored = await kit.store.get<Home>("homes", hk(here));
   if (here && (!stored || stored.left)) throw new Error("That group isn't kept by Chores any more.");
-  return { kit, here, home: stored ?? freshHome(), jobs: await jobsOf(kit, here), folk: await folkOf(kit, here), sender: ownerSender(kit) };
+  return { kit, here, home: stored ?? freshHome(), jobs: await jobsOf(kit, here), folk: await folkOf(kit, here), sender: ownerSender(kit), tagged: [] };
 }
 function jobOf(c: Ctx, id: Json | undefined): Found {
   const f = c.jobs.find((j) => j.id === id);
@@ -915,7 +1033,12 @@ export default definePlugin({
       home.shared = 1;
       await saveHome(kit, here, home);
     }
-    const c: Ctx = { kit, here, home, jobs: await jobsOf(kit, here), folk: await folkOf(kit, here), sender };
+    const c: Ctx = { kit, here, home, jobs: await jobsOf(kit, here), folk: await folkOf(kit, here), sender, tagged: [] };
+    // Someone tagged is someone in the group: known from now on, by the name they have there.
+    for (const who of event.mentions ?? []) {
+      const p = await meet(kit, here, who, c.folk);
+      if (!c.tagged.some((t) => t.id === p.id)) c.tagged.push(p);
+    }
     if (await command(c, text, lower)) return;
     // In a group where people also just talk, only a message that names a job or the app gets an answer.
     if (home.shared && !meant(c.jobs, lower)) return;
@@ -944,7 +1067,7 @@ export default definePlugin({
         return f ? showTurn(kit, home, f, folk) : kit.send(copy.whichJob());
       case "done":
         if (!f) return kit.send(copy.whichJob());
-        return sayTicked(kit, here, home, f, await tick(kit, here, home, f, sender, folk), folk, true);
+        return afterTick(kit, here, home, f, await tick(kit, here, home, f, sender, folk), jobs, folk, "words");
       case "undo":
         if (!f) return kit.send(copy.whichJob());
         return (await untick(kit, here, f, sender)) ? kit.react(SAVED) : kit.send(copy.notDue({ name: f.job.name, next: null, who: null }));
@@ -969,9 +1092,9 @@ export default definePlugin({
         const line = event.text.replace(/^(?:can you |could you |i want to |we want to |we need to |let'?s |lets )?(?:add|start|set up|make|create|track)\s+/i, "");
         // A job that exists, with a new rhythm said loosely: that job changes.
         const rhythm = f ? readRhythm(event.text, kit.today) : null;
-        if (f && rhythm) return sayKept(kit, home, await keepJob(kit, here, home, { name: f.job.name, rhythm, rota: null }, jobs, folk), folk);
+        if (f && rhythm) return sayKept(kit, here, home, await keepJob(kit, here, home, { name: f.job.name, rhythm, rota: null }, jobs, folk), jobs, folk, sender);
         const read = readJob(line, kit.today);
-        if (read) return sayKept(kit, home, await keepJob(kit, here, home, read, jobs, folk), folk);
+        if (read) return sayKept(kit, here, home, await keepJob(kit, here, home, read, jobs, folk), jobs, folk, sender);
         return kit.send(copy.addHow());
       }
     }
@@ -979,20 +1102,34 @@ export default definePlugin({
 
   async onAnswer(event, kit) {
     const sender = senderOf(event, kit);
+    if (isMeRef(event.ref)) {
+      const here = hereOf(event.ref.home);
+      const home = await homeOf(kit, here);
+      // Only the person who was asked can say who they are.
+      if (!home.asking || sender.id !== event.ref.sender) return;
+      const jobs = await jobsOf(kit, here);
+      const folk = await folkOf(kit, here);
+      const target = folk.find((p) => p.id === home.asking!.ids[event.choice]);
+      const mine = target ? await claim(kit, here, sender, target, folk, jobs) : null;
+      if (!target) await meet(kit, here, sender, folk);
+      return answered(kit, here, home, await jobsOf(kit, here), await folkOf(kit, here), target && mine === "ok" ? copy.youAre({ name: target.p.name }) : null);
+    }
     if (isIdeasRef(event.ref)) {
+      const offered = event.ref.ids ?? IDEA_JOBS.map((i) => i.id);
+      const ideaAt = (i: number) => IDEA_JOBS.find((x) => x.id === offered[i]);
       const here = hereOf(event.ref.home);
       const home = await homeOf(kit, here);
       const jobs = await jobsOf(kit, here);
       const folk = await folkOf(kit, here);
       for (const i of event.added ?? []) {
-        const idea = IDEA_JOBS[i];
+        const idea = ideaAt(i);
         if (!idea || jobs.some((j) => norm(j.job.name) === norm(idea.name))) continue;
         const rhythm: Rhythm = idea.rhythm.kind === "every" ? { ...idea.rhythm, from: kit.today } : idea.rhythm;
         await keepJob(kit, here, home, { name: idea.name, rhythm, rota: null }, jobs, folk, idea.id);
       }
       for (const i of event.removed ?? []) {
         // A tick taken back takes the job back too, while nobody has touched it.
-        const f = jobs.find((j) => j.job.idea === IDEA_JOBS[i]?.id);
+        const f = jobs.find((j) => j.job.idea !== undefined && j.job.idea === ideaAt(i)?.id);
         if (f && !f.job.last && !f.job.rota.length) await removeJob(kit, here, f);
       }
       return;
@@ -1005,7 +1142,7 @@ export default definePlugin({
     for (const i of event.added ?? []) {
       const f = jobs.find((j) => (event.ref as unknown as DayRef).ids[i] === j.id);
       // Ticked already by someone else, or gone: the first tick stands.
-      if (f && f.job.open) await tick(kit, here, home, f, sender, folk);
+      if (f && f.job.open) await afterTick(kit, here, home, f, await tick(kit, here, home, f, sender, folk), jobs, folk, "poll");
     }
     for (const i of event.removed ?? []) {
       const f = jobs.find((j) => (event.ref as unknown as DayRef).ids[i] === j.id);
@@ -1023,8 +1160,9 @@ export default definePlugin({
     if (!f) return;
     if (event.emoji === null) return void (await untick(kit, here, f, sender));
     if (!DONE_MARKS.has(bare(event.emoji)) || !f.job.open) return;
-    const r = await tick(kit, here, await homeOf(kit, here), f, sender, await folkOf(kit, here));
-    if (r.status === "done") kit.react(DONE);
+    const home = await homeOf(kit, here);
+    const folk = await folkOf(kit, here);
+    await afterTick(kit, here, home, f, await tick(kit, here, home, f, sender, folk), jobs, folk, "reaction");
   },
 
   web: {

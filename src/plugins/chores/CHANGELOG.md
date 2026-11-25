@@ -10,9 +10,11 @@
 - `today`, `jobs`, `whose turn is bins`, `bins done`, `bins not done`, `gas needed`, `who did what`.
 - `Ravi away till the 12th` and `Ravi back`, `swap bins with Asha`, `I'm Ravi`, `Mia is a child`.
 - `ideas`: a tick list of usual jobs to pick from.
+- A first five minutes that teaches by doing: the first job is ticked with a 👍 on its answer, the first tick is explained once, the usual jobs are offered once, and the first time someone does another person's job says where the credit and the turn went.
+- People tagged with an @ can stand for typed names in a rota.
 - It can be chosen for a WhatsApp group the home already has. Each group is its own home.
 - A page: today, the week ahead, the jobs, the people and the count by month, with actions for all of them.
 - Unlisted while it is being tried.
 
 ### Data
-- Collections `homes`, `jobs`, `people` and `done`. Refs `{ kind: "day", home, day, part, ids }`, `{ kind: "one", home, day, job }` and `{ kind: "ideas", home }`.
+- Collections `homes`, `jobs`, `people` and `done`. Refs `{ kind: "day", home, day, part, ids }`, `{ kind: "one", home, day, job }`, `{ kind: "ideas", home, ids }` and `{ kind: "me", home, sender }`.
