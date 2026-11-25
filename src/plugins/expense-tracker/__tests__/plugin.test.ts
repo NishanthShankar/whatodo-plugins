@@ -870,7 +870,7 @@ describe("who owes whom", () => {
   it("shares the trip equally and says the payment that settles it", async () => {
     const t = await two();
     await t.message(plugin, "split");
-    expect(last(t)).toBe("*Trip 1, shared equally by 2*\n₹375 each.\n\nRavi pays Asha ₹75");
+    expect(last(t)).toContain("*Trip 1, shared equally by 2*\n₹375 each.\n\nRavi pays Asha ₹75");
     for (const words of ["who owes whom?", "settle up", "tally"]) {
       await t.message(plugin, words);
       expect(last(t), words).toContain("Ravi pays Asha ₹75");
@@ -881,18 +881,18 @@ describe("who owes whom", () => {
     const t = await two();
     await t.message(plugin, "thanks all", null, null, "Meena");
     await t.message(plugin, "split");
-    expect(last(t)).toBe("*Trip 1, shared equally by 3*\n₹250 each.\n\nMeena pays Asha ₹200\nMeena pays Ravi ₹50");
+    expect(last(t)).toContain("*Trip 1, shared equally by 3*\n₹250 each.\n\nMeena pays Asha ₹200\nMeena pays Ravi ₹50");
     await t.message(plugin, "", t.marks[0], null, undefined, undefined, { mentions: ["Kiran"] });
     await t.message(plugin, "split");
     // lunch is Kiran's now: Kiran 450, Ravi 300, Asha and Meena nothing. 187.50 each.
-    expect(last(t)).toBe("*Trip 1, shared equally by 4*\n₹187.50 each.\n\nAsha pays Kiran ₹187.50\nMeena pays Kiran ₹75\nMeena pays Ravi ₹112.50");
+    expect(last(t)).toContain("*Trip 1, shared equally by 4*\n₹187.50 each.\n\nAsha pays Kiran ₹187.50\nMeena pays Kiran ₹75\nMeena pays Ravi ₹112.50");
   });
 
   it("says so when everyone has paid their share, and when there is one person", async () => {
     const t = await two();
     await t.message(plugin, "tea 150", null, null, "Ravi");
     await t.message(plugin, "split");
-    expect(last(t)).toBe("*Trip 1, shared equally by 2*\n₹450 each.\n\nEveryone has paid their share.");
+    expect(last(t)).toContain("*Trip 1, shared equally by 2*\n₹450 each.\n\nEveryone has paid their share.");
     const alone = await started();
     await alone.message(plugin, "split");
     expect(last(alone)).toBe(copy.splitAlone());
@@ -902,18 +902,133 @@ describe("who owes whom", () => {
     const t = await two();
     await t.message(plugin, "dinner 20 usd", null, null, "Ravi");
     await t.message(plugin, "split");
-    expect(last(t)).toBe("*Trip 1, shared equally by 2*\n₹375 + $10 each.\n\nRavi pays Asha ₹75\nAsha pays Ravi $10");
+    expect(last(t)).toContain("*Trip 1, shared equally by 2*\n₹375 + $10 each.\n\nRavi pays Asha ₹75\nAsha pays Ravi $10");
   });
 
   it("closes the list with it, and hands it to the page", async () => {
     const t = await two();
     const p = (await t.load(plugin)) as unknown as { groups: { open: { dash: { owes: unknown } } }[] };
-    expect(p.groups[0].open.dash.owes).toEqual({ n: 2, each: "₹375", pays: [{ from: "Ravi", to: "Asha", amount: "₹75" }] });
+    expect(p.groups[0].open.dash.owes).toEqual({ n: 2, each: "₹375", pays: [{ from: "Ravi", to: "Asha", amount: "₹75" }], next: { who: "Ravi", short: "₹75" } });
     await t.message(plugin, "end trip");
     expect(last(t)).toContain("Asha ₹450 · Ravi ₹300\n\nShared equally by 2, that is ₹375 each:\nRavi pays Asha ₹75\n\nThis list is closed.");
     // The next trip starts with nobody on it.
     await t.message(plugin, "chai 40");
     await t.message(plugin, "split");
     expect(last(t)).toBe(copy.splitAlone());
+  });
+});
+
+describe("who pays next", () => {
+  const two = async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    return t;
+  };
+
+  it("names whoever is furthest under an equal share, however it is asked", async () => {
+    for (const words of ["next", "Who?", "who next?", "whose turn", "who pays"]) {
+      const t = await two();
+      await t.message(plugin, words);
+      expect(last(t), words).toMatch(/^Ravi( pays next)?\. ₹75 short of an equal share/);
+    }
+  });
+
+  it("says when everyone is even, and when there is one person", async () => {
+    const t = await two();
+    await t.message(plugin, "tea 150", null, null, "Ravi");
+    await t.message(plugin, "next");
+    expect(last(t)).toBe(copy.nextEven());
+    const alone = await started();
+    await alone.message(plugin, "who");
+    expect(last(alone)).toBe(copy.nextAlone());
+  });
+
+  it("is in the split too, while the trip is open", async () => {
+    const t = await two();
+    await t.message(plugin, "split");
+    expect(last(t)).toContain("Ravi pays Asha ₹75\n\nRavi should pay next, to even things out.");
+    await t.message(plugin, "end trip");
+    expect(last(t)).not.toContain("should pay next");
+  });
+});
+
+describe("the split at the end of the day", () => {
+  const two = async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    return t;
+  };
+  const three = async () => {
+    const t = await two();
+    await t.message(plugin, "thanks all", null, null, "Meena");
+    return t;
+  };
+  const night = async (t: T) => {
+    const before = t.sent.length;
+    await t.schedule(plugin, "split");
+    return t.sent.slice(before).map((x) => x.text);
+  };
+
+  it("comes by itself with more than two people, once a day, and says how to stop it the first time", async () => {
+    const t = await three();
+    const sent = await night(t);
+    expect(sent).toEqual(["*Trip 1 tonight, shared equally by 3*\n₹250 each.\n\nMeena pays Asha ₹200\nMeena pays Ravi ₹50\n\nMeena should pay next, to even things out.\n\nI send this at the end of a day when something was spent. _split off_ stops it."]);
+    expect(await night(t)).toEqual([]);
+  });
+
+  it("stays away from two people until they ask for a split, and tells them then", async () => {
+    const t = await two();
+    expect(await night(t)).toEqual([]);
+    await t.message(plugin, "split");
+    expect(last(t)).toContain("From now on I'll send this at the end of a day when something was spent. _split off_ stops it.");
+    expect(await night(t)).toEqual(["*Trip 1 tonight, shared equally by 2*\n₹375 each.\n\nRavi pays Asha ₹75\n\nRavi should pay next, to even things out."]);
+    await t.message(plugin, "split");
+    expect(last(t)).not.toContain("From now on");
+  });
+
+  it("starts for two people when one gives an expense to the other by a tag", async () => {
+    const t = await two();
+    await t.message(plugin, "tea 100");
+    await t.message(plugin, "", t.marks[2], null, undefined, undefined, { mentions: ["Ravi"] });
+    const sent = await night(t);
+    expect(sent).toHaveLength(1);
+    // Asha 450, Ravi 300 and the tea: 425 each.
+    expect(sent[0]).toContain("Ravi pays Asha ₹25");
+    expect(sent[0]).toContain("_split off_ stops it.");
+  });
+
+  it("stops with split off, for two and for more, and says a split can still be asked for", async () => {
+    for (const make of [two, three]) {
+      const t = await make();
+      await t.message(plugin, "split");
+      await t.message(plugin, "split off", null, null, "Ravi");
+      expect(last(t)).toBe("I won't send the split by myself any more. Ask for it any time with _split_. _split on_ brings it back.");
+      expect(await night(t)).toEqual([]);
+      await t.message(plugin, "split");
+      expect(last(t)).toContain("Ravi");
+      expect(last(t)).not.toContain("From now on");
+      await t.message(plugin, "split on");
+      expect(await night(t)).toHaveLength(1);
+    }
+  });
+
+  it("says nothing when everyone is even, or with one person", async () => {
+    const t = await two();
+    await t.message(plugin, "split on");
+    await t.message(plugin, "tea 150", null, null, "Ravi");
+    expect(await night(t)).toEqual([]);
+    const alone = await started();
+    expect(await night(alone)).toEqual([]);
+  });
+
+  it("goes to the group the trip is in", async () => {
+    const t = createTestKit({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.group(plugin, "joined", "x-flat", "Flat");
+    await t.message(plugin, "milk 60 rs", null, "x-flat");
+    await t.message(plugin, "eggs 90", null, "x-flat", "Ravi");
+    await t.message(plugin, "ok", null, "x-flat", "Meena");
+    const before = t.sent.length;
+    await t.schedule(plugin, "split");
+    expect(t.sent.slice(before).map((x) => x.group)).toEqual(["x-flat"]);
   });
 });

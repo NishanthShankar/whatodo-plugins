@@ -34,13 +34,16 @@ import { add, cleanTag, COMMON, currencyOf, guessCurrency, label, MAX_TAGS, mone
  *   state     key: "taught"               data: 1 once the first-expense note was sent
  *   state     key: "taughtBill"           data: 1 once a bill was kept here (the note about bills is said once)
  *   state     key: "taughtWho"            data: 1 once an expense was given to someone here (the note about it is said once)
+ *   state     key: "daily"                data: "on" | "off": the split sent by itself at the end of a day. Unset: sent when more than two people are on the trip
+ *   state     key: "taughtDaily"          data: 1 once the group was told about that and how to stop it
+ *   state     key: "sentDay"              data: the day ("2026-11-25") the split was last sent by itself
  *   state     key: "shared"               data: 1 once someone other than the owner wrote here
  *   state     key: "prompted"             data: 1 after "I need an amount", until something is kept
  */
 
 /** The group something happens in: its key, or null for the app's own group. */
 type Here = string | null;
-const STATE = ["open", "n", "taught", "taughtBill", "taughtWho", "shared", "prompted"] as const;
+const STATE = ["open", "n", "taught", "taughtBill", "taughtWho", "daily", "taughtDaily", "sentDay", "shared", "prompted"] as const;
 const sk = (here: Here, key: (typeof STATE)[number]) => (here ? `${key}@${here}` : key);
 
 /** The most expenses one trip holds. */
@@ -234,6 +237,7 @@ function owesOf(trip: Trip, items: { data: Expense }[], mine: string, names: Nam
   const say = (id: string) => names.get(id) ?? "Someone";
   const shares: Sums = {};
   const pays: Owes["pays"] = [];
+  let next: Owes["next"] = null;
   for (const c of Object.keys(sums).sort((a, b) => (a === mine ? -1 : b === mine ? 1 : a < b ? -1 : 1))) {
     const share = sums[c] / crew.length;
     shares[c] = Math.round(share * 100) / 100;
@@ -242,6 +246,8 @@ function owesOf(trip: Trip, items: { data: Expense }[], mine: string, names: Nam
     const near = (a: number, b: number) => Math.abs(a - b) < 0.005;
     const owe = left.filter((x) => x.v < -0.005).sort((a, b) => (near(a.v, b.v) ? say(a.id).localeCompare(say(b.id)) : a.v - b.v));
     const get = left.filter((x) => x.v > 0.005).sort((a, b) => (near(a.v, b.v) ? say(a.id).localeCompare(say(b.id)) : b.v - a.v));
+    // Who pays next to even things out: whoever is furthest under their share, in the trip's own currency before any other.
+    if (!next && owe.length) next = { who: say(owe[0].id), short: money(Math.round(-owe[0].v * 100) / 100, c) };
     for (let i = 0, j = 0; i < owe.length && j < get.length; ) {
       const x = Math.min(-owe[i].v, get[j].v);
       if (x >= 0.01) pays.push({ from: say(owe[i].id), to: say(get[j].id), amount: money(Math.round(x * 100) / 100, c) });
@@ -251,7 +257,7 @@ function owesOf(trip: Trip, items: { data: Expense }[], mine: string, names: Nam
       if (get[j].v < 0.005) j++;
     }
   }
-  return { n: crew.length, each: total(shares, mine), pays };
+  return { n: crew.length, each: total(shares, mine), pays, next };
 }
 
 /** The names for some expenses, and for anyone else asked about: the one each person was last heard under, else the one kept with their expenses. */
@@ -421,7 +427,53 @@ async function showSplit(kit: Kit, here: Here): Promise<void> {
   const items = f ? await expensesOf(kit, f.id) : [];
   if (!f || !items.length) return void kit.send(copy.nothingYet());
   const owes = owesOf(f.trip, items, of(kit, f.trip), await namesOf(kit, items, f.trip.crew));
-  kit.send(owes ? copy.split({ title: titleOf(f.trip), owes }) : copy.splitAlone());
+  if (!owes) return void kit.send(copy.splitAlone());
+  // Two people who ask for it get it by itself from now on, and are told so with how to stop it.
+  const news = owes.n === 2 && (await wantDaily(kit, here));
+  kit.send(copy.split({ title: titleOf(f.trip), owes, daily: news }));
+}
+
+/**
+ * The split is sent by itself at the end of a day something was spent: always with more than two people on the trip, and
+ * with two once they ask for a split or give an expense to the other. Anyone in the group can stop it (`split off`).
+ */
+const dailyOf = async (kit: Kit, here: Here) => ((await kit.store.get<string>("state", sk(here, "daily"))) ?? null) as "on" | "off" | null;
+
+/** Two people showed they share this trip: switch the daily split on, unless they said no. True when they have yet to be told. */
+async function wantDaily(kit: Kit, here: Here): Promise<boolean> {
+  if ((await dailyOf(kit, here)) !== null) return false;
+  await kit.store.put("state", sk(here, "daily"), "on");
+  if (await kit.store.get("state", sk(here, "taughtDaily"))) return false;
+  await kit.store.put("state", sk(here, "taughtDaily"), 1);
+  return true;
+}
+
+/** `next`: who pays next to even things out. */
+async function showNext(kit: Kit, here: Here): Promise<void> {
+  const f = await openTrip(kit, here);
+  const items = f ? await expensesOf(kit, f.id) : [];
+  if (!f || !items.length) return void kit.send(copy.nothingYet());
+  const owes = owesOf(f.trip, items, of(kit, f.trip), await namesOf(kit, items, f.trip.crew));
+  kit.send(!owes ? copy.nextAlone() : owes.next ? copy.next(owes.next) : copy.nextEven());
+}
+
+/** The end of the day: the split of each group's open trip, where it is wanted, something was spent today and someone owes. */
+async function dailySplit(kit: Kit): Promise<void> {
+  const today = kit.time.day(kit.now);
+  const homes = await kit.store.list<{ name: string }>("homes");
+  for (const here of [null, ...homes.map((h) => h.key)] as Here[]) {
+    const f = await openTrip(kit, here);
+    if (!f || (await kit.store.get("state", sk(here, "sentDay"))) === today) continue;
+    const items = await expensesOf(kit, f.id);
+    if (!items.some((i) => kit.time.day(i.data.at) === today)) continue;
+    const owes = owesOf(f.trip, items, of(kit, f.trip), await namesOf(kit, items, f.trip.crew));
+    const daily = await dailyOf(kit, here);
+    if (!owes || !owes.pays.length || daily === "off" || (daily === null && owes.n < 3)) continue;
+    const first = !(await kit.store.get("state", sk(here, "taughtDaily")));
+    await kit.store.put("state", sk(here, "taughtDaily"), 1);
+    await kit.store.put("state", sk(here, "sentDay"), today);
+    kit.send(copy.dailySplit({ title: titleOf(f.trip), owes, first }), here ? { group: here } : undefined);
+  }
 }
 
 async function showTrips(kit: Kit, here: Here): Promise<void> {
@@ -501,6 +553,9 @@ async function onReply(kit: Kit, here: Here, ref: ExpenseRef, text: string, lowe
     for (const r of rows) await kit.store.put("expenses", r.key, { ...r.data, by: to.id, name: name ?? (r.data.by === to.id ? r.data.name : null) } as unknown as Json);
     const news = !(await kit.store.get("state", sk(here, "taughtWho")));
     await kit.store.put("state", sk(here, "taughtWho"), 1);
+    // Giving an expense to someone else says the trip is shared: with two people, the split comes by itself from now on.
+    // They are told how to stop it with the first one sent.
+    if (tagged.length && to.id !== sender.id && (await dailyOf(kit, here)) === null) await kit.store.put("state", sk(here, "daily"), "on");
     if (news) kit.send(copy.firstWho({ what: rows.map((r) => r.data.what).join(", "), who: name }));
     else kit.react(SAVED);
     return;
@@ -549,8 +604,19 @@ async function command(kit: Kit, here: Here, text: string, lower: string, sender
     await showTotal(kit, here);
     return true;
   }
-  if (/^(split|split it|settle|settle up|tally|who owes( whom| who| what)?|who pays( whom| who| what)?|who owes how much)\??$/.test(lower)) {
+  if (/^(split|split it|settle|settle up|tally|who owes( whom| who| what)?|who pays (whom|who|what)|who owes how much)\??$/.test(lower)) {
     await showSplit(kit, here);
+    return true;
+  }
+  if (/^(next|who|who next|next who|who now|who'?s next|who is next|whose turn( is it)?|who pays( next| now)?|who should pay( next| now)?|who'?s paying( next)?)\??$/.test(lower)) {
+    await showNext(kit, here);
+    return true;
+  }
+  const daily = /^(split off|splits off|stop (the )?splits?|no (more )?splits?|don'?t send (the )?splits?|split stop)$/.test(lower) ? "off" : /^(split on|splits on|send (the )?splits?|start (the )?splits?|daily split)$/.test(lower) ? "on" : null;
+  if (daily) {
+    await kit.store.put("state", sk(here, "daily"), daily);
+    await kit.store.put("state", sk(here, "taughtDaily"), 1);
+    kit.send(daily === "off" ? copy.dailyOff() : copy.dailyOn());
     return true;
   }
   if (/^(trips|my trips|all trips|past trips|old trips|history)$/.test(lower)) {
@@ -764,7 +830,7 @@ async function page(kit: Kit, args: Record<string, Json>): Promise<Json> {
 
 export default definePlugin({
   id: "expense-tracker",
-  version: "1.6.0",
+  version: "1.7.0",
   sdk: "1",
   name: "TripExpenses",
   icon: "🧾",
@@ -853,6 +919,13 @@ export default definePlugin({
     await kit.store.put("state", sk(here, "shared"), 1);
     await kit.store.put("state", sk(here, "prompted"), 1);
     kit.send(copy.joinedGroup());
+  },
+
+  // The end of the day, in the zone of the person who added the app: the split, where it is wanted.
+  schedules: [{ id: "split", hour: 21 }],
+
+  async onSchedule(event, kit) {
+    if (event.id === "split") await dailySplit(kit);
   },
 
   async onGroupInfo(event, kit) {

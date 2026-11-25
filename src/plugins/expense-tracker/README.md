@@ -37,6 +37,8 @@ On an expense you sent:
 | reply `delete` (also `remove`) | Removed, and its bill with it. 👍 |
 | reply with a photo | That photo is its bill (it replaces the one before). 👍. Works after the trip closed too. |
 | `split` (also `settle`, `tally`, `who owes`) | Who owes whom, with the trip shared equally by everyone on it: "Ravi pays Asha ₹75". Everyone on it means whoever spent, wrote, reacted or was tagged in the group while the trip was open. |
+| `next` (also `who?`, `who next`, `whose turn`) | Who should pay next to even things out: whoever is furthest under an equal share. |
+| `split off`, `split on` | Stops and starts the split I send at 9pm on a day something was spent. It is on by itself with more than two people, and with two once they ask for a split or tag each other on an expense. |
 | reply and tag someone, like `@Ravi` | It is theirs: they spent it. 👍. Anyone may, for anyone's expense. Works after the trip closed too. |
 | reply `mine` (also `me`, `I paid`) | It is yours. 👍 |
 | reply `#food` | The label is added. 👍. Works after the trip closed too. |
@@ -70,6 +72,12 @@ Alone in the group, the person is told the format every time. Once a friend has 
 Limits: 500 expenses a trip, 20 lines a message, 80 characters for what it was, 40 for a trip's name. A list shows the newest 40.
 
 These choices are the plugin author's and were not confirmed by the owner: no splitting, anyone in the group may end a trip or correct any expense, `undo` removes only your own last one, the quiet rule for chatter above, an amount at the start of a line counting, a closed trip never changing, trips kept apart per group, a changed description closing the open trip and not only renaming it, labels and bills and the day being changeable after a trip closed, the tier staying 1 with bills kept, and the limits.
+
+## Schedules
+
+| Id | When | What it sends |
+|---|---|---|
+| `split` | 9pm every day | Who owes whom on each group's open trip, with who should pay next. Only on a day something was spent, when someone owes, and where it is wanted: with more than two people on the trip, or with two once they asked for a split or tagged each other on an expense. `split off` stops it |
 
 ## Web page
 

@@ -32,6 +32,11 @@ export const TAG_EXAMPLE = fixed("lunch 450 #food");
 export const TAG_REPLY = fixed("#food");
 /** Who owes whom, when everyone shares the trip equally. */
 export const SPLIT = fixed("split");
+/** Who pays next, to even things out. */
+export const NEXT = fixed("next");
+/** Stops the split sent by itself at the end of a day, and starts it again. */
+export const SPLIT_OFF = fixed("split off");
+export const SPLIT_ON = fixed("split on");
 /** Sent as a reply to an expense: the person who says it spent it. */
 export const MINE_EXAMPLE = fixed("mine");
 /** Every way of saying that, as the parser reads it: lower case, with no full stop at the end. */
@@ -65,6 +70,8 @@ export interface Owes {
   each: string;
   /** The payments that settle it, as few as it takes. Empty when everyone has paid their share. */
   pays: { from: string; to: string; amount: string }[];
+  /** Who pays next to even things out: whoever is furthest under their share, and by how much. Null when everyone is even. */
+  next?: { who: string; short: string } | null;
 }
 
 /** A trip as an answer shows it. */
@@ -91,6 +98,9 @@ export interface Shown {
 }
 
 const owing = (o: Owes) => (o.pays.length ? o.pays.map((p) => `${p.from} pays ${p.to} ${p.amount}`).join("\n") : "Everyone has paid their share.");
+/** For a trip still open: who picks up the next bill. */
+const nextUp = (o: Owes) => (o.next ? `\n\n${o.next.who} should pay next, to even things out.` : "");
+const HOW_TO_STOP = `I send this at the end of a day when something was spent. _${SPLIT_OFF}_ stops it.`;
 
 const row = (r: Row, n: number) => `${n}. ${r.what} ${r.amount}${r.tags?.length ? ` ${r.tags.map((t) => `#${t}`).join(" ")}` : ""}${r.mark ? ` ${r.mark}` : ""}${r.bill ? " 📎" : ""}${r.who ? ` · ${r.who}` : ""}`;
 const expenses = (n: number) => `${n} ${n === 1 ? "expense" : "expenses"}`;
@@ -122,6 +132,8 @@ export const copy = {
       `_${END}_ closes the list. The next expense starts a new trip`,
       "A new description for this group starts a new trip too, called what you wrote",
       `_${SPLIT}_ shows who owes whom, with the trip shared equally by everyone here`,
+      `_${NEXT}_ (or _who?_) says who should pay next to even things out`,
+      `With more than two of you I send the split at the end of a day something was spent. _${SPLIT_OFF}_ stops it, _${SPLIT_ON}_ starts it`,
       `_${TRIPS}_ shows the trips you have ended`,
       `_${NAME_EXAMPLE}_ names this trip`,
       `_${CURRENCY_EXAMPLE}_ changes what I count plain amounts in for this trip`,
@@ -208,7 +220,19 @@ export const copy = {
   total: msg<Shown>([(t) => `*${t.title}, so far*\n\n${list(t)}`]),
   ended: msg<Shown>([(t) => `*${t.title}* · ${t.days}\n\n${list(t)}${t.owes ? `\n\nShared equally by ${t.owes.n}, that is ${t.owes.each} each:\n${owing(t.owes)}` : ""}\n\nThis list is closed. The next expense starts a new trip.`]),
   /** `split`: who owes whom on the open trip. */
-  split: msg<{ title: string; owes: Owes }>([({ title, owes }) => `*${title}, shared equally by ${owes.n}*\n${owes.each} each.\n\n${owing(owes)}`]),
+  split: msg<{ title: string; owes: Owes; daily?: boolean }>([
+    ({ title, owes, daily }) => `*${title}, shared equally by ${owes.n}*\n${owes.each} each.\n\n${owing(owes)}${nextUp(owes)}${daily ? `\n\nFrom now on ${HOW_TO_STOP.replace(/^I send/, "I'll send")}` : ""}`,
+  ]),
+  /** The split sent by itself at the end of a day. `first`: the group has not been told how to stop it. */
+  dailySplit: msg<{ title: string; owes: Owes; first: boolean }>([
+    ({ title, owes, first }) => `*${title} tonight, shared equally by ${owes.n}*\n${owes.each} each.\n\n${owing(owes)}${nextUp(owes)}${first ? `\n\n${HOW_TO_STOP}` : ""}`,
+  ]),
+  dailyOff: msg([`I won't send the split by myself any more. Ask for it any time with _${SPLIT}_. _${SPLIT_ON}_ brings it back.`]),
+  dailyOn: msg([`I'll send the split at the end of each day something is spent. _${SPLIT_OFF}_ stops it.`]),
+  /** `next`: who pays next. */
+  next: msg<{ who: string; short: string }>([({ who, short }) => `${who} pays next. ${short} short of an equal share.`, ({ who, short }) => `${who}. ${short} short of an equal share so far.`]),
+  nextEven: msg(["You're all even. Anyone can pay next."]),
+  nextAlone: msg(["You're the only one on this trip so far, so it's you. I count a friend in once they write here or are tagged on an expense."]),
   /** `split` with one person on the trip. */
   splitAlone: msg(["You're the only one on this trip so far, so there is nothing to share out. I count a friend in once they write here or are tagged on an expense."]),
   nothingYet: msg([`Nothing to add up yet. Send an expense like _${EXAMPLE}_.`]),
