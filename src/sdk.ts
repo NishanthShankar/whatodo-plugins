@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.28.0";
+export const SDK_VERSION = "1.29.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -452,6 +452,7 @@ export interface MessageEvent {
   /**
    * What was written. Never empty, except with the "photos" or "location" permission: a photo
    * or a position sent with no words arrives with an empty text. A photo's caption is its text.
+   * With "members" a message that only tags people is empty too (see `mentions`).
    */
   text: string;
   /** The ref of the message this one replies to (one of the plugin's, or one marked with `kit.mark`), if any. */
@@ -475,6 +476,14 @@ export interface MessageEvent {
   group?: string | null;
   /** Who sent it. Zelfred always sets it since SDK 1.8.0. */
   sender?: Sender;
+  /**
+   * The people tagged in the message with an @, in the order they were tagged, Zelfred itself
+   * left out. Each has the same `id` they have as a `sender`, so a tag can be matched to what
+   * that person sent; `name` is null for someone who has not written yet. Their tags are taken
+   * out of `text`, so a message that is only a tag arrives with an empty text. Only with the
+   * "members" permission, and only when someone was tagged. Since SDK 1.29.0.
+   */
+  mentions?: Sender[];
 }
 
 export interface ReactionEvent {
