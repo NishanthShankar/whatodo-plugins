@@ -203,6 +203,8 @@ const first = (name: string | null | undefined): string | null => {
   const word = (name ?? "").replace(/[*_~`]/g, "").trim().split(/\s+/)[0]?.slice(0, 20);
   return word || null;
 };
+/** A sort value for something new: after everything already there, so things made in one moment keep their order. */
+const after = (kit: Kit, made: number[]): number => Math.max(kit.now, ...made.map((m) => m + 1));
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 const nameOf = (folk: Folk, id: string | null): string | null => (id ? (folk.find((f) => f.id === id)?.p.name ?? null) : null);
 const isAway = (p: Person, day: string): boolean => !!p.back && (p.back === "open" || day < p.back);
@@ -222,7 +224,7 @@ async function meet(kit: Kit, here: Here, sender: Sender, folk: Folk): Promise<F
     await savePerson(kit, here, free.id, free.p);
     return free;
   }
-  const made = { id: kit.id(), p: { name: short ?? "Someone", sender: sender.id, back: null, made: kit.now } as Person };
+  const made = { id: kit.id(), p: { name: short ?? "Someone", sender: sender.id, back: null, made: after(kit, folk.map((f) => f.p.made)) } as Person };
   await savePerson(kit, here, made.id, made.p);
   folk.push(made);
   return made;
@@ -233,7 +235,7 @@ async function named(kit: Kit, here: Here, name: string, folk: Folk): Promise<Fo
   const known = byName(folk, name);
   if (known) return known;
   if (folk.length >= MAX_PEOPLE) return null;
-  const made = { id: kit.id(), p: { name: name.slice(0, 40), sender: null, back: null, made: kit.now } as Person };
+  const made = { id: kit.id(), p: { name: name.slice(0, 40), sender: null, back: null, made: after(kit, folk.map((f) => f.p.made)) } as Person };
   await savePerson(kit, here, made.id, made.p);
   folk.push(made);
   return made;
@@ -442,7 +444,7 @@ async function keepJob(kit: Kit, here: Here, home: Home, read: ReadJob, jobs: Fo
     return { status: "kept", f: known, first: false, few };
   }
   if (jobs.length >= MAX_JOBS) return { status: "full" };
-  const f: Found = { id: kit.id(), job: { name: read.name, rhythm: read.rhythm, rota: rota ?? [], at: 0, over: {}, open: null, last: null, made: kit.now, ...(idea ? { idea } : {}) } };
+  const f: Found = { id: kit.id(), job: { name: read.name, rhythm: read.rhythm, rota: rota ?? [], at: 0, over: {}, open: null, last: null, made: after(kit, jobs.map((j) => j.job.made)), ...(idea ? { idea } : {}) } };
   await saveJob(kit, here, f);
   jobs.push(f);
   const isFirst = !home.taught;
