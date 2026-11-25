@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.29.0";
+export const SDK_VERSION = "1.30.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -627,6 +627,16 @@ export interface IntentEvent {
   group?: string | null;
 }
 
+/** A person deleted, for everyone, a message of theirs that the plugin had marked. Since SDK 1.30.0. */
+export interface DeletedEvent {
+  /** The ref the message was marked with (`kit.mark`). */
+  ref: Json;
+  /** The key of the extra group the message was in; null or unset for the main group. */
+  group?: string | null;
+  /** Who deleted it, when WhatsApp says. */
+  sender?: Sender;
+}
+
 /**
  * Lets Zelfred work out what an unclear message means. The model only picks: an intent from
  * this list, and optionally the thing it's about from `targets`. It never writes text, so the
@@ -789,6 +799,12 @@ export interface PluginDef {
   onUpgrade?(fromVersion: string, kit: Kit): Promise<void>;
   onMessage?(event: MessageEvent, kit: Kit): Promise<void>;
   onReaction?(event: ReactionEvent, kit: Kit): Promise<void>;
+  /**
+   * A person deleted for everyone a message of theirs that the plugin marked with `kit.mark`: what it stood for is
+   * usually to be taken back. Not called for messages that were never marked, nor for the plugin's own. `kit.react`
+   * does nothing here: the message is gone. Since SDK 1.30.0.
+   */
+  onDeleted?(event: DeletedEvent, kit: Kit): Promise<void>;
   onSchedule?(event: ScheduleEvent, kit: Kit): Promise<void>;
   /** Someone answered a question asked with `kit.ask`. Since SDK 1.9.0. */
   onAnswer?(event: AnswerEvent, kit: Kit): Promise<void>;

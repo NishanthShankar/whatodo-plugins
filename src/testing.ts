@@ -409,6 +409,17 @@ export function createTestKit(opts: TestKitOptions = {}) {
         here = null;
       }
     },
+    /** Someone deleted, for everyone, a message of theirs that was marked with `ref`. */
+    async deleted(plugin: PluginDef, ref: Json, group: string | null = null, from?: string | Partial<Sender>) {
+      withDefaults(plugin);
+      const sender = senderOf(plugin, from);
+      here = group;
+      try {
+        await plugin.onDeleted?.({ ref, group, sender }, kit);
+      } finally {
+        here = null;
+      }
+    },
     /**
      * Someone answers the open question asked with `ref`; `choice` counts from 0. As in
      * Zelfred: with one person in the group (a plugin without "members", or a group where

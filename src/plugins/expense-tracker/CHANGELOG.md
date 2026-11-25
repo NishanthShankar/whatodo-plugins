@@ -1,5 +1,13 @@
 # Changelog: TripExpenses
 
+## [1.9.0] - 2026-11-25
+
+### Added
+- Two more ways to take an expense out. React to it with ❌ (also 🗑️ or 🚫): anyone in the group can, and my 👍 comes off the message. Or delete your message for everyone in WhatsApp, and the expenses it held go with it. A closed trip keeps its expenses either way.
+
+### Fixed
+- The README's Privacy section said nothing is sent to a model. Since 1.8.0 a message the app can't read is passed to Zelfred's own model to work out what was meant.
+
 ## [1.8.0] - 2026-11-25
 
 ### Added

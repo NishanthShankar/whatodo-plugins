@@ -1230,3 +1230,51 @@ describe("expenses in the small hours", () => {
     expect(last(t)).toMatch(/amount/);
   });
 });
+
+describe("taking an expense out by a reaction or by deleting the message", () => {
+  it("removes it on a ❌, from anyone, and takes my 👍 off the message", async () => {
+    const t = await started();
+    await t.message(plugin, "cab 300");
+    await t.react(plugin, "❌", t.marks[1], null, "Ravi");
+    expect(expenses(t).map((e) => e.what)).toEqual(["lunch"]);
+    expect(t.reactTos.at(-1)).toEqual({ ref: t.marks[1], emoji: "" });
+    await t.react(plugin, "🗑️", t.marks[0]);
+    expect(expenses(t)).toEqual([]);
+  });
+
+  it("removes every expense a message held, and a bill with it", async () => {
+    const t = await started();
+    await t.message(plugin, "cab 300\nchai 20", null, null, undefined, undefined, { photos: [photo("p1")] });
+    await t.react(plugin, "❌", t.marks[1]);
+    expect(expenses(t).map((e) => e.what)).toEqual(["lunch"]);
+    expect(t.removedFiles).toEqual(["p1"]);
+  });
+
+  it("leaves a closed trip as it is, and says so", async () => {
+    const t = await started();
+    await t.message(plugin, "end trip");
+    await t.react(plugin, "❌", t.marks[0]);
+    expect(expenses(t)).toHaveLength(1);
+    expect(last(t)).toBe(copy.closed());
+  });
+
+  it("removes it when the person deletes their message for everyone, and says nothing", async () => {
+    const t = await started();
+    await t.message(plugin, "cab 300");
+    const sent = t.sent.length;
+    await t.deleted(plugin, t.marks[1]);
+    expect(expenses(t).map((e) => e.what)).toEqual(["lunch"]);
+    expect(t.sent).toHaveLength(sent);
+    await t.message(plugin, "end trip");
+    const closed = t.sent.length;
+    await t.deleted(plugin, t.marks[0]);
+    expect(expenses(t)).toHaveLength(1);
+    expect(t.sent).toHaveLength(closed);
+  });
+
+  it("still groups by any other emoji", async () => {
+    const t = await started();
+    await t.react(plugin, "🍕", t.marks[0]);
+    expect(expenses(t)[0].mark).toBe("🍕");
+  });
+});

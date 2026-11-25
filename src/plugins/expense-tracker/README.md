@@ -35,6 +35,8 @@ On an expense you sent:
 | reply with an amount, like `540` | The amount is corrected. 👍 |
 | reply with a whole line, like `brunch 540` | The expense is replaced. 👍 |
 | reply `delete` (also `remove`) | Removed, and its bill with it. 👍 |
+| react with ❌ (also 🗑️ or 🚫) | Removed, as with `delete`. My 👍 comes off the message. Anyone in the group can. |
+| delete your message for everyone | The expenses it held are removed, and their bills. Nothing is said. |
 | reply with a photo | That photo is its bill (it replaces the one before). 👍. Works after the trip closed too. |
 | `split` (also `settle`, `tally`, `who owes`) | Who owes whom, with the trip shared equally by everyone on it: "Ravi pays Asha ₹75". Everyone on it means whoever spent, wrote, reacted or was tagged in the group while the trip was open. |
 | `next` (also `who?`, `who next`, `whose turn`) | Who should pay next to even things out: whoever is furthest under an equal share. |
@@ -116,4 +118,4 @@ Reads only the messages in its own groups, a new name or description of those gr
 
 It tells Zelfred one thing about the person who added it: the currency they count in, the first time they say it. Other apps can read that so they don't ask again.
 
-Nothing is sent to a model. Its page shows the person who added the app what is kept, and can sit behind their PIN.
+A message the app can't read is passed to Zelfred's own model to work out what was meant (for one thing: whether people who keep sending expenses in the small hours have travelled). Zelfred keeps the answer and never the text. Its page shows the person who added the app what is kept, and can sit behind their PIN.

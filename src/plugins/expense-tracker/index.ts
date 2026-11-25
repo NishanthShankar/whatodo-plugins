@@ -246,6 +246,8 @@ function markSums(items: { data: Expense }[], mine: string): { mark: string; tot
 
 /** Reactions that say "seen" or "fine" and not which group an expense is in. */
 const PLAIN = new Set(["👍", "✅", "👌", "🙏"]);
+/** Reactions that take an expense out: the same as replying "delete" to it. */
+const REMOVE = new Set(["❌", "✖", "🗑", "🚫"]);
 /** An emoji without its skin tone or the mark that makes it a picture. */
 const bare = (emoji: string) => emoji.replace(/[\u{1F3FB}-\u{1F3FF}\uFE0F]/gu, "");
 
@@ -332,6 +334,22 @@ async function namesOf(kit: Kit, items: { data: Expense }[], others: string[] = 
     if (heard) names.set(by, heard);
   }
   return names;
+}
+
+/** Take out the expenses a message held, with their bills. "closed": its trip has ended, so they stay. "gone": none were kept any more. */
+async function takeOut(kit: Kit, ref: ExpenseRef): Promise<"removed" | "closed" | "gone"> {
+  const trip = await kit.store.get<Trip>("trips", ref.trip);
+  if (!trip) return "gone";
+  if (trip.endedAt !== null) return "closed";
+  let any = false;
+  for (const id of ref.ids) {
+    const key = `${ref.trip}:${id}`;
+    const e = await kit.store.get<Expense>("expenses", key);
+    if (!e) continue;
+    await drop(kit, key, e);
+    any = true;
+  }
+  return any ? "removed" : "gone";
 }
 
 /** A trip as a list: its newest expenses, the sum, and what each person sent when several did. */
@@ -950,7 +968,7 @@ async function page(kit: Kit, args: Record<string, Json>): Promise<Json> {
 
 export default definePlugin({
   id: "expense-tracker",
-  version: "1.8.0",
+  version: "1.9.0",
   sdk: "1",
   name: "TripExpenses",
   icon: "🧾",
@@ -1180,6 +1198,14 @@ export default definePlugin({
       await join(kit, event.group ?? null, [event.sender]);
     }
     if (!isExpenseRef(event.ref)) return;
+    // ❌ on an expense takes it out, as a reply of "delete" does. Anyone in the group may. My own 👍 comes off the
+    // message, so it no longer reads as kept. A closed trip stays as it is, and says so.
+    if (event.emoji && REMOVE.has(bare(event.emoji))) {
+      const was = await takeOut(kit, event.ref);
+      if (was === "closed") kit.send(copy.closed());
+      else if (was === "removed") kit.reactTo(event.ref as unknown as Json, "");
+      return;
+    }
     if (event.emoji && PLAIN.has(bare(event.emoji))) return;
     const mark = event.emoji ? [...event.emoji].slice(0, 8).join("") : null;
     for (const id of event.ref.ids) {
@@ -1187,6 +1213,14 @@ export default definePlugin({
       const e = await kit.store.get<Expense>("expenses", key);
       if (e && (e.mark ?? null) !== mark) await kit.store.put("expenses", key, { ...e, mark } as unknown as Json);
     }
+  },
+
+  /**
+   * The person deleted their message for everyone: the expenses it held go with it, and their bills. Nothing is said,
+   * since they took it back themselves. A closed trip keeps its expenses: its sum was already given out.
+   */
+  async onDeleted(event, kit) {
+    if (isExpenseRef(event.ref)) await takeOut(kit, event.ref);
   },
 
   async onAnswer(event, kit) {

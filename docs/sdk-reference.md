@@ -28,6 +28,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onInstall` | `(kit) => Promise<void>` | no | Once, when an install is created (before the group exists: don't `send` here). |
 | `onUpgrade` | `(fromVersion, kit) => Promise<void>` | no | Once per install, before any other handler, the first time a newer version handles an event for it. Migrate stored data. Must be idempotent. |
 | `onMessage` | `(event: MessageEvent, kit) => Promise<void>` | no | A message in the plugin's group: from the installer, or from anyone in the group with the `"members"` permission. |
+| `onDeleted` | `(event: DeletedEvent, kit) => Promise<void>` | no | A person deleted for everyone a message of theirs that the plugin marked with `kit.mark`. Since SDK 1.30.0. |
 | `onReaction` | `(event: ReactionEvent, kit) => Promise<void>` | no | The installer (anyone in the group, with `"members"`) reacted to or un-reacted a message the plugin sent with a `ref`. |
 | `onSchedule` | `(event: ScheduleEvent, kit) => Promise<void>` | no | A schedule fired. |
 | `onAnswer` | `(event: AnswerEvent, kit) => Promise<void>` | no | Someone answered a question asked with `kit.ask`. See [Asking a question](#asking-a-question). Since SDK 1.9.0. |
