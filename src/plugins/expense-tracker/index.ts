@@ -1,6 +1,6 @@
 import { definePlugin, type Json, type Kit, type Photo, type Sender } from "../../sdk";
-import { clock, placeOf, sayTime, zoneFromTime, zoneNamed, zoneOfCurrency } from "./zone";
-import { copy, MINE, SAME_TIME, SAVED, type Owes, type Row, type Shown } from "./copy";
+import { clock, placeOf, sayTime, zoneFromTime, zoneMentioned, zoneNamed, zoneOfCurrency } from "./zone";
+import { copy, MINE, SAVED, type Owes, type Row, type Shown } from "./copy";
 import { add, cleanTag, COMMON, currencyOf, guessCurrency, label, MAX_TAGS, money, readAmount, readExpense, sayDay, sign, takeTags, total, type Read, type Sums } from "./money";
 
 /**
@@ -83,8 +83,14 @@ export interface Trip {
   zoneBy?: "said" | "guess";
   /** How many messages with expenses came between 3am and 5am on its clock: a sign the clock may be wrong. */
   odd?: number;
-  /** The question "what time is it where you are?": "open" while it waits for an answer, "done" after. Asked once a trip. */
-  timeAsked?: "open" | "done";
+  /**
+   * The question about odd hours, asked once a trip. "open": "have you travelled, or are you up late?" was asked.
+   * "judging": an answer went to the intent model. "time": they have travelled, and "what time is it there, exactly?" was
+   * asked. "done": settled, or given up on.
+   */
+  timeAsked?: "open" | "judging" | "time" | "done";
+  /** How many replies since the question were none of its answers. After a few it is dropped. */
+  timeTries?: number;
   /** How many expenses were ever sent to it: the next one's place in the list. */
   seq?: number;
   /** Set when it ends: how many expenses, and their sums by currency. */
@@ -191,6 +197,18 @@ async function setZone(kit: Kit, f: Found, zone: string | null, by: "said" | "gu
   f.trip = { ...f.trip, zone, zoneBy: by, ...(by === "said" ? { timeAsked: "done" as const, odd: 0 } : {}) };
   await save(kit, f);
 }
+
+/** They said where the trip is, in answer to the question about odd hours: put it on that clock and say the split's hour moves with it. */
+async function answeredTime(kit: Kit, f: Found, zone: string): Promise<boolean> {
+  const c = clock(zone, kit.now);
+  if (!c) return false;
+  await setZone(kit, f, zone, "said");
+  kit.send(copy.timeNoted({ time: sayTime(c.hour, c.minute) }));
+  return true;
+}
+
+/** How many replies that answer nothing the question about odd hours waits through before it is dropped. */
+const TIME_TRIES = 3;
 
 /** The first and last hours (on the trip's clock) that make it look like the clock is wrong: 3am up to 5am. */
 const ODD_FROM = 3;
@@ -704,22 +722,12 @@ async function command(kit: Kit, here: Here, text: string, lower: string, sender
     await undo(kit, here, sender);
     return true;
   }
-  // An answer to "what time is it where you are?": the time on its own, a place on its own, or that my clock is right.
+  // While the question about odd hours is open: the time where they are, or a place, said on its own settles it. Whether
+  // they have travelled at all is for the intent model to read (onIntent), from whatever they say.
   const waiting = await openTrip(kit, here);
-  if (waiting?.trip.timeAsked === "open") {
-    if (SAME_TIME.test(lower)) {
-      waiting.trip = { ...waiting.trip, timeAsked: "done", zoneBy: "said", odd: 0 };
-      await save(kit, waiting);
-      kit.react(SAVED);
-      return true;
-    }
+  if (waiting && waiting.trip.timeAsked && waiting.trip.timeAsked !== "done") {
     const zone = zoneFromTime(lower, kit.now, true) ?? (readExpense(text) ? null : zoneNamed(lower));
-    const c = zone ? clock(zone, kit.now) : null;
-    if (zone && c) {
-      await setZone(kit, waiting, zone, "said");
-      kit.send(copy.zoneSet({ place: placeOf(zone), time: sayTime(c.hour, c.minute) }));
-      return true;
-    }
+    if (zone && (await answeredTime(kit, waiting, zone))) return true;
   }
   // The trip's clock: "time zone tokyo", "timezone +7", or the time where they are ("it's 9pm here").
   const tz = lower.match(/^(?:time ?zone|tz|clock)(?:\s+(?:is\s+|to\s+|in\s+)?(.+))?$/);
@@ -964,6 +972,15 @@ export default definePlugin({
   welcome: copy.welcome(),
   help: copy.help(),
 
+  // Only for the reply to "have you travelled, or are you up late?": the model picks one of these and writes nothing.
+  understand: {
+    intents: {
+      travelling: "They are away from home or in another time zone: on a trip, abroad, just landed, at an airport, in another country or city, or they say or imply the local time is different.",
+      home: "They are at home or in their usual time zone and are simply awake late or early: a late night, a party, can't sleep, night shift, or they say the clock is right or nothing has changed.",
+      other: "Anything else: ordinary talk between friends, a joke, a question, or something that has nothing to do with where they are or what time it is.",
+    },
+  },
+
   web: {
     // What a person spent is their own business: the page can sit behind the PIN.
     lockable: true,
@@ -1103,11 +1120,52 @@ export default definePlugin({
     // A photo whose caption is no expense: a photo with a few words, as people send. Not kept, nothing said.
     if (photo) return void (await kit.files.remove(photo.id));
 
+    // The question about odd hours is waiting. What they say back is read by the intent model: have they travelled, or are
+    // they at home and up late? If it can't tell, I ask the time outright (the fallback), which settles it either way.
+    const q = await openTrip(kit, here);
+    if (q && q.trip.timeAsked && q.trip.timeAsked !== "done") {
+      const tries = (q.trip.timeTries ?? 0) + 1;
+      const judge = q.trip.timeAsked === "open";
+      q.trip = { ...q.trip, timeTries: tries, timeAsked: judge ? "judging" : tries >= TIME_TRIES ? "done" : q.trip.timeAsked };
+      await save(kit, q);
+      if (judge) kit.unsure(copy.timeExactly());
+      return;
+    }
+
     // No amount: say how, once. In a group with friends in it, people also just talk, so one
     // telling is enough until something is kept or asked for.
     if ((await kit.store.get("state", sk(here, "shared"))) && (await kit.store.get("state", sk(here, "prompted")))) return;
     await kit.store.put("state", sk(here, "prompted"), 1);
     kit.unsure(copy.format());
+  },
+
+  /**
+   * What the intent model made of a message with no amount. It is asked for two things: the reply to the question about odd
+   * hours (have they travelled, or are they at home?), and any other message this app couldn't read, which gets the note
+   * about the format as before.
+   */
+  async onIntent(event, kit) {
+    const here: Here = event.group ?? null;
+    const f = await openTrip(kit, here);
+    if (!f || f.trip.timeAsked !== "judging") return void kit.send(copy.format());
+    if (event.intent === "home") {
+      f.trip = { ...f.trip, timeAsked: "done", zoneBy: "said", odd: 0 };
+      await save(kit, f);
+      kit.react(SAVED);
+      return;
+    }
+    if (event.intent === "travelling") {
+      // They may have said where or when in the same breath ("landed in tokyo", "yes, it's 9pm here").
+      const zone = zoneMentioned(event.text, kit.now);
+      if (zone && (await answeredTime(kit, f, zone))) return;
+      f.trip = { ...f.trip, timeAsked: "time" };
+      await save(kit, f);
+      kit.send(copy.timeExactly());
+      return;
+    }
+    // Something else entirely: the question stays open for a few more replies, then is dropped.
+    f.trip = { ...f.trip, timeAsked: (f.trip.timeTries ?? 0) >= TIME_TRIES ? "done" : "open" };
+    await save(kit, f);
   },
 
   /**

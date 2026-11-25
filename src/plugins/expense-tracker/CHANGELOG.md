@@ -3,10 +3,11 @@
 ## [1.8.0] - 2026-11-25
 
 ### Added
-- When expenses keep arriving between 3am and 5am by the trip's clock (the third message with one), and nobody has said where the trip is, it asks once what time it is there. The time on its own ("9pm"), a place ("tokyo") or `same` answers it; `same` gets a 👍 and it is not asked again on that trip.
+- When expenses keep arriving between 3am and 5am by the trip's clock (the third message with one), and nobody has said where the trip is, it asks once whether they have travelled or are up late. The reply is read by the intent model, in whatever words: at home gets a 👍 and it is not asked again; travelling gets "What time is it there, exactly?", and the time or a place puts the trip on that clock.
+- The app now declares `understand` (travelling, home, other), used only for that reply.
 
 ### Data
-- A trip may carry `zoneBy`, `odd` and `timeAsked`.
+- A trip may carry `zoneBy`, `odd`, `timeAsked` and `timeTries`.
 
 ## [1.7.0] - 2026-11-25
 

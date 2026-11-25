@@ -40,10 +40,6 @@ export const SPLIT_ON = fixed("split on");
 /** The trip's own clock. */
 export const ZONE_EXAMPLE = fixed("time zone tokyo");
 export const TIME_EXAMPLE = fixed("it's 9pm here");
-/** The answer to "what time is it where you are?" that says my clock is right. */
-export const SAME_EXAMPLE = fixed("same");
-/** Every way of saying that, as the parser reads it: lower case, with no full stop at the end. */
-export const SAME_TIME = /^(same|the same|same time|same here|home|at home|i'?m home|we'?re home|still home|not travell?ing|no travel|no|nope|you'?re right|your clock is right|that'?s right|it is|yes it is|correct|just (up )?late|up late|late night|night owls?)$/;
 /** Sent as a reply to an expense: the person who says it spent it. */
 export const MINE_EXAMPLE = fixed("mine");
 /** Every way of saying that, as the parser reads it: lower case, with no full stop at the end. */
@@ -190,13 +186,18 @@ export const copy = {
   zoneNow: msg<{ place: string; time: string }>([({ place, time }) => `This trip is on ${place} time: ${time} now. To change it: _${ZONE_EXAMPLE}_, or tell me the time, like _${TIME_EXAMPLE}_.`]),
   /**
    * Asked once a trip, when expenses keep arriving between 3am and 5am by the trip's clock: they have probably travelled.
-   * `time`: what my clock says, "3:40am". The owner asked for a dry butler here, who offends nobody: the joke is on my
-   * clock, and staying up is treated as a talent.
+   * `time`: what my clock says, "3:40am". The owner asked for a dry butler here, who offends nobody, and for no lesson in
+   * how to answer: they say it their own way and the intent model reads it. The joke is on my clock, and staying up is
+   * treated as a talent.
    */
   whatTime: msg<{ time: string }>([
-    ({ time }) => `My clock says ${time}. Either you've travelled, or you keep hours I can only admire.\n\nWhat time is it where you are? Tell me, like _${TIME_EXAMPLE}_, and I'll put this trip on your time. If my clock is right, say _${SAME_EXAMPLE}_ and I won't ask again.`,
-    ({ time }) => `It is ${time} by my clock, and the bills are still coming in. Impressive, or you're somewhere else entirely.\n\nWhat time is it where you are? Tell me, like _${TIME_EXAMPLE}_, and I'll put this trip on your time. If my clock is right, say _${SAME_EXAMPLE}_ and I won't ask again.`,
+    ({ time }) => `My clock says ${time}. Either you've travelled, or you keep hours I can only admire. Which is it?`,
+    ({ time }) => `It is ${time} by my clock, and the bills are still coming in. Impressive, or you're somewhere else entirely. Which?`,
   ]),
+  /** They have travelled (or I couldn't tell): the one thing I need. */
+  timeExactly: msg(["What time is it there, exactly?"]),
+  /** They said the time or the place. `time`: what it is there now, "9:05pm". */
+  timeNoted: msg<{ time: string }>([({ time }) => `${time} it is. I'll update the reminder times.`]),
   zoneUnknown: msg([`I don't know that place. Try a big city near you, like _${ZONE_EXAMPLE}_, or tell me the time: _${TIME_EXAMPLE}_.`]),
   /** `currency` on its own. */
   countingNow: msg<{ currency: string }>([({ currency }) => `I'm counting this trip in ${currency}. To change it: _${CURRENCY_EXAMPLE}_.`]),

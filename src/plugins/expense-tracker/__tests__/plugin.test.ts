@@ -1116,24 +1116,25 @@ describe("a trip's own clock", () => {
 
 describe("expenses in the small hours", () => {
   const home = { person: { name: "Asha", timezone: "Asia/Kolkata", currency: "INR" } };
-  /** A started trip, with the kit's clock moved to 3am. */
-  const late = async () => {
+  /** A started trip at 3am by the kit's clock, with the question just asked. */
+  const asking = async () => {
     const t = await started(home);
     t.setHour(3);
+    for (const line of ["bar 900", "cab 300", "noodles 150"]) await t.message(plugin, line);
     return t;
   };
-  const asked = (t: T) => t.sent.filter((x) => x.text.includes("What time is it where you are?"));
+  const asked = (t: T) => t.sent.filter((x) => /Which( is it)?\?$/.test(x.text));
 
-  it("asks what time it is there on the third one, once", async () => {
-    const t = await late();
+  it("asks on the third one whether they have travelled, once, and teaches nothing", async () => {
+    const t = await started(home);
+    t.setHour(3);
     await t.message(plugin, "bar 900");
     await t.message(plugin, "cab 300");
     expect(asked(t)).toHaveLength(0);
     await t.message(plugin, "noodles 150");
     expect(asked(t)).toHaveLength(1);
     expect(last(t)).toMatch(/3am/);
-    expect(last(t)).toContain("say _same_ and I won't ask again");
-    // Kept all the same, with its 👍.
+    expect(last(t)).not.toMatch(/_|say |like /);
     expect(expenses(t)).toHaveLength(4);
     await t.message(plugin, "water 20");
     expect(asked(t)).toHaveLength(1);
@@ -1152,34 +1153,80 @@ describe("expenses in the small hours", () => {
     expect(asked(set)).toHaveLength(0);
   });
 
-  it("takes the time on its own, or a place, as the answer", async () => {
-    const t = await late();
-    for (const line of ["bar 900", "cab 300", "noodles 150"]) await t.message(plugin, line);
-    // 03:00 UTC by the kit, and they say it is noon: nine hours ahead.
-    await t.message(plugin, "12pm");
-    expect(last(t)).toBe("This trip is on GMT+9 time now. It's 12pm there.");
-    expect(trips(t)[0]).toMatchObject({ zone: "Etc/GMT-9", zoneBy: "said", timeAsked: "done" });
-    const u = await late();
-    for (const line of ["bar 900", "cab 300", "noodles 150"]) await u.message(plugin, line);
-    await u.message(plugin, "Tokyo");
-    expect(trips(u)[0].zone).toBe("Asia/Tokyo");
+  it("hands the reply to the intent model, with the exact time as what to ask if it can't tell", async () => {
+    const t = await asking();
+    await t.message(plugin, "ha, we just got to our hotel");
+    expect(t.unsures.at(-1)).toBe("What time is it there, exactly?");
+    expect(trips(t)[0].timeAsked).toBe("judging");
   });
 
-  it("takes same as my clock being right: a thumbs up, and never asked again", async () => {
-    const t = await late();
-    for (const line of ["bar 900", "cab 300", "noodles 150"]) await t.message(plugin, line);
+  it("travelling: asks what time it is there, then moves the trip's clock", async () => {
+    const t = await asking();
+    await t.message(plugin, "ha, we just got to our hotel");
+    await t.intent(plugin, "ha, we just got to our hotel", "travelling");
+    expect(last(t)).toBe("What time is it there, exactly?");
+    // 03:00 UTC by the kit, and they say it is noon: nine hours ahead.
+    await t.message(plugin, "12pm");
+    expect(last(t)).toBe("12pm it is. I'll update the reminder times.");
+    expect(trips(t)[0]).toMatchObject({ zone: "Etc/GMT-9", zoneBy: "said", timeAsked: "done" });
+  });
+
+  it("travelling, with the place or the time already in what they said: no second question", async () => {
+    const t = await asking();
+    await t.message(plugin, "landed in tokyo an hour ago");
+    await t.intent(plugin, "landed in tokyo an hour ago", "travelling");
+    expect(trips(t)[0].zone).toBe("Asia/Tokyo");
+    expect(last(t)).toBe("12pm it is. I'll update the reminder times.");
+    const u = await asking();
+    await u.message(plugin, "yes abroad, about 9:30pm now");
+    await u.intent(plugin, "yes abroad, about 9:30pm now", "travelling");
+    // No place is five and a half hours behind, so it is read as the nearest hour that exists.
+    expect(trips(u)[0].zone).toMatch(/^Etc\/GMT\+[56]$/);
+    expect(last(u)).toMatch(/^(9|10)pm it is\. I'll update the reminder times\.$/);
+  });
+
+  it("at home: a thumbs up, and never asked again", async () => {
+    const t = await asking();
+    await t.message(plugin, "nah just a long night");
     const reactions = t.reactions.length;
     const sent = t.sent.length;
-    await t.message(plugin, "same");
+    await t.intent(plugin, "nah just a long night", "home");
     expect(t.reactions.slice(reactions)).toEqual(["👍"]);
     expect(t.sent).toHaveLength(sent);
     for (const line of ["chai 20", "toast 60", "eggs 90", "juice 80"]) await t.message(plugin, line);
     expect(asked(t)).toHaveLength(1);
-    // An expense that happens to end in a time-like number is still an expense while the question is open.
-    const u = await late();
-    for (const line of ["bar 900", "cab 300", "noodles 150"]) await u.message(plugin, line);
-    await u.message(plugin, "tea 12");
-    expect(expenses(u).map((e) => e.what)).toContain("tea");
-    expect(trips(u)[0].timeAsked).toBe("open");
+  });
+
+  it("when the model can't tell, the time they then give still settles it", async () => {
+    const t = await asking();
+    await t.message(plugin, "hmm");
+    // Zelfred sent the fallback, "What time is it there, exactly?". Their answer:
+    await t.message(plugin, "9pm");
+    expect(last(t)).toBe("9pm it is. I'll update the reminder times.");
+    expect(trips(t)[0].timeAsked).toBe("done");
+  });
+
+  it("talk about something else leaves it open for a while, then it is dropped; expenses are kept throughout", async () => {
+    const t = await asking();
+    await t.message(plugin, "who has the room key");
+    await t.intent(plugin, "who has the room key", "other");
+    expect(trips(t)[0].timeAsked).toBe("open");
+    await t.message(plugin, "tea 12");
+    expect(expenses(t).map((e) => e.what)).toContain("tea");
+    await t.message(plugin, "lol");
+    await t.intent(plugin, "lol", "other");
+    await t.message(plugin, "ok good night");
+    await t.intent(plugin, "ok good night", "other");
+    expect(trips(t)[0].timeAsked).toBe("done");
+    const sent = t.sent.length;
+    await t.message(plugin, "9pm");
+    expect(t.sent.length).toBe(sent);
+  });
+
+  it("any other unread message still gets the note about the format", async () => {
+    const t = createTestKit(home);
+    await t.message(plugin, "hello there");
+    await t.intent(plugin, "hello there", "other");
+    expect(last(t)).toMatch(/amount/);
   });
 });
