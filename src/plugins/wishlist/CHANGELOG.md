@@ -1,5 +1,10 @@
 # Changelog: Wishlist
 
+## [1.3.1] - 2026-11-25
+
+### Changed
+- Messages name the app's new address, app.zelfred.com. The old one, app.whatodo.today, still leads there.
+
 ## [1.3.0] - 2026-11-23
 
 ### Added

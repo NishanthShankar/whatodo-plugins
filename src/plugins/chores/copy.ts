@@ -36,7 +36,7 @@ export const WEEKLY_ON = fixed("weekly count on");
 export const WEEKLY_OFF = fixed("weekly count off");
 
 /** The app's page, as people are told about it. */
-export const PAGE = fixed("app.whatodo.today/plugins/chores");
+export const PAGE = fixed("app.zelfred.com/plugins/chores");
 
 // ── Reactions ──
 

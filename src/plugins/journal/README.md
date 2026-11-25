@@ -34,7 +34,7 @@ The note pinned at the top of the group stands in for `help`.
 
 ## Web page
 
-`app.whatodo.today/plugins/journal`, built by Zelfred. The person unlocks it (Face ID, fingerprint or a passphrase) and reads, searches, edits and writes there. Opening happens in the browser; nothing readable is sent back.
+`app.zelfred.com/plugins/journal`, built by Zelfred. The person unlocks it (Face ID, fingerprint or a passphrase) and reads, searches, edits and writes there. Opening happens in the browser; nothing readable is sent back.
 
 This plugin's part of the page is small: `web.load` returns the number of entries per day, the current streak and the best one, and the prompt hour. `setPromptHour` changes the prompt.
 

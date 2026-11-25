@@ -371,7 +371,7 @@ async function batchAnswer(event: AnswerEvent, kit: Kit, ref: BatchRef) {
 
 export default definePlugin({
   id: "habits",
-  version: "4.1.0",
+  version: "4.1.1",
   sdk: "1",
   name: "Habits",
   icon: "🌱",

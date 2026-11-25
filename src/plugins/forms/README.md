@@ -1,6 +1,6 @@
 # 📬 Forms
 
-A backend for the forms on your own websites. Make a form, paste its address into your site, and every submission arrives as a WhatsApp message in the "📬 Forms" group, with its fields and files kept on app.whatodo.today. No server of your own, no email.
+A backend for the forms on your own websites. Make a form, paste its address into your site, and every submission arrives as a WhatsApp message in the "📬 Forms" group, with its fields and files kept on app.zelfred.com. No server of your own, no email.
 
 Unlisted for now: it isn't in the store or on the public site, and only people Zelfred allows can add it.
 
@@ -58,7 +58,7 @@ Each submission arrives as one message: the form's name, its fields (the first 1
 
 ## Web page
 
-On app.whatodo.today, behind your PIN if you've set one:
+On app.zelfred.com, behind your PIN if you've set one:
 
 - Your forms, their addresses and counts. Make a form (with its own WhatsApp group if you tick the box), give an existing form its own group, close one, or delete one with everything it received.
 - Every submission, newest first: when, from which site, its fields, and its files to open or download.

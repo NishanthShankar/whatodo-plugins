@@ -52,7 +52,7 @@ async function allDays(kit: Kit): Promise<{ day: string; n: number }[]> {
 
 export default definePlugin({
   id: "journal",
-  version: "1.2.1",
+  version: "1.2.2",
   sdk: "1",
   name: "Journal",
   icon: "📓",

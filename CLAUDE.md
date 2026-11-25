@@ -9,7 +9,7 @@ Every plugin goes through one pipeline, in order, from idea to published, and no
 1. **Before any work**, find where the plugin stands. In the `whatodo` checkout: `npx convex run --prod pipeline:status '{"appId":"<plugin id>"}'`. If you can't run that, ask the owner which stage it is at. Do not guess.
 2. **A new plugin is entered the day its brief is written**, before any code: `npx convex run --prod pipeline:add '{"name":"<Name>","appId":"<plugin id>"}'`. Add `"track":"private"` only if the owner said it is a private app (ours alone, never listed). Private is not the same as `unlisted`. If it is not clear which it is, ask.
 3. **Work on its current stage only.** A new plugin ships `unlisted: true`. Never remove `unlisted`, set a price, or build its landing page ahead of its turn.
-4. **When a stage's gate is true**, record it: `npx convex run --prod pipeline:record '{"appId":"<plugin id>","stage":"build"}'`. Only "build" and "landing" can be recorded this way. Every other stage is the owner's to mark, on admin.whatodo.today under "Race": ask, never mark it for them.
+4. **When a stage's gate is true**, record it: `npx convex run --prod pipeline:record '{"appId":"<plugin id>","stage":"build"}'`. Only "build" and "landing" can be recorded this way. Every other stage is the owner's to mark, on admin.zelfred.com under "Race": ask, never mark it for them.
 5. **End your reply, and the PR description, with the stage the plugin is at and what the next gate needs.**
 
 A plugin that exists but was never entered shows up in the owners' twice weekly reminder by name. Enter it first.
@@ -20,7 +20,7 @@ A plugin is not built until a new person can get from adding it to their first u
 
 ## A plugin's web page
 
-A plugin's page on app.whatodo.today is built in the `whatodo` repo (Zelfred), not here. Before designing one, read `docs/plugin-ui-styleguide.md` in that repo and follow it: phone and desktop are different layouts, the page sits in `PluginShell`, Settings and Info have fixed places, and detail opens in a sheet. If something isn't covered, ask the owner and add it to that styleguide.
+A plugin's page on app.zelfred.com is built in the `whatodo` repo (Zelfred), not here. Before designing one, read `docs/plugin-ui-styleguide.md` in that repo and follow it: phone and desktop are different layouts, the page sits in `PluginShell`, Settings and Info have fixed places, and detail opens in a sheet. If something isn't covered, ask the owner and add it to that styleguide.
 
 What this repo decides for the page is its data: `web.load` and `web.actions`. Every setting the page can change should also have a WhatsApp message that does the same.
 

@@ -688,7 +688,7 @@ function card(kit: Kit, item: Item, notes: boolean): SharedItem {
 
 export default definePlugin({
   id: "wishlist",
-  version: "1.3.0",
+  version: "1.3.1",
   sdk: "1",
   name: "Wishlist",
   icon: "🎁",

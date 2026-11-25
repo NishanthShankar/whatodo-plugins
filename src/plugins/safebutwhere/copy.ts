@@ -84,7 +84,7 @@ export const copy = {
       "",
       `Reply to a photo, a line of yours or an answer of mine with new words to change it, a _#tag_ to add one, or _${DELETE}_ to remove it.`,
       "",
-      "Everything is on app.whatodo.today too.",
+      "Everything is on app.zelfred.com too.",
     ].join("\n"),
   ]),
   groupName: msg(["📍 SafeButWhere"]),
@@ -143,7 +143,7 @@ export const copy = {
   // ── Groups: the emoji they reacted with ──
   /** A group too long to send in full: its things as a list. */
   group: msg<{ emoji: string; rows: Shown[]; total: number }>([
-    ({ emoji, rows, total }) => `*${emoji} · ${total} ${total === 1 ? "thing" : "things"}*\n\n${rows.map((r, i) => row({ ...r, reaction: null }, i + 1)).join("\n")}${total > rows.length ? `\n\n_${total - rows.length} more on app.whatodo.today._` : ""}`,
+    ({ emoji, rows, total }) => `*${emoji} · ${total} ${total === 1 ? "thing" : "things"}*\n\n${rows.map((r, i) => row({ ...r, reaction: null }, i + 1)).join("\n")}${total > rows.length ? `\n\n_${total - rows.length} more on app.zelfred.com._` : ""}`,
   ]),
   groups: msg<{ groups: { emoji: string; count: number }[] }>([({ groups }) => `*Your groups*\n\n${groups.map((g) => `${g.emoji} · ${g.count}`).join("\n")}\n\nSend an emoji on its own to see its group.`]),
   noGroups: msg([`No groups yet. React to a photo or a line of yours with any emoji, like ${GROUP_EXAMPLE}, and it joins that group.`]),

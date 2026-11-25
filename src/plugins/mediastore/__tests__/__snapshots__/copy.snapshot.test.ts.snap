@@ -143,7 +143,7 @@ Asha · example.com
 _pasta_
 https://example.com/pasta/5
 
-_2 more on app.whatodo.today._",
+_2 more on app.zelfred.com._",
     },
     {
       "group": null,
@@ -175,7 +175,7 @@ Asha · example.com
 _pasta_
 https://example.com/pasta/3
 
-_2 more on app.whatodo.today._",
+_2 more on app.zelfred.com._",
     },
     {
       "group": null,
@@ -834,12 +834,12 @@ _find_ and _recent_ here look only through this group's links.",
     {
       "group": null,
       "ref": null,
-      "text": "No groups in common. You can move it on app.whatodo.today, or forward it to your own group.",
+      "text": "No groups in common. You can move it on app.zelfred.com, or forward it to your own group.",
     },
     {
       "group": null,
       "ref": null,
-      "text": "No groups in common. You can move it on app.whatodo.today, or forward it to your own group.",
+      "text": "No groups in common. You can move it on app.zelfred.com, or forward it to your own group.",
     },
   ],
   "unsures": [],
@@ -938,7 +938,7 @@ exports[`mediastore copy: saving > no room left 1`] = `
     {
       "group": null,
       "ref": null,
-      "text": "That's the most links I can keep (3000). Delete some on app.whatodo.today first.",
+      "text": "That's the most links I can keep (3000). Delete some on app.zelfred.com first.",
     },
   ],
   "unsures": [],
@@ -1011,7 +1011,7 @@ On a link you sent: react ❤️ to like it or ⭐ to mark it important. Reply t
 _new group recipes_ makes a WhatsApp group just for one kind of link
 _groups_ lists them, _close group recipes_ stops one
 
-Everything is on app.whatodo.today too, with pictures and filters.",
+Everything is on app.zelfred.com too, with pictures and filters.",
     },
     {
       "group": null,
@@ -1030,7 +1030,7 @@ On a link you sent: react ❤️ to like it or ⭐ to mark it important. Reply t
 _new group recipes_ makes a WhatsApp group just for one kind of link
 _groups_ lists them, _close group recipes_ stops one
 
-Everything is on app.whatodo.today too, with pictures and filters.",
+Everything is on app.zelfred.com too, with pictures and filters.",
     },
   ],
   "unsures": [],
@@ -1054,7 +1054,7 @@ On a link you sent: react ❤️ to like it or ⭐ to mark it important. Reply t
 _new group recipes_ makes a WhatsApp group just for one kind of link
 _groups_ lists them, _close group recipes_ stops one
 
-Everything is on app.whatodo.today too, with pictures and filters.",
+Everything is on app.zelfred.com too, with pictures and filters.",
   "welcome": "🎬 You've added *MediaStore*.
 
 Send or forward a link here: a YouTube video, a short, an Instagram reel. I'll keep it so you can find it later.

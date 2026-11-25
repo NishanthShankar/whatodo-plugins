@@ -268,7 +268,7 @@ export const copy = {
   ownersHabit: msg<{ habit: string; owner: string | null }>([
     ({ habit, owner }) => `*${habit}* is ${owner ? `${owner}'s` : "someone else's"} habit, so only they can change when it's asked.`,
   ]),
-  ownGroup: msg(["To have a group of your own, log in at app.whatodo.today and add Habits there. It takes a minute, and then I'll make it for you."]),
+  ownGroup: msg(["To have a group of your own, log in at app.zelfred.com and add Habits there. It takes a minute, and then I'll make it for you."]),
   groupNoHabits: msg<{ group: string }>([({ group }) => `🌱 *${group}* has no habits yet. Add one here, like _${SAY.addGym}_.`]),
   groupSummary: msg<{ group: string; habits: GroupHabit[] }>([
     ({ group, habits }) => [`🌱 *${group}*`, ...habits.flatMap((h, i) => groupHabitLines(i + 1, h))].join("\n"),

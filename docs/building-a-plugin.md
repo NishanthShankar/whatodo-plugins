@@ -11,7 +11,7 @@ Every installed plugin gets **its own WhatsApp group** with exactly two members:
 - The person reacts to your messages (✅ on a check-in); your `onReaction` gets the emoji and the `ref` you attached when you sent it.
 - The person replies to one of your messages (swipe to reply); your `onMessage` gets `quotedRef`, the `ref` of the message they replied to.
 - Your schedules fire at hours in the person's own time zone; `onSchedule` posts whatever is due.
-- Optionally, a web page on whatodo.today shows your plugin's data and lets the person change it through your `web.actions`.
+- Optionally, a web page on zelfred.com shows your plugin's data and lets the person change it through your `web.actions`.
 
 Your plugin never sees anything outside that group and its own stored data. Design for that: if a feature needs more, it doesn't belong in a plugin yet (open an issue instead).
 

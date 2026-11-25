@@ -1480,7 +1480,7 @@ Ravi  🔥 0",
       {
         "group": "gym-buddies",
         "ref": null,
-        "text": "To have a group of your own, log in at app.whatodo.today and add Habits there. It takes a minute, and then I'll make it for you.",
+        "text": "To have a group of your own, log in at app.zelfred.com and add Habits there. It takes a minute, and then I'll make it for you.",
       },
     ],
     "step": "asha in gym-buddies: create my own group",
@@ -2164,7 +2164,7 @@ _I ask at 6am about morning habits (🌅) and at 8pm about evening ones (🌙). 
       {
         "group": null,
         "ref": null,
-        "text": "To have a group of your own, log in at app.whatodo.today and add Habits there. It takes a minute, and then I'll make it for you.",
+        "text": "To have a group of your own, log in at app.zelfred.com and add Habits there. It takes a minute, and then I'll make it for you.",
       },
     ],
     "step": "asha: make a group",

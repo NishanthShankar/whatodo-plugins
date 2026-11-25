@@ -182,13 +182,13 @@ async function removeSubmission(kit: Kit, id: string) {
 
 export default definePlugin({
   id: "forms",
-  version: "1.3.0",
+  version: "1.3.1",
   sdk: "1",
   name: "Forms",
   icon: "📬",
   tagline: "Your website's forms, delivered to WhatsApp. Files included.",
   description:
-    "A backend for the forms on your own websites. Make a form, paste its address into your site, and every submission arrives as a WhatsApp message, with its fields and files kept on app.whatodo.today.",
+    "A backend for the forms on your own websites. Make a form, paste its address into your site, and every submission arrives as a WhatsApp message, with its fields and files kept on app.zelfred.com.",
   groupName: copy.groupName(),
   price: 0,
   tier: 2,

@@ -104,7 +104,7 @@ Everything it received is still here.",
     {
       "group": "contact",
       "ref": null,
-      "text": "*Contact* is closed. Its address no longer works. What it received is still on app.whatodo.today.",
+      "text": "*Contact* is closed. Its address no longer works. What it received is still on app.zelfred.com.",
     },
     {
       "group": "contact",
@@ -161,7 +161,7 @@ I'm making a WhatsApp group just for this form. Submissions will arrive there (h
     {
       "group": "partner-applications-for-this",
       "ref": null,
-      "text": "📬 *Partner Applications For This Year* has had more than 1 submissions today. I'll stop messaging about it until tomorrow. They're all on app.whatodo.today.",
+      "text": "📬 *Partner Applications For This Year* has had more than 1 submissions today. I'll stop messaging about it until tomorrow. They're all on app.zelfred.com.",
     },
   ],
   "unsures": [],
@@ -193,7 +193,7 @@ Everything it received is still here.",
     {
       "group": null,
       "ref": null,
-      "text": "*Contact* is closed. Its address no longer works. What it received is still on app.whatodo.today.",
+      "text": "*Contact* is closed. Its address no longer works. What it received is still on app.zelfred.com.",
     },
     {
       "group": null,
@@ -259,7 +259,7 @@ exports[`forms copy: making and listing > no more than fifty 1`] = `
     {
       "group": null,
       "ref": null,
-      "text": "That's the most forms I can keep (50). Delete one on app.whatodo.today first.",
+      "text": "That's the most forms I can keep (50). Delete one on app.zelfred.com first.",
     },
   ],
   "unsures": [],
@@ -292,7 +292,7 @@ Use it as your form's _action_ (method POST), or send JSON to it from a script. 
     {
       "group": null,
       "ref": null,
-      "text": "*Contact* is closed. Its address no longer works. What it received is still on app.whatodo.today.",
+      "text": "*Contact* is closed. Its address no longer works. What it received is still on app.zelfred.com.",
     },
     {
       "group": null,
@@ -388,7 +388,7 @@ Submissions will arrive here. Send _address old-one_ to see this again.",
     {
       "group": null,
       "ref": null,
-      "text": "*Old One* is closed. Its address no longer works. What it received is still on app.whatodo.today.",
+      "text": "*Old One* is closed. Its address no longer works. What it received is still on app.zelfred.com.",
     },
     {
       "group": null,
@@ -439,7 +439,7 @@ exports[`forms copy: submissions > fields, long values, many fields, files and n
 *email:* asha@example.com
 *message:* Hello
 📎 id-proof.pdf (234 KB), photo.jpg (1.2 MB), note.txt (500 B)
-_Open the files on app.whatodo.today._",
+_Open the files on app.zelfred.com._",
     },
     {
       "group": null,
@@ -488,7 +488,7 @@ _An empty submission._",
       },
       "text": "📬 *Contact*
 📎 only.pdf (2 KB)
-_Open the files on app.whatodo.today._",
+_Open the files on app.zelfred.com._",
     },
     {
       "group": null,
@@ -542,7 +542,7 @@ exports[`forms copy: submissions > the daily number: said once, then quiet 1`] =
     {
       "group": null,
       "ref": null,
-      "text": "📬 *Contact* has had more than 2 submissions today. I'll stop messaging about it until tomorrow. They're all on app.whatodo.today.",
+      "text": "📬 *Contact* has had more than 2 submissions today. I'll stop messaging about it until tomorrow. They're all on app.zelfred.com.",
     },
   ],
   "unsures": [],
@@ -661,7 +661,7 @@ _new address contact_ replaces a form's address if the old one is being misused
 _close contact_ stops a form taking submissions
 
 Each submission arrives here as a message. React ✅ when you've dealt with it.
-Everything is kept on app.whatodo.today, where you can open the files and delete things.",
+Everything is kept on app.zelfred.com, where you can open the files and delete things.",
     },
     {
       "group": null,
@@ -689,7 +689,7 @@ _new address contact_ replaces a form's address if the old one is being misused
 _close contact_ stops a form taking submissions
 
 Each submission arrives here as a message. React ✅ when you've dealt with it.
-Everything is kept on app.whatodo.today, where you can open the files and delete things.",
+Everything is kept on app.zelfred.com, where you can open the files and delete things.",
   "welcome": "📬 You've installed *Forms*.
 
 Send _new form contact_ to make your first form. I'll give you an address to paste into your website, and every submission will arrive here.

@@ -968,7 +968,7 @@ function namesOf(v: Json | undefined): string[] {
 
 export default definePlugin({
   id: "chores",
-  version: "1.1.0",
+  version: "1.1.1",
   sdk: "1",
   name: "Chores",
   icon: "🧹",

@@ -137,7 +137,7 @@ exports[`wishlist copy: adding and showing > more than fits in one message 1`] =
 
 10. *thing 11*  ₹1,100
 
-_2 more on app.whatodo.today._",
+_2 more on app.zelfred.com._",
 }
 `;
 
@@ -210,7 +210,7 @@ _list_ shows what's left to buy. React ✅ on something once it's bought.",
 
 exports[`wishlist copy: lists, moving and deleting > limits 1`] = `
 [
-  "That's the most I can keep (2000 things). Remove some on app.whatodo.today first.",
+  "That's the most I can keep (2000 things). Remove some on app.zelfred.com first.",
   "*Wishlist* is full (500 things). Remove some first, or start another list with _new list_ and a name.",
   "That's the most lists I can keep (50). Delete one first.",
   "There is no other list to move it to. Send _new list diwali_ to start one.",
@@ -417,17 +417,17 @@ https://share.test/main-1",
 exports[`wishlist copy: sharing > the message to forward, in each wording, for the first list and a named one 1`] = `
 [
   "My wishlist, in case you ever wonder what to get me:
-https://whatodo.today/s/abc",
+https://zelfred.com/s/abc",
   "My Diwali list, in case you ever wonder what to get me:
-https://whatodo.today/s/abc",
+https://zelfred.com/s/abc",
   "For anyone who has asked what I want. It's all here:
-https://whatodo.today/s/abc",
+https://zelfred.com/s/abc",
   "For anyone who has asked what I want. Diwali, all here:
-https://whatodo.today/s/abc",
+https://zelfred.com/s/abc",
   "No more guessing. Here is my wishlist:
-https://whatodo.today/s/abc",
+https://zelfred.com/s/abc",
   "No more guessing. Here is my Diwali list:
-https://whatodo.today/s/abc",
+https://zelfred.com/s/abc",
 ]
 `;
 
@@ -456,7 +456,7 @@ _lists_ shows every list you have
 
 _share_ gives you a link to this list that anyone can open. _stop sharing_ closes it.
 
-Everything is on app.whatodo.today too, with pictures.",
+Everything is on app.zelfred.com too, with pictures.",
     },
   ],
   "unsures": [
@@ -484,7 +484,7 @@ _lists_ shows every list you have
 
 _share_ gives you a link to this list that anyone can open. _stop sharing_ closes it.
 
-Everything is on app.whatodo.today too, with pictures.",
+Everything is on app.zelfred.com too, with pictures.",
   "welcome": "🎁 You've added *Wishlist*.
 
 Send a link to something you want, or type it with its price: _running shoes 4000_. I'll keep the list and the total.

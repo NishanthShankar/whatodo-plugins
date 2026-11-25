@@ -51,7 +51,7 @@ describe("forms: submissions", () => {
     await t.message(forms, "new form contact");
     await t.hook(forms, "contact", { name: "Asha", email: "asha@example.com", message: "Hello" }, [file("f1", "id-proof.pdf"), file("f2", "photo.jpg", 1_300_000)], "https://example.com");
     expect(last(t)).toBe(
-      "📬 *contact*\n*name:* Asha\n*email:* asha@example.com\n*message:* Hello\n📎 id-proof.pdf (234 KB), photo.jpg (1.2 MB)\n_Open the files on app.whatodo.today._",
+      "📬 *contact*\n*name:* Asha\n*email:* asha@example.com\n*message:* Hello\n📎 id-proof.pdf (234 KB), photo.jpg (1.2 MB)\n_Open the files on app.zelfred.com._",
     );
     const page = (await t.load(forms)) as unknown as Page;
     expect(page.total).toBe(1);
@@ -109,7 +109,7 @@ describe("forms: submissions", () => {
     expect(t.sent.slice(n).map((s) => s.text.split("\n")[0])).toEqual([
       "📬 *contact*",
       "📬 *contact*",
-      "📬 *contact* has had more than 2 submissions today. I'll stop messaging about it until tomorrow. They're all on app.whatodo.today.",
+      "📬 *contact* has had more than 2 submissions today. I'll stop messaging about it until tomorrow. They're all on app.zelfred.com.",
     ]);
     expect(((await t.load(forms)) as unknown as Page).total).toBe(6);
     t.setToday("2026-11-18");

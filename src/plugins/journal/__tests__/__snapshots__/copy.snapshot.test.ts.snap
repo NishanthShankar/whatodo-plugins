@@ -16,6 +16,6 @@ exports[`journal copy 1`] = `
 
 • Every message is an entry: words, photos, voice notes.
 • ❌ on a message removes it.
-• Read it all at app.whatodo.today/plugins/journal",
+• Read it all at app.zelfred.com/plugins/journal",
 }
 `;

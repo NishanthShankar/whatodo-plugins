@@ -1,5 +1,10 @@
 # Changelog: Journal
 
+## [1.2.2] - 2026-11-25
+
+### Changed
+- Messages name the app's new address, app.zelfred.com. The old one, app.whatodo.today, still leads there.
+
 ## [1.2.1] - 2026-11-20
 
 ### Changed

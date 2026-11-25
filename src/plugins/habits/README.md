@@ -70,7 +70,7 @@ How groups behave (the owner's decisions, 2026-11-18):
 - A habit several people do shows the together streak on its line: "Gym  Together 🔥 4". When it is the only one due, the Yes or No question carries everyone's standing: "🌱 Did you Gym today?  Together 🔥 4 · Asha 🔥 12 · Ravi 🔥 4". The together streak counts days everyone doing the habit said Yes; a person counts from the day they joined and stops counting after a week of silence.
 - In the main group your own habits keep everything they had (reactions on old check-ins, simple messages, delete polls when you are alone in a habit). Habits friends add there are listed after yours.
 - Everyone who takes part gets a streak, profile or not, shown in the group and on the web. Someone without a Zelfred profile gets one poll on their first answer: "Good start Asha. Let me create an account for you, so you can join the streak race too. Just vote Yes and I'll set it all up." Only their own vote counts: if someone else votes on it, Zelfred says once "I need consent from Asha for this, so only Asha's vote counts here." Yes records their agreement and lets them log in. Not now makes no profile, answers "No problem. Just ask me to set it up for you later if you change your mind.", and they are never asked again.
-- A friend who asks for a group of their own is told to log in at app.whatodo.today and add Habits.
+- A friend who asks for a group of their own is told to log in at app.zelfred.com and add Habits.
 - A friend who logs in sees the habits they take part in on the web (`web.loadFor`): their own days and streak, the together streak and everyone's streaks. Nothing else of the owner's.
 - Limits: 10 extra groups, 12 habits added per group.
 
