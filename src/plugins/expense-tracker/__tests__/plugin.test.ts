@@ -742,3 +742,120 @@ describe("an emoji's group", () => {
     expect(expenses(t)[0].mark).toBeNull();
   });
 });
+
+describe("who spent it", () => {
+  const refOf = (t: T, n = 0) => t.marks[n];
+  const tag = (...who: string[]) => ({ mentions: who });
+
+  it("gives an expense to the person tagged in a reply, and says how once", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "", refOf(t), null, undefined, undefined, tag("Ravi"));
+    expect(expenses(t)[0]).toMatchObject({ what: "lunch", by: "ravi", name: "Ravi" });
+    expect(last(t)).toBe(copy.firstWho({ what: "lunch", who: "Ravi" }));
+    await t.message(plugin, "cab 300");
+    const before = t.reactions.length;
+    await t.message(plugin, "", refOf(t, 1), null, "Ravi", undefined, tag("Ravi"));
+    expect(expenses(t)[1]).toMatchObject({ what: "cab", by: "ravi" });
+    expect(t.reactions.slice(before)).toEqual(["👍"]);
+  });
+
+  it("is taken with mine, me or I paid", async () => {
+    for (const words of ["mine", "Me", "I paid", "it's mine!", "that was me"]) {
+      const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+      await t.message(plugin, words, refOf(t), null, "Ravi");
+      expect(expenses(t)[0], words).toMatchObject({ by: "ravi", name: "Ravi" });
+    }
+  });
+
+  it("adds it to that person's sum", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300");
+    await t.message(plugin, "mine", refOf(t, 1), null, "Ravi");
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("Asha ₹450 · Ravi ₹300");
+  });
+
+  it("asks for one person when two are tagged", async () => {
+    const t = await started();
+    await t.message(plugin, "", refOf(t), null, undefined, undefined, tag("Ravi", "Meena"));
+    expect(last(t)).toBe(copy.whoOne());
+    expect(expenses(t)[0].by).toBe("owner");
+  });
+
+  it("still reads an amount beside a tag as a correction", async () => {
+    const t = await started();
+    await t.message(plugin, "540", refOf(t), null, undefined, undefined, tag("Ravi"));
+    expect(expenses(t)[0]).toMatchObject({ amount: 540, by: "owner" });
+  });
+
+  it("works on a closed trip, and leaves a tag that answers nothing alone", async () => {
+    const t = await started();
+    await t.message(plugin, "end trip");
+    const sent = t.sent.length;
+    await t.message(plugin, "", null, null, undefined, undefined, tag("Ravi"));
+    expect(t.sent).toHaveLength(sent);
+    await t.message(plugin, "mine", refOf(t), null, "Ravi");
+    expect(expenses(t)[0].by).toBe("ravi");
+  });
+
+  it("names someone tagged before they ever wrote, as soon as they are heard", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300");
+    await t.message(plugin, "", refOf(t, 1), null, undefined, undefined, { mentions: [{ id: "ravi", name: null }] });
+    expect(last(t)).toBe(copy.firstWho({ what: "cab", who: null }));
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("2. cab ₹300\n");
+    expect(last(t)).toContain("Asha ₹450 · Someone ₹300");
+    // Anything they do here is enough: a line that is no expense, or a reaction.
+    await t.message(plugin, "thanks all", null, null, { id: "ravi", name: "Ravi", owner: false });
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("2. cab ₹300 · Ravi");
+    expect(last(t)).toContain("Asha ₹450 · Ravi ₹300");
+    const p = (await t.load(plugin)) as unknown as { groups: { open: { rows: { who: string | null }[]; dash: { people: { name: string }[] } } }[] };
+    expect(p.groups[0].open.dash.people.map((x) => x.name)).toEqual(["Asha", "Ravi"]);
+  });
+
+  it("can be set on the page, among the people on the trip", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    const p = (await t.load(plugin)) as unknown as { groups: { open: { id: string; rows: { id: string; by: string }[]; dash: { people: { key: string; name: string; value: number }[] } } }[] };
+    const trip = p.groups[0].open;
+    await t.act(plugin, "setBy", { trip: trip.id, id: trip.rows[0].id, by: "ravi" });
+    expect(expenses(t)[0]).toMatchObject({ by: "ravi", name: "Ravi" });
+    await expect(t.act(plugin, "setBy", { trip: trip.id, id: trip.rows[0].id, by: "nobody" })).rejects.toThrow("Pick someone who is on this trip.");
+  });
+});
+
+describe("the page's numbers", () => {
+  it("adds up each day, emoji, label and person in the trip's currency", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300 #commute", null, null, "Ravi");
+    await t.message(plugin, "dinner 20 usd #food");
+    const lunch = t.marks[0];
+    await t.react(plugin, "🍕", lunch);
+    const p = (await t.load(plugin)) as unknown as { groups: { open: { rows: { value: number | null; by: string }[]; dash: Record<string, unknown> } }[]; known: { labels: string[]; marks: string[] } };
+    const trip = p.groups[0].open;
+    expect(trip.rows.map((r) => r.value).sort()).toEqual([300, 450, null]);
+    expect(trip.dash).toMatchObject({
+      days: [{ total: "₹750 + $20", value: 750, count: 3 }],
+      marks: [{ key: "🍕", total: "₹450", value: 450, count: 1 }],
+      labels: [{ key: "commute", total: "₹300", value: 300, count: 1 }, { key: "food", total: "$20", value: 0, count: 1 }],
+      people: [{ key: "owner", name: "Asha", total: "₹450 + $20", value: 450, count: 2 }, { key: "ravi", name: "Ravi", total: "₹300", value: 300, count: 1 }],
+      perDay: "₹750",
+      span: 1,
+      top: { what: "lunch", amount: "₹450" },
+      outside: "$20",
+    });
+    expect(p.known).toEqual({ labels: ["commute", "food"], marks: ["🍕"] });
+  });
+
+  it("remembers a closed trip's labels and emoji", async () => {
+    const t = await started();
+    await t.message(plugin, "cab 300 #commute");
+    await t.react(plugin, "🍕", t.marks[0]);
+    await t.message(plugin, "end trip");
+    expect(trips(t)[0].used).toEqual({ labels: ["commute"], marks: ["🍕"] });
+    const p = (await t.load(plugin)) as unknown as { known: { labels: string[]; marks: string[] } };
+    expect(p.known).toEqual({ labels: ["commute"], marks: ["🍕"] });
+  });
+});

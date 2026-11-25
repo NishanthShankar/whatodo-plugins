@@ -36,6 +36,8 @@ On an expense you sent:
 | reply with a whole line, like `brunch 540` | The expense is replaced. 👍 |
 | reply `delete` (also `remove`) | Removed, and its bill with it. 👍 |
 | reply with a photo | That photo is its bill (it replaces the one before). 👍. Works after the trip closed too. |
+| reply and tag someone, like `@Ravi` | It is theirs: they spent it. 👍. Anyone may, for anyone's expense. Works after the trip closed too. |
+| reply `mine` (also `me`, `I paid`) | It is yours. 👍 |
 | reply `#food` | The label is added. 👍. Works after the trip closed too. |
 | react with an emoji, like 🍕 | The expense joins that emoji's group. `total` and the page add up each group. Anyone in the group may, and the last reaction counts. Taking the reaction away clears it. 👍, ✅, 👌 and 🙏 are not groups. Works after the trip closed too. |
 | reply `bill` | Its bill comes back, as a photo with the expense as its caption. |

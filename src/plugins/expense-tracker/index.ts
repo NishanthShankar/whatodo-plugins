@@ -1,5 +1,5 @@
 import { definePlugin, type Json, type Kit, type Photo, type Sender } from "../../sdk";
-import { copy, SAVED, type Row, type Shown } from "./copy";
+import { copy, MINE, SAVED, type Row, type Shown } from "./copy";
 import { add, cleanTag, COMMON, currencyOf, guessCurrency, label, MAX_TAGS, money, readAmount, readExpense, sayDay, sign, takeTags, total, type Read, type Sums } from "./money";
 
 /**
@@ -27,18 +27,20 @@ import { add, cleanTag, COMMON, currencyOf, guessCurrency, label, MAX_TAGS, mone
  *   trips     key: trip id                data: Trip      sort: started (ms)
  *   expenses  key: "<trip id>:<id>"       data: Expense   sort: its place in the trip (1, 2, 3...)
  *   homes     key: group key              data: { name }  the groups handed over
+ *   people    key: a person's id          data: { name }  the name each person was last heard under
  *   state, one set per group: the key as below in the app's own group, "<key>@<group>" elsewhere
  *   state     key: "open"                 data: { trip }  the trip expenses go to now
  *   state     key: "n"                    data: number    how many trips were started
  *   state     key: "taught"               data: 1 once the first-expense note was sent
  *   state     key: "taughtBill"           data: 1 once a bill was kept here (the note about bills is said once)
+ *   state     key: "taughtWho"            data: 1 once an expense was given to someone here (the note about it is said once)
  *   state     key: "shared"               data: 1 once someone other than the owner wrote here
  *   state     key: "prompted"             data: 1 after "I need an amount", until something is kept
  */
 
 /** The group something happens in: its key, or null for the app's own group. */
 type Here = string | null;
-const STATE = ["open", "n", "taught", "taughtBill", "shared", "prompted"] as const;
+const STATE = ["open", "n", "taught", "taughtBill", "taughtWho", "shared", "prompted"] as const;
 const sk = (here: Here, key: (typeof STATE)[number]) => (here ? `${key}@${here}` : key);
 
 /** The most expenses one trip holds. */
@@ -71,6 +73,8 @@ export interface Trip {
   /** Set when it ends: how many expenses, and their sums by currency. */
   count?: number;
   sums?: Sums;
+  /** Set when it ends: the labels and emoji its expenses carried, for the page to offer again. */
+  used?: { labels: string[]; marks: string[] };
 }
 
 export interface Expense {
@@ -78,7 +82,7 @@ export interface Expense {
   amount: number;
   /** Null: the trip's currency. */
   currency: string | null;
-  /** The sender's id and their name when it was sent. */
+  /** Who spent it, and their name: the sender, until a reply gives it to someone else. */
   by: string;
   name: string | null;
   at: number;
@@ -181,17 +185,40 @@ async function drop(kit: Kit, key: string, e: Expense): Promise<void> {
   await kit.store.delete("expenses", key);
 }
 
+/** Who is who among some expenses: each person's id and their name, null while nobody has heard it. */
+type Names = Map<string, string | null>;
+
+/**
+ * The name a person was last heard under is kept, so an expense given to someone who had never written (tagged in a reply)
+ * shows their name by itself from the first time they write, react or answer here.
+ */
+async function know(kit: Kit, s: Sender): Promise<void> {
+  const name = s.name ?? (s.owner ? kit.person.name : null);
+  if (!name) return;
+  if ((await kit.store.get<{ name: string }>("people", s.id))?.name !== name) await kit.store.put("people", s.id, { name });
+}
+
+/** The names for some expenses: the one each person was last heard under, else the one kept with their expenses. */
+async function namesOf(kit: Kit, items: { data: Expense }[]): Promise<Names> {
+  const names: Names = new Map();
+  for (const { data: e } of items) if (e.name || !names.has(e.by)) names.set(e.by, e.name ?? names.get(e.by) ?? null);
+  for (const by of names.keys()) {
+    const heard = (await kit.store.get<{ name: string }>("people", by))?.name;
+    if (heard) names.set(by, heard);
+  }
+  return names;
+}
+
 /** A trip as a list: its newest expenses, the sum, and what each person sent when several did. */
-function shown(kit: Kit, trip: Trip, items: { data: Expense }[]): Shown {
+function shown(kit: Kit, trip: Trip, items: { data: Expense }[], names: Names): Shown {
   const mine = of(kit, trip);
   const sums: Sums = {};
   const by = new Map<string, { name: string | null; sums: Sums }>();
   for (const { data: e } of items) {
     const c = e.currency ?? mine;
     add(sums, e.amount, c);
-    const p = by.get(e.by) ?? { name: e.name, sums: {} };
+    const p = by.get(e.by) ?? { name: names.get(e.by) ?? null, sums: {} };
     add(p.sums, e.amount, c);
-    if (e.name) p.name = e.name;
     by.set(e.by, p);
   }
   const several = by.size > 1;
@@ -287,10 +314,11 @@ async function close(kit: Kit, here: Here): Promise<Shown | null> {
   const sums: Sums = {};
   for (const { data: e } of items) add(sums, e.amount, e.currency ?? mine);
   // The currency it was counted in is fixed with it, so the sums stay true whatever is learnt later.
-  f.trip = { ...f.trip, currency: mine, asked: null, endedAt: kit.now, count: items.length, sums };
+  const used = { labels: [...new Set(items.flatMap((i) => i.data.tags ?? []))], marks: [...new Set(items.flatMap((i) => (i.data.mark ? [i.data.mark] : [])))] };
+  f.trip = { ...f.trip, currency: mine, asked: null, endedAt: kit.now, count: items.length, sums, used };
   await save(kit, f);
   await kit.store.delete("state", sk(here, "open"));
-  return shown(kit, f.trip, items);
+  return shown(kit, f.trip, items, await namesOf(kit, items));
 }
 
 async function end(kit: Kit, here: Here): Promise<void> {
@@ -327,7 +355,7 @@ async function showTotal(kit: Kit, here: Here): Promise<void> {
     kit.send(copy.nothingYet());
     return;
   }
-  kit.send(copy.total(shown(kit, f.trip, items)));
+  kit.send(copy.total(shown(kit, f.trip, items, await namesOf(kit, items))));
 }
 
 async function showTrips(kit: Kit, here: Here): Promise<void> {
@@ -341,7 +369,7 @@ async function showTrips(kit: Kit, here: Here): Promise<void> {
     }
     const items = await expensesOf(kit, t.key);
     if (!items.length) continue;
-    const s = shown(kit, t.data, items);
+    const s = shown(kit, t.data, items, await namesOf(kit, items));
     rows.push({ title: s.title, days: s.days, count: s.count, total: s.total, open: true });
   }
   kit.send(rows.length ? copy.trips({ trips: rows }) : copy.noTrips());
@@ -359,7 +387,7 @@ async function undo(kit: Kit, here: Here, sender: Sender): Promise<void> {
 }
 
 /** A reply to an expense: remove it, or put it right. */
-async function onReply(kit: Kit, here: Here, ref: ExpenseRef, text: string, lower: string, photo: Photo | null): Promise<void> {
+async function onReply(kit: Kit, here: Here, ref: ExpenseRef, text: string, lower: string, photo: Photo | null, sender: Sender, tagged: Sender[]): Promise<void> {
   const trip = await kit.store.get<Trip>("trips", ref.trip);
   const rows: { key: string; data: Expense }[] = [];
   for (const id of ref.ids) {
@@ -392,6 +420,22 @@ async function onReply(kit: Kit, here: Here, ref: ExpenseRef, text: string, lowe
     const news = !(await kit.store.get("state", sk(here, "taughtBill")));
     await kit.store.put("state", sk(here, "taughtBill"), 1);
     if (news) kit.send(copy.firstBill({ what: rows[0].data.what }));
+    else kit.react(SAVED);
+    return;
+  }
+  // Whose it is. A reply that tags someone gives it to them, and "me" or "mine" takes it. Anyone in the group may, for
+  // anyone's expense. A closed trip takes it too: the sum stays as it was. A tag beside an amount is a correction, below.
+  if ((tagged.length && !/\d/.test(text)) || (!tagged.length && MINE.test(lower))) {
+    if (tagged.length > 1) {
+      kit.send(copy.whoOne());
+      return;
+    }
+    const to = tagged[0] ?? sender;
+    const name = to.name ?? (to.owner ? kit.person.name : null) ?? (await kit.store.get<{ name: string }>("people", to.id))?.name ?? null;
+    for (const r of rows) await kit.store.put("expenses", r.key, { ...r.data, by: to.id, name: name ?? (r.data.by === to.id ? r.data.name : null) } as unknown as Json);
+    const news = !(await kit.store.get("state", sk(here, "taughtWho")));
+    await kit.store.put("state", sk(here, "taughtWho"), 1);
+    if (news) kit.send(copy.firstWho({ what: rows.map((r) => r.data.what).join(", "), who: name }));
     else kit.react(SAVED);
     return;
   }
@@ -495,6 +539,39 @@ interface PageRow {
   bill: string | null;
   /** The emoji it was reacted to with, or null. */
   mark: string | null;
+  /** Who spent it: the key of that person in `dash.people`. */
+  by: string;
+  /** Its amount as a number, when it is in the trip's own currency. Null in any other: it can't be added to the rest. */
+  value: number | null;
+}
+/** One part of a trip, for a bar on the page: a day, an emoji's group, a label or a person. */
+interface Part {
+  /** The day ("2026-11-24"), the emoji, the label or the person's id. */
+  key: string;
+  /** How it is said: "24 Nov", "🍕", "food", "Asha". */
+  name: string;
+  /** Everything in it, each currency on its own: "₹450 + $20". */
+  total: string;
+  /** What it adds up to in the trip's own currency: the length of its bar. */
+  value: number;
+  count: number;
+}
+/** A trip's numbers for the page's graphs. Bars are in the trip's own currency; `outside` says what that leaves out. */
+interface Dash {
+  /** The days something was paid on, oldest first. */
+  days: Part[];
+  /** Biggest first, as are the next two. */
+  marks: Part[];
+  labels: Part[];
+  people: Part[];
+  /** The sum in the trip's own currency, over the days from its first expense to its last: "₹1,200". */
+  perDay: string;
+  /** How many days that is. */
+  span: number;
+  /** The largest single expense in the trip's own currency. */
+  top: { what: string; amount: string } | null;
+  /** What was paid in other currencies, when anything was: "$20". */
+  outside: string | null;
 }
 /** A trip as the page shows it. `rows` only for the open trip and for the one asked for. */
 interface PageTrip {
@@ -514,6 +591,43 @@ interface PageTrip {
   marks: { mark: string; total: string; count: number }[];
   open: boolean;
   rows?: PageRow[];
+  /** Only with `rows`. */
+  dash?: Dash;
+}
+
+/** A trip's expenses cut one way: by day, emoji, label or person. An expense with two labels is in both. */
+function parts(items: { data: Expense }[], mine: string, keys: (e: Expense) => { key: string; name: string }[]): Part[] {
+  const by = new Map<string, { name: string; sums: Sums; count: number }>();
+  for (const { data: e } of items)
+    for (const k of keys(e)) {
+      const g = by.get(k.key) ?? by.set(k.key, { name: k.name, sums: {}, count: 0 }).get(k.key)!;
+      add(g.sums, e.amount, e.currency ?? mine);
+      g.count++;
+    }
+  return [...by].map(([key, g]) => ({ key, name: g.name, total: total(g.sums, mine), value: g.sums[mine] ?? 0, count: g.count })).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
+}
+
+function dashOf(kit: Kit, items: { data: Expense }[], mine: string, names: Map<string, string | null>): Dash {
+  const dayOf = (e: Expense) => e.day ?? kit.time.day(e.at);
+  const days = parts(items, mine, (e) => [{ key: dayOf(e), name: sayDay(dayOf(e)) }]).sort((a, b) => (a.key < b.key ? -1 : 1));
+  const span = days.length ? Math.round((Date.parse(`${days[days.length - 1].key}T00:00:00Z`) - Date.parse(`${days[0].key}T00:00:00Z`)) / 86_400_000) + 1 : 0;
+  const sums: Sums = {};
+  let top: Expense | null = null;
+  for (const { data: e } of items) {
+    add(sums, e.amount, e.currency ?? mine);
+    if ((e.currency ?? mine) === mine && (!top || e.amount > top.amount)) top = e;
+  }
+  const { [mine]: own = 0, ...rest } = sums;
+  return {
+    days,
+    marks: parts(items, mine, (e) => (e.mark ? [{ key: e.mark, name: e.mark }] : [])),
+    labels: parts(items, mine, (e) => (e.tags ?? []).map((t) => ({ key: t, name: t }))),
+    people: parts(items, mine, (e) => [{ key: e.by, name: names.get(e.by) ?? "Someone" }]),
+    perDay: money(span ? Math.round(own / span) : 0, mine),
+    span,
+    top: top ? { what: top.what, amount: money(top.amount, mine) } : null,
+    outside: Object.keys(rest).length ? total(rest, "") : null,
+  };
 }
 
 async function pageTrip(kit: Kit, id: string, trip: Trip, withRows: boolean): Promise<PageTrip | null> {
@@ -525,11 +639,10 @@ async function pageTrip(kit: Kit, id: string, trip: Trip, withRows: boolean): Pr
   const items = await expensesOf(kit, id);
   // An open trip nobody has sent anything to yet (it was only named) is not a trip to show.
   if (open && !items.length) return null;
-  const s = shown(kit, trip, items);
-  const names = new Map<string, string | null>();
-  for (const { data: e } of items) if (e.name || !names.has(e.by)) names.set(e.by, e.name ?? names.get(e.by) ?? null);
-  const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: names.size > 1 ? (names.get(e.by) ?? null) : null, at: e.at, day: e.day ?? kit.time.day(e.at), tags: e.tags ?? [], bill: e.bill ?? null, mark: e.mark ?? null }));
-  return { id, title: s.title, days: s.days, count: s.count, total: s.total, currency: sign(mine), people: s.people, labels: s.labels ?? [], marks: markSums(items, mine), open, ...(withRows || open ? { rows } : {}) };
+  const names = await namesOf(kit, items);
+  const s = shown(kit, trip, items, names);
+  const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: names.size > 1 ? (names.get(e.by) ?? null) : null, at: e.at, day: e.day ?? kit.time.day(e.at), tags: e.tags ?? [], bill: e.bill ?? null, mark: e.mark ?? null, by: e.by, value: (e.currency ?? mine) === mine ? e.amount : null }));
+  return { id, title: s.title, days: s.days, count: s.count, total: s.total, currency: sign(mine), people: s.people, labels: s.labels ?? [], marks: markSums(items, mine), open, ...(withRows || open ? { rows, dash: dashOf(kit, items, mine, names) } : {}) };
 }
 
 /** The expense a page action is about. Throws a plain sentence when it isn't kept any more. */
@@ -561,12 +674,24 @@ async function page(kit: Kit, args: Record<string, Json>): Promise<Json> {
   }
   const want = typeof args.trip === "string" ? args.trip : null;
   const asked = want ? await kit.store.get<Trip>("trips", want) : null;
-  return { groups, trip: want && asked ? await pageTrip(kit, want, asked, true) : null } as unknown as Json;
+  // The labels and emoji used so far, the most used first: what the page offers when one is being set.
+  const uses = { labels: new Map<string, number>(), marks: new Map<string, number>() };
+  const used = (m: Map<string, number>, key: string, n: number) => m.set(key, (m.get(key) ?? 0) + n);
+  for (const g of groups) {
+    for (const part of g.open?.dash?.labels ?? []) used(uses.labels, part.key, part.count);
+    for (const part of g.open?.dash?.marks ?? []) used(uses.marks, part.key, part.count);
+  }
+  for (const t of all) {
+    for (const l of t.data.used?.labels ?? []) used(uses.labels, l, 1);
+    for (const m of t.data.used?.marks ?? []) used(uses.marks, m, 1);
+  }
+  const most = (m: Map<string, number>) => [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([key]) => key).slice(0, 60);
+  return { groups, trip: want && asked ? await pageTrip(kit, want, asked, true) : null, known: { labels: most(uses.labels), marks: most(uses.marks) } } as unknown as Json;
 }
 
 export default definePlugin({
   id: "expense-tracker",
-  version: "1.4.0",
+  version: "1.5.0",
   sdk: "1",
   name: "TripExpenses",
   icon: "🧾",
@@ -609,6 +734,13 @@ export default definePlugin({
         if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(`${day}T00:00:00Z`)) || new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) !== day) throw new Error("Pick a date.");
         if (day > kit.time.shiftDay(kit.time.day(kit.now), 1)) throw new Error("That date hasn't come yet.");
         await kit.store.put("expenses", key, { ...e, day } as unknown as Json);
+      },
+      /** Who spent an expense: one of the people who already have an expense in its trip. Allowed after the trip closed: the sum stays as it was. */
+      async setBy(kit, { trip, id, by }) {
+        const { key, e } = await pageExpense(kit, trip, id);
+        const theirs = (await expensesOf(kit, String(trip))).filter((x) => x.data.by === by);
+        if (typeof by !== "string" || !theirs.length) throw new Error("Pick someone who is on this trip.");
+        await kit.store.put("expenses", key, { ...e, by, name: (await namesOf(kit, theirs)).get(by) ?? null } as unknown as Json);
       },
       /** The emoji an expense is grouped under, or (`mark: null`) none. */
       async setMark(kit, { trip, id, mark }) {
@@ -659,7 +791,10 @@ export default definePlugin({
     // WhatsApp sends each photo as its own message, so there is at most one here.
     const photo = event.photos?.[0] ?? null;
     for (const extra of event.photos?.slice(1) ?? []) await kit.files.remove(extra.id);
-    if (!text && !photo) return;
+    const tagged = event.mentions ?? [];
+    if (event.sender) await know(kit, event.sender);
+    for (const person of tagged) await know(kit, person);
+    if (!text && !photo && !tagged.length) return;
     const lower = text.toLowerCase().replace(/\s+/g, " ").replace(/[!.]+$/, "");
     const sender = senderOf(event, kit);
     const here: Here = event.group ?? null;
@@ -667,8 +802,10 @@ export default definePlugin({
 
     if (isExpenseRef(event.quotedRef)) {
       await heard(kit, here);
-      return onReply(kit, here, event.quotedRef, text, lower, photo);
+      return onReply(kit, here, event.quotedRef, text, lower, photo, sender, tagged);
     }
+    // Someone tagged with no words, and not in reply to an expense: talk between friends.
+    if (!text && !photo) return;
     // A photo with no words that answers nothing: people share trip photos in such a group. Not kept, and nothing is said.
     if (photo && !text) return void (await kit.files.remove(photo.id));
     if (!photo && (await command(kit, here, text.replace(/\s+/g, " "), lower, sender))) {
@@ -719,6 +856,7 @@ export default definePlugin({
    * sum stays as it was.
    */
   async onReaction(event, kit) {
+    if (event.sender) await know(kit, event.sender);
     if (!isExpenseRef(event.ref)) return;
     if (event.emoji && PLAIN.has(bare(event.emoji))) return;
     const mark = event.emoji ? [...event.emoji].slice(0, 8).join("") : null;
@@ -730,6 +868,7 @@ export default definePlugin({
   },
 
   async onAnswer(event, kit) {
+    if (event.sender) await know(kit, event.sender);
     if (!isCurrencyRef(event.ref)) return;
     const currency = event.ref.codes[event.choice];
     const trip = await kit.store.get<Trip>("trips", event.ref.trip);

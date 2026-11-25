@@ -30,6 +30,10 @@ export const DELETE = fixed("delete");
 export const BILL = fixed("bill");
 export const TAG_EXAMPLE = fixed("lunch 450 #food");
 export const TAG_REPLY = fixed("#food");
+/** Sent as a reply to an expense: the person who says it spent it. */
+export const MINE_EXAMPLE = fixed("mine");
+/** Every way of saying that, as the parser reads it: lower case, with no full stop at the end. */
+export const MINE = /^(me|mine|i|my|by me|i paid|i did|i spent|i spent (it|this|that)|i paid (it|this|that)|paid by me|(it'?s|that'?s|this is|it is|that is|this one'?s|this one is|that was|it was|this was) (mine|me)|mine too|me too)$/;
 
 // ── Reactions ──
 
@@ -110,6 +114,7 @@ export const copy = {
       "React to an expense with an emoji, like 🍕, and it joins that emoji's group. The list adds up each group.",
       "Send a photo of the bill with the expense as its caption, and I keep the two together.",
       "",
+      `The person who sends an expense spent it. If someone else did, reply to it and tag them, or they reply _${MINE_EXAMPLE}_.`,
       `Reply to an expense with the right amount to correct it, with _${DELETE}_ to remove it, with a photo to keep its bill, with _${TAG_REPLY}_ to label it, or with _${BILL}_ to see its bill.`,
     ].join("\n"),
   ]),
@@ -174,6 +179,13 @@ export const copy = {
   noBill: msg(["No bill is kept for that one. Reply to it with a photo of the bill and I keep it."]),
   /** A photo sent as a reply to a message that held several expenses. */
   billWhich: msg(["That message holds several expenses, so I can't tell whose bill this is. Send the photo with the expense as its caption."]),
+
+  /** Said once in a group, the first time an expense is given to someone: how that works here. `who`: null when their name isn't known. */
+  firstWho: msg<{ what: string; who: string | null }>([
+    ({ what, who }) => `${what} is ${who ? `${who}'s` : "theirs"} now.\n\nWhoever sends an expense spent it. When someone else did, reply to it and tag them, or they reply _${MINE_EXAMPLE}_. From now on a 👍 means done.`,
+  ]),
+  /** A reply to an expense that tags more than one person. */
+  whoOne: msg(["One expense, one person. Reply to it again and tag only who spent it."]),
 
   // ── Showing ──
   total: msg<Shown>([(t) => `*${t.title}, so far*\n\n${list(t)}`]),
