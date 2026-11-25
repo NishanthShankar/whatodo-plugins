@@ -67,6 +67,9 @@ export interface Home {
   toldPeople?: 1;
   /** The ideas were offered, unasked, once. */
   offered?: 1;
+  /** The day of the home's first tick, and whether the page was mentioned since. */
+  firstTick?: string;
+  toldPage?: 1;
   /** The question "which of these is you?" is open: who was asked, about which job, and the people offered in the options' order. */
   asking?: { sender: string; job: string; ids: string[] } | null;
   /** Someone besides the person who added the app is here: people also just talk. */
@@ -314,6 +317,10 @@ async function tick(kit: Kit, here: Here, home: Home, f: Found, sender: Sender, 
   if (job.rhythm.kind === "every") next.rhythm = { ...job.rhythm, from: kit.today };
   f.job = next;
   await saveJob(kit, here, f);
+  if (!home.firstTick) {
+    home.firstTick = kit.today;
+    await saveHome(kit, here, home);
+  }
   return { status: "done", by: by ? me.p.name : null, next: nameOf(folk, turnOf(next, folk, kit.today).who), covered: who && who !== me.id ? nameOf(folk, who) : null };
 }
 
@@ -386,19 +393,22 @@ async function morning(kit: Kit, here: Here, home: Home): Promise<void> {
   if (!due.length) return saveHome(kit, here, next);
   const teach = !home.taughtList;
   next.taughtList = 1;
+  // The page is mentioned once, with the first list after a home's first real day.
+  const page = !home.toldPage && !!home.firstTick && home.firstTick < today;
+  if (page) next.toldPage = 1;
   const rows = due.map((f) => ({ f, who: nameOf(folk, turnOf(f.job, folk, today).who) }));
 
   if (rows.length === 1) {
     // A poll needs two options: one job goes out as a line to react to.
     const ref: OneRef = { kind: "one", home: hk(here), day: today, job: rows[0].f.id };
-    kit.send(copy.todayOne({ name: rows[0].f.job.name, who: rows[0].who, missed: missed.length > 0, teach }), { ref: ref as unknown as Json, ...to(here) });
+    kit.send(copy.todayOne({ name: rows[0].f.job.name, who: rows[0].who, missed: missed.length > 0, teach, page }), { ref: ref as unknown as Json, ...to(here) });
     return saveHome(kit, here, next);
   }
 
   // Twelve to a poll, split evenly so none is left with a single job.
   const parts = Math.ceil(rows.length / 12);
   const size = Math.ceil(rows.length / parts);
-  const intro = [...(teach ? [copy.teachList()] : []), ...(missed.length ? [copy.missed({ names: missed })] : [])].join("\n\n");
+  const intro = [...(page ? [copy.thePage()] : []), ...(teach ? [copy.teachList()] : []), ...(missed.length ? [copy.missed({ names: missed })] : [])].join("\n\n");
   for (let i = 0; i < parts; i++) {
     const page = rows.slice(i * size, (i + 1) * size);
     const ref: DayRef = { kind: "day", home: hk(here), day: today, part: i, ids: page.map((r) => r.f.id) };
@@ -926,7 +936,8 @@ async function page(kit: Kit, args: Record<string, Json>): Promise<Json> {
   for (const h of stored) if (!h.data.left) homes.push(await pageHome(kit, hereOf(h.key), h.data, month));
   // The app's own group first.
   homes.sort((a, b) => Number((a as { key: Here }).key !== null) - Number((b as { key: Here }).key !== null));
-  return { today: kit.today, month, homes };
+  // For the page's setup: the usual jobs, and the first name of the person looking.
+  return { today: kit.today, month, homes, ideas: IDEA_JOBS.map((i) => ({ id: i.id, name: i.name, rhythm: i.rhythm.kind === "every" ? { kind: "every", n: i.rhythm.n } : i.rhythm })), me: first(kit.person.name) } as unknown as Json;
 }
 
 /** The home a page action is about, with what is in it. */
@@ -957,7 +968,7 @@ function namesOf(v: Json | undefined): string[] {
 
 export default definePlugin({
   id: "chores",
-  version: "1.0.0",
+  version: "1.1.0",
   sdk: "1",
   name: "Chores",
   icon: "🧹",
@@ -1170,6 +1181,56 @@ export default definePlugin({
   web: {
     load: page,
     actions: {
+      /**
+       * Set a home up in one go, from the page: who lives there (first names, the person's own
+       * first), its jobs (`{ name, rhythm, turns }`, `turns` false for a job anyone does) and
+       * the hour of the day's list. Only for a home with no jobs yet. It is then said in the
+       * home's group, and today's list follows at once when something is due.
+       */
+      async setup(kit, { home, people, jobs, hour }) {
+        const c = await ctxOf(kit, home);
+        if (c.jobs.length) throw new Error("This home already has jobs. Add more one at a time.");
+        if (!Array.isArray(jobs) || !jobs.length) throw new Error("Pick at least one job.");
+        if (jobs.length > MAX_JOBS) throw new Error(`A home keeps ${MAX_JOBS} jobs at most.`);
+        if (hour !== undefined && !(typeof hour === "number" && Number.isInteger(hour) && hour >= 0 && hour <= 23)) throw new Error("Pick an hour.");
+        const names = namesOf(people);
+        const reads: ReadJob[] = [];
+        for (const j of jobs as { name?: Json; rhythm?: Json; turns?: Json }[]) {
+          const name = typeof j?.name === "string" ? cleanName(j.name) : null;
+          const rhythm = cleanRhythm(j?.rhythm, kit.today);
+          if (!name || !rhythm) throw new Error("Each job needs a short name and how often it comes round.");
+          if (reads.some((r) => norm(r.name) === norm(name))) throw new Error(`"${name}" is there twice.`);
+          reads.push({ name, rhythm, rota: j.turns === true && names.length >= 2 ? names : null });
+        }
+        const ids: string[] = [];
+        for (const n of names) {
+          const p = await named(kit, c.here, n, c.folk);
+          if (!p) throw new Error(`A home keeps ${MAX_PEOPLE} people at most.`);
+          ids.push(p.id);
+        }
+        // The first name is the person setting it up: no need to ask later which one they are.
+        const me = c.folk.find((f) => f.id === ids[0]);
+        if (me && !me.p.sender && !c.folk.some((f) => f.p.sender === c.sender.id)) {
+          me.p = { ...me.p, sender: c.sender.id };
+          await savePerson(kit, c.here, me.id, me.p);
+        }
+        const h: Home = { ...c.home, ...(typeof hour === "number" ? { hour } : {}), taught: 1, offered: 1 };
+        let turn = 0;
+        for (const r of reads) {
+          const a = await keepJob(kit, c.here, h, r, c.jobs, c.folk);
+          if (a.status !== "kept") throw new Error("That is more than a home keeps.");
+          // Each job with a rota starts one person further on, so the first day isn't all one person's.
+          if (a.f.job.rota.length) {
+            a.f.job = { ...a.f.job, at: turn++ % a.f.job.rota.length };
+            await saveJob(kit, c.here, a.f);
+          }
+        }
+        const today = c.jobs.some((j) => dueOn(j.job.rhythm, kit.today)) && h.sent !== kit.today;
+        const add = unseen(c.here, h, c.folk);
+        await saveHome(kit, c.here, h);
+        kit.send(copy.setUp({ jobs: c.jobs.map((j) => j.job.name), people: names, today, hour: h.hour, add }), to(c.here));
+        if (today) await morning(kit, c.here, h);
+      },
       /** A new job, or a new rhythm and rota for the job with that name. `rota`: names, empty for anyone. */
       async addJob(kit, { home, name, rhythm, rota }) {
         const c = await ctxOf(kit, home);

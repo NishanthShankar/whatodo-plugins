@@ -35,7 +35,7 @@ The goal is a marketplace where developers publish plugins and **earn from them*
 | 📍 [SafeButWhere](src/plugins/safebutwhere) | 1.1.0 | 2 | Remember where you put things: send a photo of the spot or a few words, ask for it later. Unlisted. |
 | 🧾 [TripExpenses](src/plugins/expense-tracker) | 1.4.0 | 1 | Trip expenses added up: send what you paid and the amount, say "end trip" for the total. Friends in the group can send theirs. A new group description starts a new trip. |
 | 🔁 [SubscriptionTracker](src/plugins/subscription-tracker) | 1.0.0 | 1 | What you pay for again and again, and what runs out: a list of what renews each week, a word the day before, and a question about whether you still use it. |
-| 🧹 [Chores](src/plugins/chores) | 1.0.0 | 1 | A shared home's jobs, taken in turns: the day's list each morning, credit to whoever ticks, the turn moves on, and a count of who did what when asked. Takes the group the home already has. Unlisted. |
+| 🧹 [Chores](src/plugins/chores) | 1.1.0 | 1 | A shared home's jobs, taken in turns: the day's list each morning, credit to whoever ticks, the turn moves on, and a count of who did what when asked. Takes the group the home already has. Unlisted. |
 
 ## How a plugin works
 

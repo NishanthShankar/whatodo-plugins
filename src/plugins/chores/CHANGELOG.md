@@ -1,5 +1,18 @@
 # Changelog: Chores
 
+## [1.1.0] - 2026-11-25
+
+### Added
+- A home can be set up on its page in one go (`web.actions.setup`): who takes turns, which jobs, when the list goes out. It is said in the group and today's list follows at once.
+- The page is mentioned once in the group, with the first list after a home's first real day.
+- `web.load` also gives the usual jobs and the person's first name, for the setup.
+
+### Changed
+- First use wording: the first job's answer no longer says "try it now"; the first tick says a ✅ is the answer to a tick; the card's line is "I remember whose turn it is, so nobody has to."
+
+### Data
+- A home's record may carry `firstTick` and `toldPage`. Nothing stored by 1.0.0 changes.
+
 ## [1.0.0] - 2026-11-25
 
 ### Added
