@@ -1,5 +1,37 @@
 # Changelog: TripExpenses
 
+## [1.7.0] - 2026-11-25
+
+### Added
+- The split is sent by itself at 9pm, on the trip's own clock, on a day something was spent and someone owes: always with more than two people on the trip, and with two once they ask for a `split` or give an expense to the other by tagging them. `split off` stops it, with a note that `split` still works when asked; `split on` starts it.
+- `next` (also `who?`, `who next`, `whose turn`, `who pays`) says who should pay next to even things out: whoever is furthest under an equal share.
+- `split`, the nightly split and the page name that person too.
+- A trip has its own clock, for trips abroad. It moves by itself when the trip is counted in a currency that isn't the person's own and is spent in one time zone (baht, yen, dirhams), and anyone can set it: `time zone tokyo`, `time zone +7`, or `it's 9pm here`. `time zone` alone says what it is. The trip's days and the hour of its split follow it.
+
+### Data
+- A trip may carry `zone`. An expense sent while its trip has one keeps `day`, the day it was there; when a trip's zone is set, its earlier expenses are stamped with the days they had.
+
+## [1.6.0] - 2026-11-25
+
+### Added
+- Who owes whom. `split` (also `settle`, `tally`, `who owes`) shares the open trip's cost equally among everyone on it and says the fewest payments that settle it, like "Ravi pays Asha ₹75". The same lines close the list when a trip ends, and the page shows them. Each currency is settled on its own.
+- Who is on a trip: everyone who spent something, and everyone who wrote, reacted or was tagged in its group while it was open.
+
+### Data
+- A trip may carry `crew` (the ids of the people on it besides those who spent). A trip from before is shared by the people who spent on it.
+
+## [1.5.0] - 2026-11-25
+
+### Added
+- Who spent it can be changed. Whoever sends an expense spent it; reply to it and tag someone to make it theirs, or reply `mine` (also `me`, `I paid`) to take it. Anyone in the group may, and a closed trip takes it too. The page's sheet for an expense has it as well, among the people already on the trip.
+- An expense given to someone whose name isn't known yet (they were tagged before they ever wrote) shows their name by itself from the first time they write, react or answer in the group.
+- The page gets a trip's numbers for graphs: what each day, emoji, label and person adds up to, the average per day and the largest expense, in the trip's own currency, with what was paid in other currencies said beside them.
+- The page is told the labels and emoji used so far, to offer when one is being set.
+
+### Data
+- New collection `people`: the name each person was last heard under, by their id.
+- A trip that ends keeps `used` (the labels and emoji its expenses carried). An expense's `by` and `name` now mean who spent it. Nothing stored before changes.
+
 ## [1.4.0] - 2026-11-24
 
 ### Added

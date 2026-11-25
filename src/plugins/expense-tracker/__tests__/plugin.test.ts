@@ -3,6 +3,7 @@ import plugin, { LISTED, MAX_EXPENSES, type Expense, type Trip } from "..";
 import { createTestKit, photo } from "../../../testing";
 import { copy } from "../copy";
 import { readAmount, readExpense, takeTags } from "../money";
+import { clock, placeOf, zoneFromTime, zoneNamed } from "../zone";
 
 type T = ReturnType<typeof createTestKit>;
 const expenses = (t: T) => Object.entries(t.dump()).filter(([k]) => k.startsWith("expenses/")).map(([, v]) => v as unknown as Expense);
@@ -740,5 +741,375 @@ describe("an emoji's group", () => {
     await expect(t.act(plugin, "setMark", { ...where, mark: "hotel" })).rejects.toThrow(/one emoji/);
     await t.act(plugin, "setMark", { ...where, mark: null });
     expect(expenses(t)[0].mark).toBeNull();
+  });
+});
+
+describe("who spent it", () => {
+  const refOf = (t: T, n = 0) => t.marks[n];
+  const tag = (...who: string[]) => ({ mentions: who });
+
+  it("gives an expense to the person tagged in a reply, and says how once", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "", refOf(t), null, undefined, undefined, tag("Ravi"));
+    expect(expenses(t)[0]).toMatchObject({ what: "lunch", by: "ravi", name: "Ravi" });
+    expect(last(t)).toBe(copy.firstWho({ what: "lunch", who: "Ravi" }));
+    await t.message(plugin, "cab 300");
+    const before = t.reactions.length;
+    await t.message(plugin, "", refOf(t, 1), null, "Ravi", undefined, tag("Ravi"));
+    expect(expenses(t)[1]).toMatchObject({ what: "cab", by: "ravi" });
+    expect(t.reactions.slice(before)).toEqual(["👍"]);
+  });
+
+  it("is taken with mine, me or I paid", async () => {
+    for (const words of ["mine", "Me", "I paid", "it's mine!", "that was me"]) {
+      const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+      await t.message(plugin, words, refOf(t), null, "Ravi");
+      expect(expenses(t)[0], words).toMatchObject({ by: "ravi", name: "Ravi" });
+    }
+  });
+
+  it("adds it to that person's sum", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300");
+    await t.message(plugin, "mine", refOf(t, 1), null, "Ravi");
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("Asha ₹450 · Ravi ₹300");
+  });
+
+  it("asks for one person when two are tagged", async () => {
+    const t = await started();
+    await t.message(plugin, "", refOf(t), null, undefined, undefined, tag("Ravi", "Meena"));
+    expect(last(t)).toBe(copy.whoOne());
+    expect(expenses(t)[0].by).toBe("owner");
+  });
+
+  it("still reads an amount beside a tag as a correction", async () => {
+    const t = await started();
+    await t.message(plugin, "540", refOf(t), null, undefined, undefined, tag("Ravi"));
+    expect(expenses(t)[0]).toMatchObject({ amount: 540, by: "owner" });
+  });
+
+  it("works on a closed trip, and leaves a tag that answers nothing alone", async () => {
+    const t = await started();
+    await t.message(plugin, "end trip");
+    const sent = t.sent.length;
+    await t.message(plugin, "", null, null, undefined, undefined, tag("Ravi"));
+    expect(t.sent).toHaveLength(sent);
+    await t.message(plugin, "mine", refOf(t), null, "Ravi");
+    expect(expenses(t)[0].by).toBe("ravi");
+  });
+
+  it("names someone tagged before they ever wrote, as soon as they are heard", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300");
+    await t.message(plugin, "", refOf(t, 1), null, undefined, undefined, { mentions: [{ id: "ravi", name: null }] });
+    expect(last(t)).toBe(copy.firstWho({ what: "cab", who: null }));
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("2. cab ₹300\n");
+    expect(last(t)).toContain("Asha ₹450 · Someone ₹300");
+    // Anything they do here is enough: a line that is no expense, or a reaction.
+    await t.message(plugin, "thanks all", null, null, { id: "ravi", name: "Ravi", owner: false });
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("2. cab ₹300 · Ravi");
+    expect(last(t)).toContain("Asha ₹450 · Ravi ₹300");
+    const p = (await t.load(plugin)) as unknown as { groups: { open: { rows: { who: string | null }[]; dash: { people: { name: string }[] } } }[] };
+    expect(p.groups[0].open.dash.people.map((x) => x.name)).toEqual(["Asha", "Ravi"]);
+  });
+
+  it("can be set on the page, among the people on the trip", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    const p = (await t.load(plugin)) as unknown as { groups: { open: { id: string; rows: { id: string; by: string }[]; dash: { people: { key: string; name: string; value: number }[] } } }[] };
+    const trip = p.groups[0].open;
+    await t.act(plugin, "setBy", { trip: trip.id, id: trip.rows[0].id, by: "ravi" });
+    expect(expenses(t)[0]).toMatchObject({ by: "ravi", name: "Ravi" });
+    await expect(t.act(plugin, "setBy", { trip: trip.id, id: trip.rows[0].id, by: "nobody" })).rejects.toThrow("Pick someone who is on this trip.");
+  });
+});
+
+describe("the page's numbers", () => {
+  it("adds up each day, emoji, label and person in the trip's currency", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300 #commute", null, null, "Ravi");
+    await t.message(plugin, "dinner 20 usd #food");
+    const lunch = t.marks[0];
+    await t.react(plugin, "🍕", lunch);
+    const p = (await t.load(plugin)) as unknown as { groups: { open: { rows: { value: number | null; by: string }[]; dash: Record<string, unknown> } }[]; known: { labels: string[]; marks: string[] } };
+    const trip = p.groups[0].open;
+    expect(trip.rows.map((r) => r.value).sort()).toEqual([300, 450, null]);
+    expect(trip.dash).toMatchObject({
+      days: [{ total: "₹750 + $20", value: 750, count: 3 }],
+      marks: [{ key: "🍕", total: "₹450", value: 450, count: 1 }],
+      labels: [{ key: "commute", total: "₹300", value: 300, count: 1 }, { key: "food", total: "$20", value: 0, count: 1 }],
+      people: [{ key: "owner", name: "Asha", total: "₹450 + $20", value: 450, count: 2 }, { key: "ravi", name: "Ravi", total: "₹300", value: 300, count: 1 }],
+      perDay: "₹750",
+      span: 1,
+      top: { what: "lunch", amount: "₹450" },
+      outside: "$20",
+    });
+    expect(p.known).toEqual({ labels: ["commute", "food"], marks: ["🍕"] });
+  });
+
+  it("remembers a closed trip's labels and emoji", async () => {
+    const t = await started();
+    await t.message(plugin, "cab 300 #commute");
+    await t.react(plugin, "🍕", t.marks[0]);
+    await t.message(plugin, "end trip");
+    expect(trips(t)[0].used).toEqual({ labels: ["commute"], marks: ["🍕"] });
+    const p = (await t.load(plugin)) as unknown as { known: { labels: string[]; marks: string[] } };
+    expect(p.known).toEqual({ labels: ["commute"], marks: ["🍕"] });
+  });
+});
+
+describe("who owes whom", () => {
+  const two = async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    return t;
+  };
+
+  it("shares the trip equally and says the payment that settles it", async () => {
+    const t = await two();
+    await t.message(plugin, "split");
+    expect(last(t)).toContain("*Trip 1, shared equally by 2*\n₹375 each.\n\nRavi pays Asha ₹75");
+    for (const words of ["who owes whom?", "settle up", "tally"]) {
+      await t.message(plugin, words);
+      expect(last(t), words).toContain("Ravi pays Asha ₹75");
+    }
+  });
+
+  it("counts in someone who only wrote, and someone who was only tagged", async () => {
+    const t = await two();
+    await t.message(plugin, "thanks all", null, null, "Meena");
+    await t.message(plugin, "split");
+    expect(last(t)).toContain("*Trip 1, shared equally by 3*\n₹250 each.\n\nMeena pays Asha ₹200\nMeena pays Ravi ₹50");
+    await t.message(plugin, "", t.marks[0], null, undefined, undefined, { mentions: ["Kiran"] });
+    await t.message(plugin, "split");
+    // lunch is Kiran's now: Kiran 450, Ravi 300, Asha and Meena nothing. 187.50 each.
+    expect(last(t)).toContain("*Trip 1, shared equally by 4*\n₹187.50 each.\n\nAsha pays Kiran ₹187.50\nMeena pays Kiran ₹75\nMeena pays Ravi ₹112.50");
+  });
+
+  it("says so when everyone has paid their share, and when there is one person", async () => {
+    const t = await two();
+    await t.message(plugin, "tea 150", null, null, "Ravi");
+    await t.message(plugin, "split");
+    expect(last(t)).toContain("*Trip 1, shared equally by 2*\n₹450 each.\n\nEveryone has paid their share.");
+    const alone = await started();
+    await alone.message(plugin, "split");
+    expect(last(alone)).toBe(copy.splitAlone());
+  });
+
+  it("settles each currency on its own", async () => {
+    const t = await two();
+    await t.message(plugin, "dinner 20 usd", null, null, "Ravi");
+    await t.message(plugin, "split");
+    expect(last(t)).toContain("*Trip 1, shared equally by 2*\n₹375 + $10 each.\n\nRavi pays Asha ₹75\nAsha pays Ravi $10");
+  });
+
+  it("closes the list with it, and hands it to the page", async () => {
+    const t = await two();
+    const p = (await t.load(plugin)) as unknown as { groups: { open: { dash: { owes: unknown } } }[] };
+    expect(p.groups[0].open.dash.owes).toEqual({ n: 2, each: "₹375", pays: [{ from: "Ravi", to: "Asha", amount: "₹75" }], next: { who: "Ravi", short: "₹75" } });
+    await t.message(plugin, "end trip");
+    expect(last(t)).toContain("Asha ₹450 · Ravi ₹300\n\nShared equally by 2, that is ₹375 each:\nRavi pays Asha ₹75\n\nThis list is closed.");
+    // The next trip starts with nobody on it.
+    await t.message(plugin, "chai 40");
+    await t.message(plugin, "split");
+    expect(last(t)).toBe(copy.splitAlone());
+  });
+});
+
+describe("who pays next", () => {
+  const two = async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    return t;
+  };
+
+  it("names whoever is furthest under an equal share, however it is asked", async () => {
+    for (const words of ["next", "Who?", "who next?", "whose turn", "who pays"]) {
+      const t = await two();
+      await t.message(plugin, words);
+      expect(last(t), words).toMatch(/^Ravi( pays next)?\. ₹75 short of an equal share/);
+    }
+  });
+
+  it("says when everyone is even, and when there is one person", async () => {
+    const t = await two();
+    await t.message(plugin, "tea 150", null, null, "Ravi");
+    await t.message(plugin, "next");
+    expect(last(t)).toBe(copy.nextEven());
+    const alone = await started();
+    await alone.message(plugin, "who");
+    expect(last(alone)).toBe(copy.nextAlone());
+  });
+
+  it("is in the split too, while the trip is open", async () => {
+    const t = await two();
+    await t.message(plugin, "split");
+    expect(last(t)).toContain("Ravi pays Asha ₹75\n\nRavi should pay next, to even things out.");
+    await t.message(plugin, "end trip");
+    expect(last(t)).not.toContain("should pay next");
+  });
+});
+
+describe("the split at the end of the day", () => {
+  const two = async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    return t;
+  };
+  const three = async () => {
+    const t = await two();
+    await t.message(plugin, "thanks all", null, null, "Meena");
+    return t;
+  };
+  const night = async (t: T) => {
+    const before = t.sent.length;
+    await t.schedule(plugin, "split");
+    return t.sent.slice(before).map((x) => x.text);
+  };
+
+  it("comes by itself with more than two people, once a day, and says how to stop it the first time", async () => {
+    const t = await three();
+    const sent = await night(t);
+    expect(sent).toEqual(["*Trip 1 tonight, shared equally by 3*\n₹250 each.\n\nMeena pays Asha ₹200\nMeena pays Ravi ₹50\n\nMeena should pay next, to even things out.\n\nI send this at 9pm on a day when something was spent. _split off_ stops it."]);
+    expect(await night(t)).toEqual([]);
+  });
+
+  it("stays away from two people until they ask for a split, and tells them then", async () => {
+    const t = await two();
+    expect(await night(t)).toEqual([]);
+    await t.message(plugin, "split");
+    expect(last(t)).toContain("From now on I'll send this at 9pm on a day when something was spent. _split off_ stops it.");
+    expect(await night(t)).toEqual(["*Trip 1 tonight, shared equally by 2*\n₹375 each.\n\nRavi pays Asha ₹75\n\nRavi should pay next, to even things out."]);
+    await t.message(plugin, "split");
+    expect(last(t)).not.toContain("From now on");
+  });
+
+  it("starts for two people when one gives an expense to the other by a tag", async () => {
+    const t = await two();
+    await t.message(plugin, "tea 100");
+    await t.message(plugin, "", t.marks[2], null, undefined, undefined, { mentions: ["Ravi"] });
+    const sent = await night(t);
+    expect(sent).toHaveLength(1);
+    // Asha 450, Ravi 300 and the tea: 425 each.
+    expect(sent[0]).toContain("Ravi pays Asha ₹25");
+    expect(sent[0]).toContain("_split off_ stops it.");
+  });
+
+  it("stops with split off, for two and for more, and says a split can still be asked for", async () => {
+    for (const make of [two, three]) {
+      const t = await make();
+      await t.message(plugin, "split");
+      await t.message(plugin, "split off", null, null, "Ravi");
+      expect(last(t)).toBe("I won't send the split by myself any more. Ask for it any time with _split_. _split on_ brings it back.");
+      expect(await night(t)).toEqual([]);
+      await t.message(plugin, "split");
+      expect(last(t)).toContain("Ravi");
+      expect(last(t)).not.toContain("From now on");
+      await t.message(plugin, "split on");
+      expect(await night(t)).toHaveLength(1);
+    }
+  });
+
+  it("says nothing when everyone is even, or with one person", async () => {
+    const t = await two();
+    await t.message(plugin, "split on");
+    await t.message(plugin, "tea 150", null, null, "Ravi");
+    expect(await night(t)).toEqual([]);
+    const alone = await started();
+    expect(await night(alone)).toEqual([]);
+  });
+
+  it("goes to the group the trip is in", async () => {
+    const t = createTestKit({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.group(plugin, "joined", "x-flat", "Flat");
+    await t.message(plugin, "milk 60 rs", null, "x-flat");
+    await t.message(plugin, "eggs 90", null, "x-flat", "Ravi");
+    await t.message(plugin, "ok", null, "x-flat", "Meena");
+    const before = t.sent.length;
+    await t.schedule(plugin, "split");
+    expect(t.sent.slice(before).map((x) => x.group)).toEqual(["x-flat"]);
+  });
+});
+
+describe("a trip's own clock", () => {
+  // The kit's moment is 21:00 UTC on 2026-11-15: 2:30am on the 16th in India, 4am in Bangkok, 6am in Tokyo.
+  const home = { person: { name: "Asha", timezone: "Asia/Kolkata", currency: "INR" } };
+  const NOW = Date.parse("2026-11-15T21:00:00Z");
+
+  it("reads places, zone names, offsets and the time someone says it is", () => {
+    expect(zoneNamed("Tokyo")).toBe("Asia/Tokyo");
+    expect(zoneNamed("sri lanka")).toBe("Asia/Colombo");
+    expect(zoneNamed("kuala lumpur")).toBe("Asia/Kuala_Lumpur");
+    expect(zoneNamed("asia/ho_chi_minh")).toBe("Asia/Ho_Chi_Minh");
+    expect(zoneNamed("+7")).toBe("Etc/GMT-7");
+    expect(zoneNamed("gmt+5:30")).toBe("Asia/Kolkata");
+    expect(zoneNamed("utc-8")).toBe("Etc/GMT+8");
+    expect(zoneNamed("narnia")).toBeNull();
+    expect(zoneFromTime("it's 4am here", NOW)).toBe("Etc/GMT-7");
+    expect(zoneFromTime("its 2:30 am", NOW)).toBe("Asia/Kolkata");
+    expect(zoneFromTime("time is 13:00 here", NOW)).toBe("Etc/GMT+8");
+    expect(zoneFromTime("it's 5", NOW)).toBeNull();
+    expect(zoneFromTime("it's late", NOW)).toBeNull();
+    expect(placeOf("Etc/GMT-7")).toBe("GMT+7");
+    expect(placeOf("Asia/Ho_Chi_Minh")).toBe("Ho Chi Minh");
+    expect(clock("Asia/Tokyo", NOW)).toEqual({ day: "2026-11-16", hour: 6, minute: 0 });
+  });
+
+  it("moves with the trip's currency when that isn't the person's own, and says so when it answers in words", async () => {
+    const t = createTestKit(home);
+    await t.message(plugin, "pad thai 200 thb");
+    expect(trips(t)[0].zone).toBe("Asia/Bangkok");
+    expect(expenses(t)[0].day).toBe("2026-11-16");
+    const u = createTestKit(home);
+    await u.message(plugin, "lunch 450");
+    await u.message(plugin, "currency thb");
+    expect(last(u)).toMatch(/I'll keep this trip on Bangkok time\. _time zone tokyo_ changes that\.$/);
+    const same = createTestKit(home);
+    await same.message(plugin, "lunch rs 450");
+    expect(trips(same)[0].zone ?? null).toBeNull();
+    // Dollars are spent in too many zones to say where.
+    const usd = createTestKit(home);
+    await usd.message(plugin, "burger 12 usd");
+    expect(trips(usd)[0].zone ?? null).toBeNull();
+  });
+
+  it("is set by naming a place or saying the time, and keeps the days of what was sent before", async () => {
+    const t = await started(home);
+    await t.message(plugin, "time zone tokyo");
+    expect(last(t)).toBe("This trip is on Tokyo time now. It's 6am there.");
+    expect(trips(t)[0].zone).toBe("Asia/Tokyo");
+    // lunch was sent on the 15th by the kit's day, and stays there.
+    expect(expenses(t)[0].day).toBe("2026-11-15");
+    await t.message(plugin, "ramen 900");
+    expect(expenses(t).find((e) => e.what === "ramen")!.day).toBe("2026-11-16");
+    await t.message(plugin, "it's 4am here");
+    expect(last(t)).toBe("This trip is on GMT+7 time now. It's 4am there.");
+    await t.message(plugin, "timezone");
+    expect(last(t)).toContain("This trip is on GMT+7 time: 4am now.");
+    await t.message(plugin, "time zone narnia");
+    expect(last(t)).toBe(copy.zoneUnknown());
+  });
+
+  it("sends the split at 9pm where the trip is, not where the person lives", async () => {
+    const t = await started(home);
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    await t.message(plugin, "thanks all", null, null, "Meena");
+    await t.message(plugin, "time zone tokyo");
+    await t.message(plugin, "ramen 900");
+    const night = async () => {
+      const before = t.sent.length;
+      await t.schedule(plugin, "split");
+      return t.sent.length - before;
+    };
+    // 21:00 UTC is 6am in Tokyo.
+    expect(await night()).toBe(0);
+    // 12:00 UTC on the 16th is 9pm in Tokyo, the day the ramen was paid.
+    t.setToday("2026-11-16");
+    t.setHour(12);
+    expect(await night()).toBe(1);
+    expect(await night()).toBe(0);
   });
 });

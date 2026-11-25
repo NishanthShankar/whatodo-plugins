@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.29.0] - 2026-11-25
+
+### Added
+- `event.mentions` on a message (`Sender[]`): the people tagged in it with an @, Zelfred itself left out, each with the id they have as a sender. Their tags are taken out of `event.text`, so a message that only tags people arrives with an empty text. Only with the "members" permission.
+- Test kit: `mentions` in the last argument of `t.message`.
+- TripExpenses 1.5.0 (`expense-tracker`) is the first to use it.
+
 ## [1.28.0] - 2026-11-24
 
 ### Added

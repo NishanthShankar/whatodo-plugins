@@ -76,7 +76,7 @@ Raising a plugin's tier changes what people may pay for it, so it is a MAJOR rel
 ## Events
 
 ```ts
-interface MessageEvent  { text: string; quotedRef: Json | null; group?: string | null; sender?: Sender; links?: Link[]; photos?: Photo[]; place?: Place }
+interface MessageEvent  { text: string; quotedRef: Json | null; group?: string | null; sender?: Sender; links?: Link[]; photos?: Photo[]; place?: Place; mentions?: Sender[] }   // mentions: who was tagged, with "members"; since SDK 1.29.0
 interface ReactionEvent { emoji: string | null; ref: Json; group?: string | null; sender?: Sender }   // emoji null: reaction removed
 interface ScheduleEvent { id: string }
 interface IntentEvent   { text: string; intent: string; target: string | null; confidence: number; sender?: Sender }

@@ -366,23 +366,26 @@ export function createTestKit(opts: TestKitOptions = {}) {
      * `links`: what Zelfred read from the links in the message (build each with `link()`),
      * which needs the "links" permission.
      * `more`: the photo in the message (`photos`, built with `photo()`; needs "photos") and the
-     * position shared in it (`place`; needs "location"). With either, `text` may be empty.
+     * position shared in it (`place`; needs "location"), and the people tagged in it
+     * (`mentions`, each a name or a part of a Sender, as `from` is; needs "members"). With any
+     * of them, `text` may be empty.
      */
-    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null, from?: string | Partial<Sender>, links?: Link[], more?: { photos?: Photo[]; place?: Place }) {
+    async message(plugin: PluginDef, text: string, quotedRef: Json | null = null, group: string | null = null, from?: string | Partial<Sender>, links?: Link[], more?: { photos?: Photo[]; place?: Place; mentions?: (string | Partial<Sender>)[] }) {
       withDefaults(plugin);
       const sender = senderOf(plugin, from);
       if (!sender.owner) crowded.add(group);
       if (links && !plugin.permissions?.includes("links")) throw new Error(`${plugin.id}: link details need the "links" permission (Zelfred wouldn't read them)`);
       if (more?.photos && !plugin.permissions?.includes("photos")) throw new Error(`${plugin.id}: photos need the "photos" permission (Zelfred wouldn't pass them on)`);
       if (more?.place && !plugin.permissions?.includes("location")) throw new Error(`${plugin.id}: a position needs the "location" permission (Zelfred wouldn't pass it on)`);
-      if (!text.trim() && !more?.photos?.length && !more?.place) throw new Error("t.message: an empty message never reaches a plugin");
+      if (more?.mentions?.length && !plugin.permissions?.includes("members")) throw new Error(`${plugin.id}: who was tagged needs the "members" permission (Zelfred wouldn't pass it on)`);
+      if (!text.trim() && !more?.photos?.length && !more?.place && !more?.mentions?.length) throw new Error("t.message: an empty message never reaches a plugin");
       for (const p of more?.photos ?? []) files.set(p.id, { type: p.type, size: p.size });
       here = group;
       try {
         // A vault plugin never hears a message: in Zelfred it arrives locked, as an entry.
         if (plugin.permissions?.includes("vault")) throw new Error(`${plugin.id}: a "vault" plugin gets entries, not messages. Use t.entry().`);
         if (/^(help|\?|menu|commands)$/i.test(text.trim())) return kit.send(plugin.help);
-        await plugin.onMessage?.({ text, quotedRef, group, sender, ...(links ? { links: links.map((l) => ({ ...l })) } : {}), ...(more?.photos ? { photos: more.photos.map((p) => ({ ...p })) } : {}), ...(more?.place ? { place: { ...more.place } } : {}) }, kit);
+        await plugin.onMessage?.({ text, quotedRef, group, sender, ...(links ? { links: links.map((l) => ({ ...l })) } : {}), ...(more?.photos ? { photos: more.photos.map((p) => ({ ...p })) } : {}), ...(more?.place ? { place: { ...more.place } } : {}), ...(more?.mentions?.length ? { mentions: more.mentions.map((m) => senderOf(plugin, m)) } : {}) }, kit);
       } finally {
         here = null;
       }
