@@ -184,6 +184,20 @@ export const copy = {
   zoneSet: msg<{ place: string; time: string }>([({ place, time }) => `This trip is on ${place} time now. It's ${time} there.`]),
   /** `time zone` on its own. */
   zoneNow: msg<{ place: string; time: string }>([({ place, time }) => `This trip is on ${place} time: ${time} now. To change it: _${ZONE_EXAMPLE}_, or tell me the time, like _${TIME_EXAMPLE}_.`]),
+  /**
+   * Asked once a trip, when expenses keep arriving between 3am and 5am by the trip's clock: they have probably travelled.
+   * `time`: what my clock says, "3:40am". The owner asked for a dry butler here, who offends nobody, and for no lesson in
+   * how to answer: they say it their own way and the intent model reads it. The joke is on my clock, and staying up is
+   * treated as a talent.
+   */
+  whatTime: msg<{ time: string }>([
+    ({ time }) => `My clock says ${time}. Either you've travelled, or you keep hours I can only admire. Which is it?`,
+    ({ time }) => `It is ${time} by my clock, and the bills are still coming in. Impressive, or you're somewhere else entirely. Which?`,
+  ]),
+  /** They have travelled (or I couldn't tell): the one thing I need. */
+  timeExactly: msg(["What time is it there, exactly?"]),
+  /** They said the time or the place. `time`: what it is there now, "9:05pm". */
+  timeNoted: msg<{ time: string }>([({ time }) => `${time} it is. I'll update the reminder times.`]),
   zoneUnknown: msg([`I don't know that place. Try a big city near you, like _${ZONE_EXAMPLE}_, or tell me the time: _${TIME_EXAMPLE}_.`]),
   /** `currency` on its own. */
   countingNow: msg<{ currency: string }>([({ currency }) => `I'm counting this trip in ${currency}. To change it: _${CURRENCY_EXAMPLE}_.`]),

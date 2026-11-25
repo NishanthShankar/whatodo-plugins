@@ -228,8 +228,10 @@ export function zoneNamed(text: string): string | null {
  * half hour's difference from the real time. Null when that isn't what the text says, or the time has no am, pm or minutes
  * to tell it from a bare number.
  */
-export function zoneFromTime(text: string, now: number): string | null {
-  const m = text.toLowerCase().replace(/[.!?]+$/, "").replace(/\s+/g, " ").trim().match(/^(?:it'?s|it is|the time is|time is|it'?s now|now it'?s|local time is)\s+(\d{1,2})(?:[:.](\d{2}))?\s?(am|pm)?(?:\s+(?:here|now|local time|local|over here))*$/);
+export function zoneFromTime(text: string, now: number, bare = false): string | null {
+  // `bare`: the time on its own counts too ("9pm", "21:30"), as an answer to "what time is it there?".
+  const lead = String.raw`(?:it'?s|it is|the time is|time is|it'?s now|now it'?s|local time is)`;
+  const m = text.toLowerCase().replace(/[.!?]+$/, "").replace(/\s+/g, " ").trim().match(new RegExp(String.raw`^(?:${lead}\s+)${bare ? "?" : ""}(\d{1,2})(?:[:.](\d{2}))?\s?(am|pm)?(?:\s+(?:here|now|local time|local|over here))*$`));
   if (!m || (!m[2] && !m[3])) return null;
   let hour = Number(m[1]);
   const minute = Number(m[2] ?? 0);
@@ -240,6 +242,30 @@ export function zoneFromTime(text: string, now: number): string | null {
   // The same clock time is reached a day apart both ways: take the difference a real place has.
   if (diff > 14 * 60) diff -= 24 * 60;
   if (diff < -12 * 60) diff += 24 * 60;
-  const rounded = Math.round(diff / 15) * 15;
-  return zoneAt(rounded % 30 === 0 || HALVES[rounded] ? rounded : Math.round(diff / 30) * 30);
+  // The nearest quarter hour a real place keeps, else the nearest half, else the nearest hour.
+  return zoneAt(Math.round(diff / 15) * 15) ?? zoneAt(Math.round(diff / 30) * 30) ?? zoneAt(Math.round(diff / 60) * 60);
+}
+
+/**
+ * The zone a sentence gives away, when it says the time or names a place in passing ("just landed in tokyo", "it's about
+ * 9pm now"). Null when it does neither.
+ */
+export function zoneMentioned(text: string, now: number): string | null {
+  const t = text.toLowerCase().replace(/\s+/g, " ");
+  const m = t.match(/\b\d{1,2}(?:[:.]\d{2})?\s?(?:am|pm)\b/) ?? t.match(/\b\d{1,2}[:.]\d{2}\b/);
+  const fromTime = m ? zoneFromTime(m[0], now, true) : null;
+  if (fromTime) return fromTime;
+  // Short names ("la", "sf", "uk") are too easily part of another word's meaning to trust inside a sentence.
+  for (const [name, zone] of Object.entries(PLACES)) if (name.length > 3 && new RegExp(`\\b${name}\\b`).test(t)) return zone;
+  // A city a zone is named after, as one, two or three words in a row: "tokyo", "kuala lumpur", "ho chi minh".
+  const words = t.replace(/[^a-z ]/g, " ").split(" ").filter(Boolean);
+  for (let n = 3; n >= 1; n--)
+    for (let i = 0; i + n <= words.length; i++) {
+      const run = words.slice(i, i + n).join(" ");
+      if (run.length > 3) {
+        const zone = zoneNamed(run);
+        if (zone) return zone;
+      }
+    }
+  return null;
 }

@@ -39,6 +39,7 @@ On an expense you sent:
 | `split` (also `settle`, `tally`, `who owes`) | Who owes whom, with the trip shared equally by everyone on it: "Ravi pays Asha ₹75". Everyone on it means whoever spent, wrote, reacted or was tagged in the group while the trip was open. |
 | `next` (also `who?`, `who next`, `whose turn`) | Who should pay next to even things out: whoever is furthest under an equal share. |
 | `time zone tokyo` (also `timezone +7`, `it's 9pm here`) | Puts this trip on the time where you are. `time zone` alone says what it is on. A trip counted in a currency that isn't your own, like baht or yen, moves there by itself. |
+| (I ask) "Either you've travelled, or you keep hours I can only admire. Which is it?" | Asked once a trip, after the third message with an expense between 3am and 5am by the trip's clock, when nobody has said where the trip is. Answer in any words. At home: 👍. Travelling: I ask what time it is there, and the time or a place puts the trip on that clock. |
 | `split off`, `split on` | Stops and starts the split I send at 9pm on a day something was spent. It is on by itself with more than two people, and with two once they ask for a split or tag each other on an expense. |
 | reply and tag someone, like `@Ravi` | It is theirs: they spent it. 👍. Anyone may, for anyone's expense. Works after the trip closed too. |
 | reply `mine` (also `me`, `I paid`) | It is yours. 👍 |
@@ -88,7 +89,7 @@ These choices are the plugin author's and were not confirmed by the owner: no sp
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `trips` | trip id | `{ n, home?, name, currency, asked?, startedAt, endedAt, zone?, crew?, seq?, count?, sums?, used? }` | started (ms) |
+| `trips` | trip id | `{ n, home?, name, currency, asked?, startedAt, endedAt, zone?, zoneBy?, odd?, timeAsked?, timeTries?, crew?, seq?, count?, sums?, used? }` | started (ms) |
 | `people` | a person's id | `{ name }`: the name they were last heard under | |
 | `expenses` | `<trip id>:<id>` | `{ what, amount, currency, by, name, at, day?, tags?, bill?, mark? }` | its place in the trip |
 | `homes` | group key | `{ name }`: a group the person handed over | when (ms) |
