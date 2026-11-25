@@ -798,6 +798,23 @@ describe("who spent it", () => {
     expect(expenses(t)[0].by).toBe("ravi");
   });
 
+  it("names someone tagged before they ever wrote, as soon as they are heard", async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300");
+    await t.message(plugin, "", refOf(t, 1), null, undefined, undefined, { mentions: [{ id: "ravi", name: null }] });
+    expect(last(t)).toBe(copy.firstWho({ what: "cab", who: null }));
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("2. cab ₹300\n");
+    expect(last(t)).toContain("Asha ₹450 · Someone ₹300");
+    // Anything they do here is enough: a line that is no expense, or a reaction.
+    await t.message(plugin, "thanks all", null, null, { id: "ravi", name: "Ravi", owner: false });
+    await t.message(plugin, "total");
+    expect(last(t)).toContain("2. cab ₹300 · Ravi");
+    expect(last(t)).toContain("Asha ₹450 · Ravi ₹300");
+    const p = (await t.load(plugin)) as unknown as { groups: { open: { rows: { who: string | null }[]; dash: { people: { name: string }[] } } }[] };
+    expect(p.groups[0].open.dash.people.map((x) => x.name)).toEqual(["Asha", "Ravi"]);
+  });
+
   it("can be set on the page, among the people on the trip", async () => {
     const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
     await t.message(plugin, "cab 300", null, null, "Ravi");

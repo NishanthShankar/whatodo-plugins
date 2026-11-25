@@ -4,10 +4,12 @@
 
 ### Added
 - Who spent it can be changed. Whoever sends an expense spent it; reply to it and tag someone to make it theirs, or reply `mine` (also `me`, `I paid`) to take it. Anyone in the group may, and a closed trip takes it too. The page's sheet for an expense has it as well, among the people already on the trip.
+- An expense given to someone whose name isn't known yet (they were tagged before they ever wrote) shows their name by itself from the first time they write, react or answer in the group.
 - The page gets a trip's numbers for graphs: what each day, emoji, label and person adds up to, the average per day and the largest expense, in the trip's own currency, with what was paid in other currencies said beside them.
 - The page is told the labels and emoji used so far, to offer when one is being set.
 
 ### Data
+- New collection `people`: the name each person was last heard under, by their id.
 - A trip that ends keeps `used` (the labels and emoji its expenses carried). An expense's `by` and `name` now mean who spent it. Nothing stored before changes.
 
 ## [1.4.0] - 2026-11-24

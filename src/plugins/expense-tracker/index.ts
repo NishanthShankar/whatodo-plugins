@@ -27,6 +27,7 @@ import { add, cleanTag, COMMON, currencyOf, guessCurrency, label, MAX_TAGS, mone
  *   trips     key: trip id                data: Trip      sort: started (ms)
  *   expenses  key: "<trip id>:<id>"       data: Expense   sort: its place in the trip (1, 2, 3...)
  *   homes     key: group key              data: { name }  the groups handed over
+ *   people    key: a person's id          data: { name }  the name each person was last heard under
  *   state, one set per group: the key as below in the app's own group, "<key>@<group>" elsewhere
  *   state     key: "open"                 data: { trip }  the trip expenses go to now
  *   state     key: "n"                    data: number    how many trips were started
@@ -184,17 +185,40 @@ async function drop(kit: Kit, key: string, e: Expense): Promise<void> {
   await kit.store.delete("expenses", key);
 }
 
+/** Who is who among some expenses: each person's id and their name, null while nobody has heard it. */
+type Names = Map<string, string | null>;
+
+/**
+ * The name a person was last heard under is kept, so an expense given to someone who had never written (tagged in a reply)
+ * shows their name by itself from the first time they write, react or answer here.
+ */
+async function know(kit: Kit, s: Sender): Promise<void> {
+  const name = s.name ?? (s.owner ? kit.person.name : null);
+  if (!name) return;
+  if ((await kit.store.get<{ name: string }>("people", s.id))?.name !== name) await kit.store.put("people", s.id, { name });
+}
+
+/** The names for some expenses: the one each person was last heard under, else the one kept with their expenses. */
+async function namesOf(kit: Kit, items: { data: Expense }[]): Promise<Names> {
+  const names: Names = new Map();
+  for (const { data: e } of items) if (e.name || !names.has(e.by)) names.set(e.by, e.name ?? names.get(e.by) ?? null);
+  for (const by of names.keys()) {
+    const heard = (await kit.store.get<{ name: string }>("people", by))?.name;
+    if (heard) names.set(by, heard);
+  }
+  return names;
+}
+
 /** A trip as a list: its newest expenses, the sum, and what each person sent when several did. */
-function shown(kit: Kit, trip: Trip, items: { data: Expense }[]): Shown {
+function shown(kit: Kit, trip: Trip, items: { data: Expense }[], names: Names): Shown {
   const mine = of(kit, trip);
   const sums: Sums = {};
   const by = new Map<string, { name: string | null; sums: Sums }>();
   for (const { data: e } of items) {
     const c = e.currency ?? mine;
     add(sums, e.amount, c);
-    const p = by.get(e.by) ?? { name: e.name, sums: {} };
+    const p = by.get(e.by) ?? { name: names.get(e.by) ?? null, sums: {} };
     add(p.sums, e.amount, c);
-    if (e.name) p.name = e.name;
     by.set(e.by, p);
   }
   const several = by.size > 1;
@@ -294,7 +318,7 @@ async function close(kit: Kit, here: Here): Promise<Shown | null> {
   f.trip = { ...f.trip, currency: mine, asked: null, endedAt: kit.now, count: items.length, sums, used };
   await save(kit, f);
   await kit.store.delete("state", sk(here, "open"));
-  return shown(kit, f.trip, items);
+  return shown(kit, f.trip, items, await namesOf(kit, items));
 }
 
 async function end(kit: Kit, here: Here): Promise<void> {
@@ -331,7 +355,7 @@ async function showTotal(kit: Kit, here: Here): Promise<void> {
     kit.send(copy.nothingYet());
     return;
   }
-  kit.send(copy.total(shown(kit, f.trip, items)));
+  kit.send(copy.total(shown(kit, f.trip, items, await namesOf(kit, items))));
 }
 
 async function showTrips(kit: Kit, here: Here): Promise<void> {
@@ -345,7 +369,7 @@ async function showTrips(kit: Kit, here: Here): Promise<void> {
     }
     const items = await expensesOf(kit, t.key);
     if (!items.length) continue;
-    const s = shown(kit, t.data, items);
+    const s = shown(kit, t.data, items, await namesOf(kit, items));
     rows.push({ title: s.title, days: s.days, count: s.count, total: s.total, open: true });
   }
   kit.send(rows.length ? copy.trips({ trips: rows }) : copy.noTrips());
@@ -407,7 +431,7 @@ async function onReply(kit: Kit, here: Here, ref: ExpenseRef, text: string, lowe
       return;
     }
     const to = tagged[0] ?? sender;
-    const name = to.name ?? (to.owner ? kit.person.name : null);
+    const name = to.name ?? (to.owner ? kit.person.name : null) ?? (await kit.store.get<{ name: string }>("people", to.id))?.name ?? null;
     for (const r of rows) await kit.store.put("expenses", r.key, { ...r.data, by: to.id, name: name ?? (r.data.by === to.id ? r.data.name : null) } as unknown as Json);
     const news = !(await kit.store.get("state", sk(here, "taughtWho")));
     await kit.store.put("state", sk(here, "taughtWho"), 1);
@@ -615,9 +639,8 @@ async function pageTrip(kit: Kit, id: string, trip: Trip, withRows: boolean): Pr
   const items = await expensesOf(kit, id);
   // An open trip nobody has sent anything to yet (it was only named) is not a trip to show.
   if (open && !items.length) return null;
-  const s = shown(kit, trip, items);
-  const names = new Map<string, string | null>();
-  for (const { data: e } of items) if (e.name || !names.has(e.by)) names.set(e.by, e.name ?? names.get(e.by) ?? null);
+  const names = await namesOf(kit, items);
+  const s = shown(kit, trip, items, names);
   const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: names.size > 1 ? (names.get(e.by) ?? null) : null, at: e.at, day: e.day ?? kit.time.day(e.at), tags: e.tags ?? [], bill: e.bill ?? null, mark: e.mark ?? null, by: e.by, value: (e.currency ?? mine) === mine ? e.amount : null }));
   return { id, title: s.title, days: s.days, count: s.count, total: s.total, currency: sign(mine), people: s.people, labels: s.labels ?? [], marks: markSums(items, mine), open, ...(withRows || open ? { rows, dash: dashOf(kit, items, mine, names) } : {}) };
 }
@@ -717,7 +740,7 @@ export default definePlugin({
         const { key, e } = await pageExpense(kit, trip, id);
         const theirs = (await expensesOf(kit, String(trip))).filter((x) => x.data.by === by);
         if (typeof by !== "string" || !theirs.length) throw new Error("Pick someone who is on this trip.");
-        await kit.store.put("expenses", key, { ...e, by, name: [...theirs].reverse().find((x) => x.data.name)?.data.name ?? null } as unknown as Json);
+        await kit.store.put("expenses", key, { ...e, by, name: (await namesOf(kit, theirs)).get(by) ?? null } as unknown as Json);
       },
       /** The emoji an expense is grouped under, or (`mark: null`) none. */
       async setMark(kit, { trip, id, mark }) {
@@ -769,6 +792,8 @@ export default definePlugin({
     const photo = event.photos?.[0] ?? null;
     for (const extra of event.photos?.slice(1) ?? []) await kit.files.remove(extra.id);
     const tagged = event.mentions ?? [];
+    if (event.sender) await know(kit, event.sender);
+    for (const person of tagged) await know(kit, person);
     if (!text && !photo && !tagged.length) return;
     const lower = text.toLowerCase().replace(/\s+/g, " ").replace(/[!.]+$/, "");
     const sender = senderOf(event, kit);
@@ -831,6 +856,7 @@ export default definePlugin({
    * sum stays as it was.
    */
   async onReaction(event, kit) {
+    if (event.sender) await know(kit, event.sender);
     if (!isExpenseRef(event.ref)) return;
     if (event.emoji && PLAIN.has(bare(event.emoji))) return;
     const mark = event.emoji ? [...event.emoji].slice(0, 8).join("") : null;
@@ -842,6 +868,7 @@ export default definePlugin({
   },
 
   async onAnswer(event, kit) {
+    if (event.sender) await know(kit, event.sender);
     if (!isCurrencyRef(event.ref)) return;
     const currency = event.ref.codes[event.choice];
     const trip = await kit.store.get<Trip>("trips", event.ref.trip);
