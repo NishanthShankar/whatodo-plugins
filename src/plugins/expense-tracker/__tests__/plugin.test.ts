@@ -3,6 +3,7 @@ import plugin, { LISTED, MAX_EXPENSES, type Expense, type Trip } from "..";
 import { createTestKit, photo } from "../../../testing";
 import { copy } from "../copy";
 import { readAmount, readExpense, takeTags } from "../money";
+import { clock, placeOf, zoneFromTime, zoneNamed } from "../zone";
 
 type T = ReturnType<typeof createTestKit>;
 const expenses = (t: T) => Object.entries(t.dump()).filter(([k]) => k.startsWith("expenses/")).map(([, v]) => v as unknown as Expense);
@@ -972,7 +973,7 @@ describe("the split at the end of the day", () => {
   it("comes by itself with more than two people, once a day, and says how to stop it the first time", async () => {
     const t = await three();
     const sent = await night(t);
-    expect(sent).toEqual(["*Trip 1 tonight, shared equally by 3*\n₹250 each.\n\nMeena pays Asha ₹200\nMeena pays Ravi ₹50\n\nMeena should pay next, to even things out.\n\nI send this at the end of a day when something was spent. _split off_ stops it."]);
+    expect(sent).toEqual(["*Trip 1 tonight, shared equally by 3*\n₹250 each.\n\nMeena pays Asha ₹200\nMeena pays Ravi ₹50\n\nMeena should pay next, to even things out.\n\nI send this at 9pm on a day when something was spent. _split off_ stops it."]);
     expect(await night(t)).toEqual([]);
   });
 
@@ -980,7 +981,7 @@ describe("the split at the end of the day", () => {
     const t = await two();
     expect(await night(t)).toEqual([]);
     await t.message(plugin, "split");
-    expect(last(t)).toContain("From now on I'll send this at the end of a day when something was spent. _split off_ stops it.");
+    expect(last(t)).toContain("From now on I'll send this at 9pm on a day when something was spent. _split off_ stops it.");
     expect(await night(t)).toEqual(["*Trip 1 tonight, shared equally by 2*\n₹375 each.\n\nRavi pays Asha ₹75\n\nRavi should pay next, to even things out."]);
     await t.message(plugin, "split");
     expect(last(t)).not.toContain("From now on");
@@ -1030,5 +1031,85 @@ describe("the split at the end of the day", () => {
     const before = t.sent.length;
     await t.schedule(plugin, "split");
     expect(t.sent.slice(before).map((x) => x.group)).toEqual(["x-flat"]);
+  });
+});
+
+describe("a trip's own clock", () => {
+  // The kit's moment is 21:00 UTC on 2026-11-15: 2:30am on the 16th in India, 4am in Bangkok, 6am in Tokyo.
+  const home = { person: { name: "Asha", timezone: "Asia/Kolkata", currency: "INR" } };
+  const NOW = Date.parse("2026-11-15T21:00:00Z");
+
+  it("reads places, zone names, offsets and the time someone says it is", () => {
+    expect(zoneNamed("Tokyo")).toBe("Asia/Tokyo");
+    expect(zoneNamed("sri lanka")).toBe("Asia/Colombo");
+    expect(zoneNamed("kuala lumpur")).toBe("Asia/Kuala_Lumpur");
+    expect(zoneNamed("asia/ho_chi_minh")).toBe("Asia/Ho_Chi_Minh");
+    expect(zoneNamed("+7")).toBe("Etc/GMT-7");
+    expect(zoneNamed("gmt+5:30")).toBe("Asia/Kolkata");
+    expect(zoneNamed("utc-8")).toBe("Etc/GMT+8");
+    expect(zoneNamed("narnia")).toBeNull();
+    expect(zoneFromTime("it's 4am here", NOW)).toBe("Etc/GMT-7");
+    expect(zoneFromTime("its 2:30 am", NOW)).toBe("Asia/Kolkata");
+    expect(zoneFromTime("time is 13:00 here", NOW)).toBe("Etc/GMT+8");
+    expect(zoneFromTime("it's 5", NOW)).toBeNull();
+    expect(zoneFromTime("it's late", NOW)).toBeNull();
+    expect(placeOf("Etc/GMT-7")).toBe("GMT+7");
+    expect(placeOf("Asia/Ho_Chi_Minh")).toBe("Ho Chi Minh");
+    expect(clock("Asia/Tokyo", NOW)).toEqual({ day: "2026-11-16", hour: 6, minute: 0 });
+  });
+
+  it("moves with the trip's currency when that isn't the person's own, and says so when it answers in words", async () => {
+    const t = createTestKit(home);
+    await t.message(plugin, "pad thai 200 thb");
+    expect(trips(t)[0].zone).toBe("Asia/Bangkok");
+    expect(expenses(t)[0].day).toBe("2026-11-16");
+    const u = createTestKit(home);
+    await u.message(plugin, "lunch 450");
+    await u.message(plugin, "currency thb");
+    expect(last(u)).toMatch(/I'll keep this trip on Bangkok time\. _time zone tokyo_ changes that\.$/);
+    const same = createTestKit(home);
+    await same.message(plugin, "lunch rs 450");
+    expect(trips(same)[0].zone ?? null).toBeNull();
+    // Dollars are spent in too many zones to say where.
+    const usd = createTestKit(home);
+    await usd.message(plugin, "burger 12 usd");
+    expect(trips(usd)[0].zone ?? null).toBeNull();
+  });
+
+  it("is set by naming a place or saying the time, and keeps the days of what was sent before", async () => {
+    const t = await started(home);
+    await t.message(plugin, "time zone tokyo");
+    expect(last(t)).toBe("This trip is on Tokyo time now. It's 6am there.");
+    expect(trips(t)[0].zone).toBe("Asia/Tokyo");
+    // lunch was sent on the 15th by the kit's day, and stays there.
+    expect(expenses(t)[0].day).toBe("2026-11-15");
+    await t.message(plugin, "ramen 900");
+    expect(expenses(t).find((e) => e.what === "ramen")!.day).toBe("2026-11-16");
+    await t.message(plugin, "it's 4am here");
+    expect(last(t)).toBe("This trip is on GMT+7 time now. It's 4am there.");
+    await t.message(plugin, "timezone");
+    expect(last(t)).toContain("This trip is on GMT+7 time: 4am now.");
+    await t.message(plugin, "time zone narnia");
+    expect(last(t)).toBe(copy.zoneUnknown());
+  });
+
+  it("sends the split at 9pm where the trip is, not where the person lives", async () => {
+    const t = await started(home);
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    await t.message(plugin, "thanks all", null, null, "Meena");
+    await t.message(plugin, "time zone tokyo");
+    await t.message(plugin, "ramen 900");
+    const night = async () => {
+      const before = t.sent.length;
+      await t.schedule(plugin, "split");
+      return t.sent.length - before;
+    };
+    // 21:00 UTC is 6am in Tokyo.
+    expect(await night()).toBe(0);
+    // 12:00 UTC on the 16th is 9pm in Tokyo, the day the ramen was paid.
+    t.setToday("2026-11-16");
+    t.setHour(12);
+    expect(await night()).toBe(1);
+    expect(await night()).toBe(0);
   });
 });

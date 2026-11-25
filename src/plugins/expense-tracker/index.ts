@@ -1,4 +1,5 @@
 import { definePlugin, type Json, type Kit, type Photo, type Sender } from "../../sdk";
+import { clock, placeOf, sayTime, zoneFromTime, zoneNamed, zoneOfCurrency } from "./zone";
 import { copy, MINE, SAVED, type Owes, type Row, type Shown } from "./copy";
 import { add, cleanTag, COMMON, currencyOf, guessCurrency, label, MAX_TAGS, money, readAmount, readExpense, sayDay, sign, takeTags, total, type Read, type Sums } from "./money";
 
@@ -15,6 +16,11 @@ import { add, cleanTag, COMMON, currencyOf, guessCurrency, label, MAX_TAGS, mone
  * guess from their clock) as the first choice. Until someone answers, that first choice
  * stands. What the person who added the app says is handed to Zelfred (kit.learn), which
  * keeps it if it knew nothing.
+ *
+ * Time. A trip can be somewhere else than the person who added the app, so it may have a zone of its own (`trip.zone`):
+ * guessed from its currency when that differs from the person's own, or said ("time zone tokyo", "it's 9pm here"). Its
+ * days and the hour its split goes out follow that zone. An expense sent while the trip has a zone keeps the day it was
+ * there, so a trip that moves on to another zone leaves its earlier days as they were.
  *
  * Groups. Besides its own group it takes groups the person already had (onGroup). Each group
  * has its own trips: what is sent in one never shows in another. `here` below is the group's
@@ -71,6 +77,8 @@ export interface Trip {
   asked?: string[] | null;
   startedAt: number;
   endedAt: number | null;
+  /** The time zone it runs on ("Asia/Bangkok"), when that isn't the zone of the person who added the app. */
+  zone?: string | null;
   /** How many expenses were ever sent to it: the next one's place in the list. */
   seq?: number;
   /** Set when it ends: how many expenses, and their sums by currency. */
@@ -154,9 +162,29 @@ const of = (kit: Kit, trip: Trip) => trip.currency ?? own(kit);
 const expensesOf = (kit: Kit, tripId: string) => kit.store.list<Expense>("expenses", { prefix: `${tripId}:` });
 
 const titleOf = (trip: Trip) => trip.name ?? `Trip ${trip.n}`;
+/** The day and hour it is for a trip at an instant: in its own zone when it has one, else where the person who added the app is. */
+function when(kit: Kit, trip: Trip, ms: number): { day: string; hour: number; minute: number } {
+  return (trip.zone ? clock(trip.zone, ms) : null) ?? clock(kit.person.timezone, ms) ?? { day: kit.time.day(ms), hour: kit.time.hour(ms), minute: 0 };
+}
+/** The same, as the kit tells it when the trip has no zone of its own (the kit's day is the person's day). */
+const dayFor = (kit: Kit, trip: Trip, ms: number) => (trip.zone ? when(kit, trip, ms).day : kit.time.day(ms));
+const hourFor = (kit: Kit, trip: Trip, ms: number) => (trip.zone ? when(kit, trip, ms).hour : kit.time.hour(ms));
+/** The day an expense was paid: the one set on it, else the day it was sent, on the trip's clock. */
+const dayOfExpense = (kit: Kit, trip: Trip, e: Expense) => e.day ?? dayFor(kit, trip, e.at);
+
+/**
+ * Put a trip on a zone. Its expenses so far keep the days they had: each is stamped with its day on the old clock first.
+ */
+async function setZone(kit: Kit, f: Found, zone: string | null): Promise<void> {
+  if ((f.trip.zone ?? null) === zone) return;
+  for (const { key, data: e } of await expensesOf(kit, f.id)) if (!e.day) await kit.store.put("expenses", key, { ...e, day: dayFor(kit, f.trip, e.at) } as unknown as Json);
+  f.trip = { ...f.trip, zone };
+  await save(kit, f);
+}
+
 function daysOf(kit: Kit, trip: Trip): string {
-  const from = kit.time.day(trip.startedAt);
-  const to = kit.time.day(trip.endedAt ?? kit.now);
+  const from = dayFor(kit, trip, trip.startedAt);
+  const to = dayFor(kit, trip, trip.endedAt ?? kit.now);
   if (from === to) return sayDay(from);
   return from.slice(0, 7) === to.slice(0, 7) ? `${Number(from.slice(8))} to ${sayDay(to)}` : `${sayDay(from)} to ${sayDay(to)}`;
 }
@@ -297,11 +325,24 @@ async function learn(kit: Kit, sender: Sender, currency: string): Promise<void> 
 }
 
 /** A trip's currency is settled: record it and take the question about it away. */
-async function settle(kit: Kit, f: Found, currency: string, sender: Sender): Promise<void> {
+/**
+ * Settle what a trip is counted in. A currency that isn't the person's own, and is spent in one time zone, says where the
+ * trip is: the trip's clock moves there unless someone already set it. Returns that place when the clock moved.
+ */
+async function settle(kit: Kit, f: Found, currency: string, sender: Sender): Promise<string | null> {
   if (f.trip.asked) kit.close(currencyRef(f.id, f.trip.asked) as unknown as Json);
+  const home = own(kit);
   f.trip = { ...f.trip, currency, asked: null };
   await save(kit, f);
   await learn(kit, sender, currency);
+  const there = currency !== home ? zoneOfCurrency(currency) : null;
+  if (!there || f.trip.zone || there === kit.person.timezone) return null;
+  // Two names for one clock (Kolkata and Colombo, say) are not a move.
+  const a = clock(there, kit.now);
+  const b = clock(kit.person.timezone, kit.now);
+  if (!a || (b && a.day === b.day && a.hour === b.hour && a.minute === b.minute)) return null;
+  await setZone(kit, f, there);
+  return placeOf(there);
 }
 
 /** Ask what a new trip is counted in: the person's own currency first, then the usual ones. */
@@ -331,7 +372,7 @@ async function keep(kit: Kit, here: Here, reads: Kept[], bad: string[], sender: 
   const seq = f.trip.seq ?? 0;
   for (const [i, r] of reads.entries()) {
     // A bill sent with several lines is the first one's.
-    const expense: Expense = { what: r.what, amount: r.amount, currency: r.currency, by: sender.id, name, at: kit.now, ...(r.tags.length ? { tags: r.tags } : {}), ...(bill && i === 0 ? { bill } : {}) };
+    const expense: Expense = { what: r.what, amount: r.amount, currency: r.currency, by: sender.id, name, at: kit.now, ...(f.trip.zone ? { day: dayFor(kit, f.trip, kit.now) } : {}), ...(r.tags.length ? { tags: r.tags } : {}), ...(bill && i === 0 ? { bill } : {}) };
     await kit.store.put("expenses", `${f.id}:${ids[i]}`, expense as unknown as Json, seq + i + 1);
   }
   // Saved before anything below reads the trip again.
@@ -344,6 +385,11 @@ async function keep(kit: Kit, here: Here, reads: Kept[], bad: string[], sender: 
   const named = reads.find((r) => r.currency)?.currency ?? null;
   const unsettled = f.trip.currency === null;
   if (unsettled && named) await settle(kit, f, named, sender);
+  // The trip's clock may just have moved with its currency: what was kept a moment ago is on the new day.
+  if (f.trip.zone) for (const id of ids) {
+    const e = await kit.store.get<Expense>("expenses", `${f.id}:${id}`);
+    if (e) await kit.store.put("expenses", `${f.id}:${id}`, { ...e, day: dayFor(kit, f.trip, e.at) } as unknown as Json);
+  }
 
   const taught = await kit.store.get("state", sk(here, "taught"));
   const ask = unsettled && !named && have === 0 && !f.trip.asked;
@@ -457,15 +503,20 @@ async function showNext(kit: Kit, here: Here): Promise<void> {
   kit.send(!owes ? copy.nextAlone() : owes.next ? copy.next(owes.next) : copy.nextEven());
 }
 
+/** The hour the split goes out by itself, on the trip's clock. */
+export const SPLIT_HOUR = 21;
+
 /** The end of the day: the split of each group's open trip, where it is wanted, something was spent today and someone owes. */
 async function dailySplit(kit: Kit): Promise<void> {
-  const today = kit.time.day(kit.now);
   const homes = await kit.store.list<{ name: string }>("homes");
   for (const here of [null, ...homes.map((h) => h.key)] as Here[]) {
     const f = await openTrip(kit, here);
-    if (!f || (await kit.store.get("state", sk(here, "sentDay"))) === today) continue;
+    if (!f) continue;
+    // 9pm where the trip is, or later the same evening when that hour was missed.
+    const today = dayFor(kit, f.trip, kit.now);
+    if (hourFor(kit, f.trip, kit.now) < SPLIT_HOUR || (await kit.store.get("state", sk(here, "sentDay"))) === today) continue;
     const items = await expensesOf(kit, f.id);
-    if (!items.some((i) => kit.time.day(i.data.at) === today)) continue;
+    if (!items.some((i) => dayOfExpense(kit, f.trip, i.data) === today)) continue;
     const owes = owesOf(f.trip, items, of(kit, f.trip), await namesOf(kit, items, f.trip.crew));
     const daily = await dailyOf(kit, here);
     if (!owes || !owes.pays.length || daily === "off" || (daily === null && owes.n < 3)) continue;
@@ -627,6 +678,24 @@ async function command(kit: Kit, here: Here, text: string, lower: string, sender
     await undo(kit, here, sender);
     return true;
   }
+  // The trip's clock: "time zone tokyo", "timezone +7", or the time where they are ("it's 9pm here").
+  const tz = lower.match(/^(?:time ?zone|tz|clock)(?:\s+(?:is\s+|to\s+|in\s+)?(.+))?$/);
+  const told = tz ? null : zoneFromTime(lower, kit.now);
+  if (tz || told) {
+    const f = (await openTrip(kit, here)) ?? (tz?.[1] || told ? await startTrip(kit, here) : null);
+    const zone = told ?? (tz?.[1] ? zoneNamed(tz[1]) : null);
+    if (tz && !tz[1]) {
+      const z = f?.trip.zone ?? kit.person.timezone;
+      const c = (f ? when(kit, f.trip, kit.now) : clock(z, kit.now)) ?? { hour: kit.time.hour(kit.now), minute: 0 };
+      kit.send(copy.zoneNow({ place: placeOf(z), time: sayTime(c.hour, c.minute) }));
+    } else if (!zone || !f || !clock(zone, kit.now)) kit.send(copy.zoneUnknown());
+    else {
+      await setZone(kit, f, zone);
+      const c = clock(zone, kit.now)!;
+      kit.send(copy.zoneSet({ place: placeOf(zone), time: sayTime(c.hour, c.minute) }));
+    }
+    return true;
+  }
   let m = lower.match(/^currency(?:\s+(?:is\s+|to\s+|in\s+)?(.+))?$/);
   if (m) {
     const f = (await openTrip(kit, here)) ?? (m[1] ? await startTrip(kit, here) : null);
@@ -637,8 +706,8 @@ async function command(kit: Kit, here: Here, text: string, lower: string, sender
     const currency = currencyOf(m[1]) ?? (/^[a-z]{3}$/.test(m[1]) ? m[1].toUpperCase() : null);
     if (!currency || !f) kit.send(copy.currencyUnknown());
     else {
-      await settle(kit, f, currency, sender);
-      kit.send(copy.counting({ currency: sign(currency) }));
+      const place = await settle(kit, f, currency, sender);
+      kit.send(copy.counting({ currency: sign(currency), place }));
     }
     return true;
   }
@@ -746,7 +815,7 @@ function parts(items: { data: Expense }[], mine: string, keys: (e: Expense) => {
 }
 
 function dashOf(kit: Kit, trip: Trip, items: { data: Expense }[], mine: string, names: Names): Dash {
-  const dayOf = (e: Expense) => e.day ?? kit.time.day(e.at);
+  const dayOf = (e: Expense) => dayOfExpense(kit, trip, e);
   const days = parts(items, mine, (e) => [{ key: dayOf(e), name: sayDay(dayOf(e)) }]).sort((a, b) => (a.key < b.key ? -1 : 1));
   const span = days.length ? Math.round((Date.parse(`${days[days.length - 1].key}T00:00:00Z`) - Date.parse(`${days[0].key}T00:00:00Z`)) / 86_400_000) + 1 : 0;
   const sums: Sums = {};
@@ -780,7 +849,7 @@ async function pageTrip(kit: Kit, id: string, trip: Trip, withRows: boolean): Pr
   if (open && !items.length) return null;
   const names = await namesOf(kit, items, trip.crew);
   const s = shown(kit, trip, items, names);
-  const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: new Set(items.map((i) => i.data.by)).size > 1 ? (names.get(e.by) ?? null) : null, at: e.at, day: e.day ?? kit.time.day(e.at), tags: e.tags ?? [], bill: e.bill ?? null, mark: e.mark ?? null, by: e.by, value: (e.currency ?? mine) === mine ? e.amount : null }));
+  const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: new Set(items.map((i) => i.data.by)).size > 1 ? (names.get(e.by) ?? null) : null, at: e.at, day: dayOfExpense(kit, trip, e), tags: e.tags ?? [], bill: e.bill ?? null, mark: e.mark ?? null, by: e.by, value: (e.currency ?? mine) === mine ? e.amount : null }));
   return { id, title: s.title, days: s.days, count: s.count, total: s.total, currency: sign(mine), people: s.people, labels: s.labels ?? [], marks: markSums(items, mine), open, ...(withRows || open ? { rows, dash: dashOf(kit, trip, items, mine, names) } : {}) };
 }
 
@@ -871,7 +940,7 @@ export default definePlugin({
       async setDay(kit, { trip, id, day }) {
         const { key, e } = await pageExpense(kit, trip, id);
         if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(`${day}T00:00:00Z`)) || new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) !== day) throw new Error("Pick a date.");
-        if (day > kit.time.shiftDay(kit.time.day(kit.now), 1)) throw new Error("That date hasn't come yet.");
+        if (day > kit.time.shiftDay(kit.time.day(kit.now), 2)) throw new Error("That date hasn't come yet.");
         await kit.store.put("expenses", key, { ...e, day } as unknown as Json);
       },
       /** Who spent an expense: one of the people who already have an expense in its trip. Allowed after the trip closed: the sum stays as it was. */
@@ -921,8 +990,9 @@ export default definePlugin({
     kit.send(copy.joinedGroup());
   },
 
-  // The end of the day, in the zone of the person who added the app: the split, where it is wanted.
-  schedules: [{ id: "split", hour: 21 }],
+  // The end of the day where each trip is: the split, where it is wanted.
+  // Every hour, because each trip has its own clock: the handler looks for the trips where it is 9pm.
+  schedules: [{ id: "split", hour: "hourly" }],
 
   async onSchedule(event, kit) {
     if (event.id === "split") await dailySplit(kit);
@@ -966,9 +1036,9 @@ export default definePlugin({
     const typed = f?.trip.asked ? currencyOf(lower) : null;
     if (f && typed) {
       if (photo) await kit.files.remove(photo.id);
-      await settle(kit, f, typed, sender);
+      const place = await settle(kit, f, typed, sender);
       await heard(kit, here);
-      kit.send(copy.counting({ currency: sign(typed) }));
+      kit.send(copy.counting({ currency: sign(typed), place }));
       return;
     }
 
@@ -1027,7 +1097,7 @@ export default definePlugin({
     kit.close(event.ref as unknown as Json);
     if (!currency || !trip || trip.endedAt !== null || !trip.asked) return;
     const sender = senderOf(event, kit);
-    await settle(kit, { id: event.ref.trip, trip: { ...trip, asked: null } }, currency, sender);
-    kit.send(copy.counting({ currency: sign(currency) }));
+    const place = await settle(kit, { id: event.ref.trip, trip: { ...trip, asked: null } }, currency, sender);
+    kit.send(copy.counting({ currency: sign(currency), place }));
   },
 });

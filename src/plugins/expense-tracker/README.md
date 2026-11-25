@@ -38,6 +38,7 @@ On an expense you sent:
 | reply with a photo | That photo is its bill (it replaces the one before). 👍. Works after the trip closed too. |
 | `split` (also `settle`, `tally`, `who owes`) | Who owes whom, with the trip shared equally by everyone on it: "Ravi pays Asha ₹75". Everyone on it means whoever spent, wrote, reacted or was tagged in the group while the trip was open. |
 | `next` (also `who?`, `who next`, `whose turn`) | Who should pay next to even things out: whoever is furthest under an equal share. |
+| `time zone tokyo` (also `timezone +7`, `it's 9pm here`) | Puts this trip on the time where you are. `time zone` alone says what it is on. A trip counted in a currency that isn't your own, like baht or yen, moves there by itself. |
 | `split off`, `split on` | Stops and starts the split I send at 9pm on a day something was spent. It is on by itself with more than two people, and with two once they ask for a split or tag each other on an expense. |
 | reply and tag someone, like `@Ravi` | It is theirs: they spent it. 👍. Anyone may, for anyone's expense. Works after the trip closed too. |
 | reply `mine` (also `me`, `I paid`) | It is yours. 👍 |
@@ -77,7 +78,7 @@ These choices are the plugin author's and were not confirmed by the owner: no sp
 
 | Id | When | What it sends |
 |---|---|---|
-| `split` | 9pm every day | Who owes whom on each group's open trip, with who should pay next. Only on a day something was spent, when someone owes, and where it is wanted: with more than two people on the trip, or with two once they asked for a split or tagged each other on an expense. `split off` stops it |
+| `split` | Every hour, acting at 9pm on each trip's own clock | Who owes whom on each group's open trip, with who should pay next. Only on a day something was spent, when someone owes, and where it is wanted: with more than two people on the trip, or with two once they asked for a split or tagged each other on an expense. `split off` stops it |
 
 ## Web page
 

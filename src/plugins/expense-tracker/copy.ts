@@ -37,6 +37,9 @@ export const NEXT = fixed("next");
 /** Stops the split sent by itself at the end of a day, and starts it again. */
 export const SPLIT_OFF = fixed("split off");
 export const SPLIT_ON = fixed("split on");
+/** The trip's own clock. */
+export const ZONE_EXAMPLE = fixed("time zone tokyo");
+export const TIME_EXAMPLE = fixed("it's 9pm here");
 /** Sent as a reply to an expense: the person who says it spent it. */
 export const MINE_EXAMPLE = fixed("mine");
 /** Every way of saying that, as the parser reads it: lower case, with no full stop at the end. */
@@ -100,7 +103,7 @@ export interface Shown {
 const owing = (o: Owes) => (o.pays.length ? o.pays.map((p) => `${p.from} pays ${p.to} ${p.amount}`).join("\n") : "Everyone has paid their share.");
 /** For a trip still open: who picks up the next bill. */
 const nextUp = (o: Owes) => (o.next ? `\n\n${o.next.who} should pay next, to even things out.` : "");
-const HOW_TO_STOP = `I send this at the end of a day when something was spent. _${SPLIT_OFF}_ stops it.`;
+const HOW_TO_STOP = `I send this at 9pm on a day when something was spent. _${SPLIT_OFF}_ stops it.`;
 
 const row = (r: Row, n: number) => `${n}. ${r.what} ${r.amount}${r.tags?.length ? ` ${r.tags.map((t) => `#${t}`).join(" ")}` : ""}${r.mark ? ` ${r.mark}` : ""}${r.bill ? " 📎" : ""}${r.who ? ` · ${r.who}` : ""}`;
 const expenses = (n: number) => `${n} ${n === 1 ? "expense" : "expenses"}`;
@@ -133,7 +136,8 @@ export const copy = {
       "A new description for this group starts a new trip too, called what you wrote",
       `_${SPLIT}_ shows who owes whom, with the trip shared equally by everyone here`,
       `_${NEXT}_ (or _who?_) says who should pay next to even things out`,
-      `With more than two of you I send the split at the end of a day something was spent. _${SPLIT_OFF}_ stops it, _${SPLIT_ON}_ starts it`,
+      `With more than two of you I send the split at 9pm on a day something was spent. _${SPLIT_OFF}_ stops it, _${SPLIT_ON}_ starts it`,
+      `Abroad? _${ZONE_EXAMPLE}_ or _${TIME_EXAMPLE}_ puts this trip on the time where you are`,
       `_${TRIPS}_ shows the trips you have ended`,
       `_${NAME_EXAMPLE}_ names this trip`,
       `_${CURRENCY_EXAMPLE}_ changes what I count plain amounts in for this trip`,
@@ -172,7 +176,15 @@ export const copy = {
     ({ first }) => `${first ? "Which currency do I count in?" : "A new trip. Which currency do I count this one in?"} Pick one, or type another, like ${TYPED_EXAMPLE}.`,
   ]),
   /** The record once the currency is settled, by an answer or by `currency usd`. */
-  counting: msg<{ currency: string }>([({ currency }) => `Counting in ${currency}.`, ({ currency }) => `${currency} it is.`]),
+  counting: msg<{ currency: string; place?: string | null }>([
+    ({ currency, place }) => `Counting in ${currency}.${place ? ` I'll keep this trip on ${place} time. _${ZONE_EXAMPLE}_ changes that.` : ""}`,
+    ({ currency, place }) => `${currency} it is.${place ? ` I'll keep this trip on ${place} time. _${ZONE_EXAMPLE}_ changes that.` : ""}`,
+  ]),
+  /** The trip's clock was set. `time`: what it is there now, "9:05pm". */
+  zoneSet: msg<{ place: string; time: string }>([({ place, time }) => `This trip is on ${place} time now. It's ${time} there.`]),
+  /** `time zone` on its own. */
+  zoneNow: msg<{ place: string; time: string }>([({ place, time }) => `This trip is on ${place} time: ${time} now. To change it: _${ZONE_EXAMPLE}_, or tell me the time, like _${TIME_EXAMPLE}_.`]),
+  zoneUnknown: msg([`I don't know that place. Try a big city near you, like _${ZONE_EXAMPLE}_, or tell me the time: _${TIME_EXAMPLE}_.`]),
   /** `currency` on its own. */
   countingNow: msg<{ currency: string }>([({ currency }) => `I'm counting this trip in ${currency}. To change it: _${CURRENCY_EXAMPLE}_.`]),
   currencyUnknown: msg([`I don't know that currency. Send its three letters, like _${CURRENCY_EXAMPLE}_.`]),
@@ -228,7 +240,7 @@ export const copy = {
     ({ title, owes, first }) => `*${title} tonight, shared equally by ${owes.n}*\n${owes.each} each.\n\n${owing(owes)}${nextUp(owes)}${first ? `\n\n${HOW_TO_STOP}` : ""}`,
   ]),
   dailyOff: msg([`I won't send the split by myself any more. Ask for it any time with _${SPLIT}_. _${SPLIT_ON}_ brings it back.`]),
-  dailyOn: msg([`I'll send the split at the end of each day something is spent. _${SPLIT_OFF}_ stops it.`]),
+  dailyOn: msg([`I'll send the split at 9pm on each day something is spent. _${SPLIT_OFF}_ stops it.`]),
   /** `next`: who pays next. */
   next: msg<{ who: string; short: string }>([({ who, short }) => `${who} pays next. ${short} short of an equal share.`, ({ who, short }) => `${who}. ${short} short of an equal share so far.`]),
   nextEven: msg(["You're all even. Anyone can pay next."]),
