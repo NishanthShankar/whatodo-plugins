@@ -148,7 +148,7 @@ export const copy = {
       "Send a photo of the bill with the expense as its caption, and I keep the two together.",
       "",
       `The person who sends an expense spent it. If someone else did, reply to it and tag them, or they reply _${MINE_EXAMPLE}_.`,
-      `Reply to an expense with the right amount to correct it, with _${DELETE}_ to remove it, with a photo to keep its bill, with _${TAG_REPLY}_ to label it, or with _${BILL}_ to see its bill.`,
+      `Reply to an expense with the right amount to correct it, with _${DELETE}_ (or a ❌ reaction) to remove it, with a photo to keep its bill, with _${TAG_REPLY}_ to label it, or with _${BILL}_ to see its bill.`,
     ].join("\n"),
   ]),
   groupName: msg(["🧾 TripExpenses"]),

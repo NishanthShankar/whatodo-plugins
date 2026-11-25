@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.30.0] - 2026-11-25
+
+### Added
+- `onDeleted(event, kit)` with `DeletedEvent` (`{ ref, group, sender }`): a person deleted for everyone a message of theirs that the plugin marked with `kit.mark`.
+- Test kit: `t.deleted(plugin, ref, group?, from?)`.
+- TripExpenses 1.9.0 (`expense-tracker`) is the first to use it.
+
 ## [1.29.0] - 2026-11-25
 
 ### Added
