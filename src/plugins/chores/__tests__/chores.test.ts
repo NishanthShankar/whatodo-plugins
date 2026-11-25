@@ -128,7 +128,7 @@ describe("the first five minutes", () => {
       "*Bins*: done by Ravi. Next time it is Asha's.\n\nThat is all there is to it. Each morning at 8am I send the day's jobs here as one list. Whoever ticks a job did it, and the turn moves on.\n\nFrom now on a ✅ means done.\n\nAsha and Kiran need to be in this group to tick their jobs. Add them here if they aren't yet. They install nothing.",
     );
     // Then, once, the usual jobs to pick from. Bins is left out: the home has it.
-    expect(ideas(t)).toMatchObject({ intro: copy.ideasOffer(), multiple: true });
+    expect(ideas(t)).toMatchObject({ question: copy.ideasOffer(), intro: null, multiple: true });
     expect(ideas(t)!.options).toHaveLength(IDEA_JOBS.length - 1);
     expect(ideas(t)!.options[0]).toBe("Dishes, every day");
     await t.answer(chores, ideas(t)!.ref, [0]);

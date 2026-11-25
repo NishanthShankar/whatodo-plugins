@@ -468,7 +468,7 @@ function offerIdeas(kit: Kit, here: Here, home: Home, jobs: Found[]): void {
   if (left.length < 2) return;
   home.offered = 1;
   const ref: IdeasRef = { kind: "ideas", home: hk(here), ids: left.map((i) => i.id) };
-  kit.ask(copy.ideasQuestion(), left.map(ideaOption), { multiple: true, ref: ref as unknown as Json, intro: copy.ideasOffer(), ...to(here) });
+  kit.ask(copy.ideasOffer(), left.map(ideaOption), { multiple: true, ref: ref as unknown as Json, ...to(here) });
 }
 
 /**

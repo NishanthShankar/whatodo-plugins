@@ -26,7 +26,7 @@ What a new home meets, in order. Each is said once per home and never again.
 2. **The first job** is answered with what was understood and, in the same message, the one thing to do next: "It is due today, so try it now. React 👍 to this message when it's done." That message is the day's list, so the morning list doesn't also go out that day. A first job that falls on a later day is told its first day and hour; one with no fixed day is told how to say it is needed.
 3. **Who are you**, only when it can't be told: "Which of these is you?" with the rota's names and "None of them". Only the person asked can answer, a typed `I'm Nish` counts, and step 2's "try it now" waits for the answer. No answer: nothing breaks, the morning list still comes.
 4. **The first tick**, by a reaction or by words, is answered with the first time line. In the app's own group, when names in the rotas have not been seen there, one more paragraph says to add them: "They install nothing."
-5. **The usual jobs**, offered once as a tick list right after the first tick (or with the first job, when that isn't due today), leaving out what the home already has. Silence adds nothing.
+5. **The usual jobs**, offered once as a tick list ("What else does your home do?") right after the first tick (or with the first job, when that isn't due today), leaving out what the home already has. Silence adds nothing.
 6. **The first morning list** opens with one line on how it works, unless step 4 already said it.
 7. **The first time someone does another person's job:** one line on who got the credit and where the turn went, with the message that changes the rule.
 

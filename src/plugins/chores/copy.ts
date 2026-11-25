@@ -191,8 +191,8 @@ export const copy = {
         ? `${by} did *${name}*, which was ${turn}'s turn. The credit is ${by}'s, and the turn moves on${next ? ` to ${next}` : ""} all the same. ${owner ?? "The person who added me"} can change that with _${TURNS_STAY}_.`
         : `${by} did *${name}*, which was ${turn}'s turn. The credit is ${by}'s, and it is still ${turn}'s turn next time.`,
   ]),
-  /** The jobs offered once, unasked, after the first job. */
-  ideasOffer: msg([`What else does your home do? Tick any of these and I add each one, for anyone to do. Then tell me who takes turns, like _${ROTA_EXAMPLE}_.`]),
+  /** The usual jobs, offered once, unasked, after the first job. The poll's own question: nothing is sent before it. */
+  ideasOffer: msg(["What else does your home do? Tick any of these and I add each one, for anyone to do."]),
 
   /** "take turns" was said and fewer than two people are known here. */
   whoTakesTurns: msg<{ name: string; known: string[] }>([
