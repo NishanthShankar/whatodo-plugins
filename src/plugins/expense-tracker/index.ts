@@ -1,5 +1,5 @@
 import { definePlugin, type Json, type Kit, type Photo, type Sender } from "../../sdk";
-import { copy, MINE, SAVED, type Row, type Shown } from "./copy";
+import { copy, MINE, SAVED, type Owes, type Row, type Shown } from "./copy";
 import { add, cleanTag, COMMON, currencyOf, guessCurrency, label, MAX_TAGS, money, readAmount, readExpense, sayDay, sign, takeTags, total, type Read, type Sums } from "./money";
 
 /**
@@ -73,6 +73,11 @@ export interface Trip {
   /** Set when it ends: how many expenses, and their sums by currency. */
   count?: number;
   sums?: Sums;
+  /**
+   * The people on it besides those who spent something: everyone who wrote, reacted or was tagged in its group while it was
+   * open. Its cost is shared equally by all of them and the spenders.
+   */
+  crew?: string[];
   /** Set when it ends: the labels and emoji its expenses carried, for the page to offer again. */
   used?: { labels: string[]; marks: string[] };
 }
@@ -198,9 +203,61 @@ async function know(kit: Kit, s: Sender): Promise<void> {
   if ((await kit.store.get<{ name: string }>("people", s.id))?.name !== name) await kit.store.put("people", s.id, { name });
 }
 
-/** The names for some expenses: the one each person was last heard under, else the one kept with their expenses. */
-async function namesOf(kit: Kit, items: { data: Expense }[]): Promise<Names> {
+/** The most people one trip is shared by. */
+export const MAX_CREW = 50;
+
+/** Count these people in on the open trip of a group: they are here, so its cost is theirs to share. */
+async function join(kit: Kit, here: Here, people: Sender[]): Promise<void> {
+  const f = await openTrip(kit, here);
+  if (!f) return;
+  const crew = f.trip.crew ?? [];
+  const fresh = [...new Set(people.map((p) => p.id))].filter((id) => !crew.includes(id)).slice(0, MAX_CREW - crew.length);
+  if (!fresh.length) return;
+  f.trip = { ...f.trip, crew: [...crew, ...fresh] };
+  await save(kit, f);
+}
+
+/**
+ * Who owes whom, when everyone on the trip shares its cost equally: each person's share against what they spent, settled in
+ * as few payments as it takes. Each currency is settled on its own. Null with fewer than two people.
+ */
+function owesOf(trip: Trip, items: { data: Expense }[], mine: string, names: Names): Owes | null {
+  const crew = [...new Set([...(trip.crew ?? []), ...items.map((i) => i.data.by)])];
+  if (crew.length < 2 || !items.length) return null;
+  const sums: Sums = {};
+  const paid = new Map<string, Sums>();
+  for (const { data: e } of items) {
+    const c = e.currency ?? mine;
+    add(sums, e.amount, c);
+    add(paid.get(e.by) ?? paid.set(e.by, {}).get(e.by)!, e.amount, c);
+  }
+  const say = (id: string) => names.get(id) ?? "Someone";
+  const shares: Sums = {};
+  const pays: Owes["pays"] = [];
+  for (const c of Object.keys(sums).sort((a, b) => (a === mine ? -1 : b === mine ? 1 : a < b ? -1 : 1))) {
+    const share = sums[c] / crew.length;
+    shares[c] = Math.round(share * 100) / 100;
+    const left = crew.map((id) => ({ id, v: (paid.get(id)?.[c] ?? 0) - share }));
+    // The largest first, and by name when two are the same, so the same trip always reads the same.
+    const near = (a: number, b: number) => Math.abs(a - b) < 0.005;
+    const owe = left.filter((x) => x.v < -0.005).sort((a, b) => (near(a.v, b.v) ? say(a.id).localeCompare(say(b.id)) : a.v - b.v));
+    const get = left.filter((x) => x.v > 0.005).sort((a, b) => (near(a.v, b.v) ? say(a.id).localeCompare(say(b.id)) : b.v - a.v));
+    for (let i = 0, j = 0; i < owe.length && j < get.length; ) {
+      const x = Math.min(-owe[i].v, get[j].v);
+      if (x >= 0.01) pays.push({ from: say(owe[i].id), to: say(get[j].id), amount: money(Math.round(x * 100) / 100, c) });
+      owe[i].v += x;
+      get[j].v -= x;
+      if (owe[i].v > -0.005) i++;
+      if (get[j].v < 0.005) j++;
+    }
+  }
+  return { n: crew.length, each: total(shares, mine), pays };
+}
+
+/** The names for some expenses, and for anyone else asked about: the one each person was last heard under, else the one kept with their expenses. */
+async function namesOf(kit: Kit, items: { data: Expense }[], others: string[] = []): Promise<Names> {
   const names: Names = new Map();
+  for (const id of others) names.set(id, null);
   for (const { data: e } of items) if (e.name || !names.has(e.by)) names.set(e.by, e.name ?? names.get(e.by) ?? null);
   for (const by of names.keys()) {
     const heard = (await kit.store.get<{ name: string }>("people", by))?.name;
@@ -225,7 +282,7 @@ function shown(kit: Kit, trip: Trip, items: { data: Expense }[], names: Names): 
   const from = Math.max(0, items.length - LISTED);
   const rows: Row[] = items.slice(from).map(({ data: e }) => ({ what: e.what, amount: money(e.amount, e.currency ?? mine), who: several ? (by.get(e.by)?.name ?? null) : null, tags: e.tags ?? [], bill: !!e.bill, mark: e.mark ?? null }));
   const people = several ? [...by.values()].map((p) => `${p.name ?? "Someone"} ${total(p.sums, mine)}`) : [];
-  return { title: titleOf(trip), days: daysOf(kit, trip), count: items.length, total: total(sums, mine), rows, from: from + 1, people, labels: labelSums(items, mine), marks: markSums(items, mine).map((m) => `${m.mark} ${m.total}`) };
+  return { title: titleOf(trip), days: daysOf(kit, trip), count: items.length, total: total(sums, mine), rows, from: from + 1, people, labels: labelSums(items, mine), marks: markSums(items, mine).map((m) => `${m.mark} ${m.total}`), owes: owesOf(trip, items, mine, names) };
 }
 
 /** The person who added the app said which currency they count in: Zelfred keeps it if it knew nothing. */
@@ -318,7 +375,7 @@ async function close(kit: Kit, here: Here): Promise<Shown | null> {
   f.trip = { ...f.trip, currency: mine, asked: null, endedAt: kit.now, count: items.length, sums, used };
   await save(kit, f);
   await kit.store.delete("state", sk(here, "open"));
-  return shown(kit, f.trip, items, await namesOf(kit, items));
+  return shown(kit, f.trip, items, await namesOf(kit, items, f.trip.crew));
 }
 
 async function end(kit: Kit, here: Here): Promise<void> {
@@ -355,7 +412,16 @@ async function showTotal(kit: Kit, here: Here): Promise<void> {
     kit.send(copy.nothingYet());
     return;
   }
-  kit.send(copy.total(shown(kit, f.trip, items, await namesOf(kit, items))));
+  kit.send(copy.total(shown(kit, f.trip, items, await namesOf(kit, items, f.trip.crew))));
+}
+
+/** Who owes whom on the open trip, when everyone on it shares its cost equally. */
+async function showSplit(kit: Kit, here: Here): Promise<void> {
+  const f = await openTrip(kit, here);
+  const items = f ? await expensesOf(kit, f.id) : [];
+  if (!f || !items.length) return void kit.send(copy.nothingYet());
+  const owes = owesOf(f.trip, items, of(kit, f.trip), await namesOf(kit, items, f.trip.crew));
+  kit.send(owes ? copy.split({ title: titleOf(f.trip), owes }) : copy.splitAlone());
 }
 
 async function showTrips(kit: Kit, here: Here): Promise<void> {
@@ -369,7 +435,7 @@ async function showTrips(kit: Kit, here: Here): Promise<void> {
     }
     const items = await expensesOf(kit, t.key);
     if (!items.length) continue;
-    const s = shown(kit, t.data, items, await namesOf(kit, items));
+    const s = shown(kit, t.data, items, await namesOf(kit, items, t.data.crew));
     rows.push({ title: s.title, days: s.days, count: s.count, total: s.total, open: true });
   }
   kit.send(rows.length ? copy.trips({ trips: rows }) : copy.noTrips());
@@ -483,6 +549,10 @@ async function command(kit: Kit, here: Here, text: string, lower: string, sender
     await showTotal(kit, here);
     return true;
   }
+  if (/^(split|split it|settle|settle up|tally|who owes( whom| who| what)?|who pays( whom| who| what)?|who owes how much)\??$/.test(lower)) {
+    await showSplit(kit, here);
+    return true;
+  }
   if (/^(trips|my trips|all trips|past trips|old trips|history)$/.test(lower)) {
     await showTrips(kit, here);
     return true;
@@ -572,6 +642,8 @@ interface Dash {
   top: { what: string; amount: string } | null;
   /** What was paid in other currencies, when anything was: "$20". */
   outside: string | null;
+  /** Who owes whom when the trip is shared equally. Null with fewer than two people on it. */
+  owes: Owes | null;
 }
 /** A trip as the page shows it. `rows` only for the open trip and for the one asked for. */
 interface PageTrip {
@@ -607,7 +679,7 @@ function parts(items: { data: Expense }[], mine: string, keys: (e: Expense) => {
   return [...by].map(([key, g]) => ({ key, name: g.name, total: total(g.sums, mine), value: g.sums[mine] ?? 0, count: g.count })).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 }
 
-function dashOf(kit: Kit, items: { data: Expense }[], mine: string, names: Map<string, string | null>): Dash {
+function dashOf(kit: Kit, trip: Trip, items: { data: Expense }[], mine: string, names: Names): Dash {
   const dayOf = (e: Expense) => e.day ?? kit.time.day(e.at);
   const days = parts(items, mine, (e) => [{ key: dayOf(e), name: sayDay(dayOf(e)) }]).sort((a, b) => (a.key < b.key ? -1 : 1));
   const span = days.length ? Math.round((Date.parse(`${days[days.length - 1].key}T00:00:00Z`) - Date.parse(`${days[0].key}T00:00:00Z`)) / 86_400_000) + 1 : 0;
@@ -627,6 +699,7 @@ function dashOf(kit: Kit, items: { data: Expense }[], mine: string, names: Map<s
     span,
     top: top ? { what: top.what, amount: money(top.amount, mine) } : null,
     outside: Object.keys(rest).length ? total(rest, "") : null,
+    owes: owesOf(trip, items, mine, names),
   };
 }
 
@@ -639,10 +712,10 @@ async function pageTrip(kit: Kit, id: string, trip: Trip, withRows: boolean): Pr
   const items = await expensesOf(kit, id);
   // An open trip nobody has sent anything to yet (it was only named) is not a trip to show.
   if (open && !items.length) return null;
-  const names = await namesOf(kit, items);
+  const names = await namesOf(kit, items, trip.crew);
   const s = shown(kit, trip, items, names);
-  const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: names.size > 1 ? (names.get(e.by) ?? null) : null, at: e.at, day: e.day ?? kit.time.day(e.at), tags: e.tags ?? [], bill: e.bill ?? null, mark: e.mark ?? null, by: e.by, value: (e.currency ?? mine) === mine ? e.amount : null }));
-  return { id, title: s.title, days: s.days, count: s.count, total: s.total, currency: sign(mine), people: s.people, labels: s.labels ?? [], marks: markSums(items, mine), open, ...(withRows || open ? { rows, dash: dashOf(kit, items, mine, names) } : {}) };
+  const rows: PageRow[] = items.map(({ key, data: e }, i) => ({ id: key.slice(id.length + 1), n: i + 1, what: e.what, amount: money(e.amount, e.currency ?? mine), who: new Set(items.map((i) => i.data.by)).size > 1 ? (names.get(e.by) ?? null) : null, at: e.at, day: e.day ?? kit.time.day(e.at), tags: e.tags ?? [], bill: e.bill ?? null, mark: e.mark ?? null, by: e.by, value: (e.currency ?? mine) === mine ? e.amount : null }));
+  return { id, title: s.title, days: s.days, count: s.count, total: s.total, currency: sign(mine), people: s.people, labels: s.labels ?? [], marks: markSums(items, mine), open, ...(withRows || open ? { rows, dash: dashOf(kit, trip, items, mine, names) } : {}) };
 }
 
 /** The expense a page action is about. Throws a plain sentence when it isn't kept any more. */
@@ -691,7 +764,7 @@ async function page(kit: Kit, args: Record<string, Json>): Promise<Json> {
 
 export default definePlugin({
   id: "expense-tracker",
-  version: "1.5.0",
+  version: "1.6.0",
   sdk: "1",
   name: "TripExpenses",
   icon: "🧾",
@@ -798,6 +871,8 @@ export default definePlugin({
     const lower = text.toLowerCase().replace(/\s+/g, " ").replace(/[!.]+$/, "");
     const sender = senderOf(event, kit);
     const here: Here = event.group ?? null;
+    // Everyone who writes here, or is tagged, is on the trip that is open: its cost is shared by them too.
+    await join(kit, here, [sender, ...tagged]);
     if (!sender.owner && !(await kit.store.get("state", sk(here, "shared")))) await kit.store.put("state", sk(here, "shared"), 1);
 
     if (isExpenseRef(event.quotedRef)) {
@@ -856,7 +931,10 @@ export default definePlugin({
    * sum stays as it was.
    */
   async onReaction(event, kit) {
-    if (event.sender) await know(kit, event.sender);
+    if (event.sender) {
+      await know(kit, event.sender);
+      await join(kit, event.group ?? null, [event.sender]);
+    }
     if (!isExpenseRef(event.ref)) return;
     if (event.emoji && PLAIN.has(bare(event.emoji))) return;
     const mark = event.emoji ? [...event.emoji].slice(0, 8).join("") : null;

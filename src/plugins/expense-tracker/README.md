@@ -36,6 +36,7 @@ On an expense you sent:
 | reply with a whole line, like `brunch 540` | The expense is replaced. 👍 |
 | reply `delete` (also `remove`) | Removed, and its bill with it. 👍 |
 | reply with a photo | That photo is its bill (it replaces the one before). 👍. Works after the trip closed too. |
+| `split` (also `settle`, `tally`, `who owes`) | Who owes whom, with the trip shared equally by everyone on it: "Ravi pays Asha ₹75". Everyone on it means whoever spent, wrote, reacted or was tagged in the group while the trip was open. |
 | reply and tag someone, like `@Ravi` | It is theirs: they spent it. 👍. Anyone may, for anyone's expense. Works after the trip closed too. |
 | reply `mine` (also `me`, `I paid`) | It is yours. 👍 |
 | reply `#food` | The label is added. 👍. Works after the trip closed too. |

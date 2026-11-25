@@ -1,5 +1,14 @@
 # Changelog: TripExpenses
 
+## [1.6.0] - 2026-11-25
+
+### Added
+- Who owes whom. `split` (also `settle`, `tally`, `who owes`) shares the open trip's cost equally among everyone on it and says the fewest payments that settle it, like "Ravi pays Asha ₹75". The same lines close the list when a trip ends, and the page shows them. Each currency is settled on its own.
+- Who is on a trip: everyone who spent something, and everyone who wrote, reacted or was tagged in its group while it was open.
+
+### Data
+- A trip may carry `crew` (the ids of the people on it besides those who spent). A trip from before is shared by the people who spent on it.
+
 ## [1.5.0] - 2026-11-25
 
 ### Added

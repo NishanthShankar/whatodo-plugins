@@ -859,3 +859,61 @@ describe("the page's numbers", () => {
     expect(p.known).toEqual({ labels: ["commute"], marks: ["🍕"] });
   });
 });
+
+describe("who owes whom", () => {
+  const two = async () => {
+    const t = await started({ person: { name: "Asha", timezone: "Asia/Kolkata" } });
+    await t.message(plugin, "cab 300", null, null, "Ravi");
+    return t;
+  };
+
+  it("shares the trip equally and says the payment that settles it", async () => {
+    const t = await two();
+    await t.message(plugin, "split");
+    expect(last(t)).toBe("*Trip 1, shared equally by 2*\n₹375 each.\n\nRavi pays Asha ₹75");
+    for (const words of ["who owes whom?", "settle up", "tally"]) {
+      await t.message(plugin, words);
+      expect(last(t), words).toContain("Ravi pays Asha ₹75");
+    }
+  });
+
+  it("counts in someone who only wrote, and someone who was only tagged", async () => {
+    const t = await two();
+    await t.message(plugin, "thanks all", null, null, "Meena");
+    await t.message(plugin, "split");
+    expect(last(t)).toBe("*Trip 1, shared equally by 3*\n₹250 each.\n\nMeena pays Asha ₹200\nMeena pays Ravi ₹50");
+    await t.message(plugin, "", t.marks[0], null, undefined, undefined, { mentions: ["Kiran"] });
+    await t.message(plugin, "split");
+    // lunch is Kiran's now: Kiran 450, Ravi 300, Asha and Meena nothing. 187.50 each.
+    expect(last(t)).toBe("*Trip 1, shared equally by 4*\n₹187.50 each.\n\nAsha pays Kiran ₹187.50\nMeena pays Kiran ₹75\nMeena pays Ravi ₹112.50");
+  });
+
+  it("says so when everyone has paid their share, and when there is one person", async () => {
+    const t = await two();
+    await t.message(plugin, "tea 150", null, null, "Ravi");
+    await t.message(plugin, "split");
+    expect(last(t)).toBe("*Trip 1, shared equally by 2*\n₹450 each.\n\nEveryone has paid their share.");
+    const alone = await started();
+    await alone.message(plugin, "split");
+    expect(last(alone)).toBe(copy.splitAlone());
+  });
+
+  it("settles each currency on its own", async () => {
+    const t = await two();
+    await t.message(plugin, "dinner 20 usd", null, null, "Ravi");
+    await t.message(plugin, "split");
+    expect(last(t)).toBe("*Trip 1, shared equally by 2*\n₹375 + $10 each.\n\nRavi pays Asha ₹75\nAsha pays Ravi $10");
+  });
+
+  it("closes the list with it, and hands it to the page", async () => {
+    const t = await two();
+    const p = (await t.load(plugin)) as unknown as { groups: { open: { dash: { owes: unknown } } }[] };
+    expect(p.groups[0].open.dash.owes).toEqual({ n: 2, each: "₹375", pays: [{ from: "Ravi", to: "Asha", amount: "₹75" }] });
+    await t.message(plugin, "end trip");
+    expect(last(t)).toContain("Asha ₹450 · Ravi ₹300\n\nShared equally by 2, that is ₹375 each:\nRavi pays Asha ₹75\n\nThis list is closed.");
+    // The next trip starts with nobody on it.
+    await t.message(plugin, "chai 40");
+    await t.message(plugin, "split");
+    expect(last(t)).toBe(copy.splitAlone());
+  });
+});
