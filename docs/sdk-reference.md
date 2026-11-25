@@ -36,6 +36,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onEntry` | `(event: EntryEvent, kit) => Promise<void>` | no | An entry was added, edited or removed in a `"vault"` plugin's group. The plugin never sees what it says. See [A vault](#a-vault-entries-nobody-else-can-read). Since SDK 1.21.0. |
 | `onGroup` | `(event: GroupEvent, kit) => Promise<void>` | no | The person handed the plugin a WhatsApp group they already had, or took it back. Having it is what makes the plugin a choice for existing groups. Needs `"groups"`. Since SDK 1.17.0. |
 | `onGroupInfo` | `(event: GroupInfoEvent, kit) => Promise<void>` | no | Someone gave one of the plugin's groups a new name or description. Zelfred finds out when the next message arrives there and tells the plugin before that message's `onMessage`. Zelfred's own changes never arrive. Not for `"vault"`. Since SDK 1.28.0. |
+| `onParcel` | `(event: ParcelEvent, kit) => Promise<void>` | no | A parcel asked about with `kit.parcels.read` was looked up. Needs `"parcels"`. See [Parcels](#parcels). Since SDK 1.31.0. |
 | `onLink` | `(event: LinkEvent, kit) => Promise<void>` | no | A link asked for with `kit.links.read` was read. Needs `"links"`. See [Links](#links). Since SDK 1.24.0. |
 | `links` | `{ price?: boolean }` | no | What more to look for on the links read for this plugin. `price`: what the thing costs. Needs `"links"`. Since SDK 1.24.0. |
 | `permissions` | `Permission[]` | no | What it may do beyond its own group and storage. See [Permissions](#permissions). Since SDK 1.6.0. |
@@ -123,6 +124,7 @@ interface EntryEvent    { change: "added" | "edited" | "removed"; id: string; ki
 | `share.find(key)` | `Promise<string \| null>` | The address for `key` if one was made. Works on page loads. Since SDK 1.24.0. |
 | `share.remove(key)` | `Promise<void>` | Stop sharing. The address stops working for good; `url(key)` afterwards makes a new one. Since SDK 1.24.0. |
 | `links.read(url, ref)` | `Promise<void>` | Ask Zelfred to read a link that didn't come in a message. `onLink` is called with what it found and `ref`. Since SDK 1.24.0. |
+| `parcels.read(what, ref)` | `Promise<void>` | Ask Zelfred where a parcel is. `what` is a tracking link or number. `onParcel` is called with the answer and `ref`. Since SDK 1.31.0. |
 | `time.day(ms)` | string | `YYYY-MM-DD` of an instant in the person's zone. |
 | `time.shiftDay(day, n)` | string | Add `n` days to a `YYYY-MM-DD`. |
 | `time.hour(ms)` | number | Local hour (0-23) of an instant. |
@@ -159,6 +161,7 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"share"` | Make pages anyone with the link can open, signed in or not: `kit.share`, `web.shared`. Zelfred draws the page, limits how often it is opened and can take it down. Can't be combined with `"vault"`. See [Shared pages](#shared-pages-a-page-anyone-can-open). | Built (SDK 1.24.0), unlisted plugins only for now |
 | `"photos"` | Get the photos people send in its groups, as ids (`event.photos`), and send one back (`kit.send` with `photo`). Zelfred keeps the files. See [Photos](#photos). | Built (SDK 1.25.0) |
 | `"location"` | Get a position shared in its groups: `event.place`. See [A position](#a-position). | Built (SDK 1.25.0) |
+| `"parcels"` | Have Zelfred ask a carrier where a parcel is: `kit.parcels.read`, `onParcel`. See [Parcels](#parcels). | Built (SDK 1.31.0): FedEx and UPS |
 | `"vault"` | Nothing: it takes reading away. What is written in the plugin's group is locked on arrival with a key only the person's browser holds. The plugin gets `onEntry` and never a message. See [A vault](#a-vault-entries-nobody-else-can-read). | Built (SDK 1.21.0), unlisted plugins only until the locking is reviewed |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
@@ -264,6 +267,34 @@ async onLink(event, kit) {
   await kit.store.put("items", item, { url: event.link.url, title: event.link.title, price: event.link.price ?? null });
 },
 ```
+
+## Parcels
+
+A plugin can't reach a carrier. With the `"parcels"` permission Zelfred asks for it, with its own account at the carrier. Since SDK 1.31.0.
+
+```ts
+permissions: ["parcels"],
+async onMessage(event, kit) {
+  const id = kit.id();
+  await kit.store.put("parcels", id, { what: event.text, asked: kit.now });
+  await kit.parcels.read(event.text, { parcel: id });   // a link or a bare number, as it was sent
+},
+async onParcel(event, kit) {
+  const { parcel, ref } = event;
+  // parcel.found, parcel.reason, parcel.carrier, parcel.carrierName, parcel.number,
+  // parcel.stage, parcel.status, parcel.place, parcel.at, parcel.due
+},
+```
+
+- **Hand over what the person sent.** Zelfred works out the carrier and the number from a tracking link or a bare number. Don't parse carriers in the plugin: which ones Zelfred can ask changes without a plugin release.
+- **Every call is answered**, a moment later, in `onParcel`. `found: false` comes with a `reason`: `"unsupported"` (Zelfred has no way to track this; say so and don't ask again), `"unknown"` (the carrier doesn't know the number) or `"unavailable"` (the carrier couldn't be asked just now; ask again later and don't tell the person it can't be tracked).
+- `carrier` and `number` are set whenever Zelfred could read them, also when `found` is false. Key on the two together to spot a repeat.
+- `stage` is Zelfred's reading of where the parcel is: `"label"`, `"transit"`, `"out"`, `"delivered"`, `"problem"`, or null. `status` is the carrier's own latest line and `place` where it happened; show those to the person.
+- `at` is when that happened (ms), `due` the day the carrier expects to deliver (`YYYY-MM-DD`). Either can be null.
+- **To keep watching**, ask again from an `"hourly"` schedule and compare with what you stored. Stop when `stage` is `"delivered"`. At most 30 calls while handling one event, so cap how many parcels an install watches.
+- Carriers today: FedEx and UPS. Anything else comes back `"unsupported"`.
+
+Test with `t.parcelReads` and `await t.parcel(plugin, what, parcel({ status: "Out for delivery", stage: "out" }))`.
 
 ## Shared pages: a page anyone can open
 

@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.30.0";
+export const SDK_VERSION = "1.31.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -67,10 +67,14 @@ export type Tier = 1 | 2 | 3;
  *   files are not passed on. Can't be combined with "vault". Since SDK 1.25.0.
  * - "location": get the position a person shares in its groups (WhatsApp's "Location"), as
  *   `event.place`. Can't be combined with "vault". Since SDK 1.25.0.
+ * - "parcels": have Zelfred ask a carrier (FedEx, UPS) where a parcel is. The plugin hands over
+ *   a tracking link or number (`kit.parcels.read`) and gets the latest status back in
+ *   `onParcel`. Zelfred does the asking, with its own account at the carrier, and says so
+ *   plainly when it has no way to track something. Since SDK 1.31.0.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault" | "share" | "photos" | "location";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault", "share", "photos", "location"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault" | "share" | "photos" | "location" | "parcels";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault", "share", "photos", "location", "parcels"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -315,6 +319,17 @@ export interface Kit {
     read(url: string, ref: Json): Promise<void>;
   };
   /**
+   * Where a parcel is. Give a tracking link or a bare tracking number, as the person sent it:
+   * Zelfred works out the carrier, asks it, and calls `onParcel` with the latest status and
+   * the `ref` given here, a moment later. Every call gets an answer, also when the parcel
+   * can't be tracked (`parcel.found` is false and `parcel.reason` says why). At most 30 calls
+   * while handling one event. Needs the "parcels" permission. Not on page loads.
+   * Since SDK 1.31.0.
+   */
+  parcels: {
+    read(what: string, ref: Json): Promise<void>;
+  };
+  /**
    * Files that arrived through hooks, and photos (the "photos" permission). The plugin holds
    * their ids; Zelfred holds the bytes. Since SDK 1.5.0.
    */
@@ -381,6 +396,49 @@ export interface Link {
 export interface LinkEvent {
   link: Link;
   /** The ref given to `kit.links.read`. */
+  ref: Json;
+}
+
+/**
+ * What a carrier says about a parcel right now, for plugins with the "parcels" permission.
+ * Since SDK 1.31.0.
+ */
+export interface Parcel {
+  /** The carrier's id ("fedex", "ups"), or null when Zelfred couldn't tell whose parcel it is. */
+  carrier: string | null;
+  /** The carrier as people write it ("FedEx"), or null. */
+  carrierName: string | null;
+  /** The tracking number, without spaces, or null when none could be read from what was given. */
+  number: string | null;
+  /** False: there is no status. `reason` says why. */
+  found: boolean;
+  /**
+   * Why there is no status. "unsupported": Zelfred has no way to track this (a carrier it
+   * doesn't ask, or nothing that reads as a tracking link or number); asking again won't help.
+   * "unknown": the carrier doesn't know this number. "unavailable": the carrier couldn't be
+   * asked just now; ask again later. Null when `found`.
+   */
+  reason: "unsupported" | "unknown" | "unavailable" | null;
+  /**
+   * Where the parcel is on its way: "label" (the carrier has the details, not the parcel yet),
+   * "transit", "out" (out for delivery), "delivered", "problem" (held, delayed, an exception,
+   * going back), or null when the carrier's words fit none.
+   */
+  stage: "label" | "transit" | "out" | "delivered" | "problem" | null;
+  /** The latest status in the carrier's own words ("Departed FedEx hub"), or null. */
+  status: string | null;
+  /** Where that happened ("Memphis, TN, US"), or null. */
+  place: string | null;
+  /** When that happened (ms), or null when the carrier doesn't say. */
+  at: number | null;
+  /** The day it is expected ("YYYY-MM-DD", the carrier's own date), or null. */
+  due: string | null;
+}
+
+/** Zelfred asked a carrier about a parcel the plugin asked for with `kit.parcels.read`. Since SDK 1.31.0. */
+export interface ParcelEvent {
+  parcel: Parcel;
+  /** The ref given to `kit.parcels.read`. */
   ref: Json;
 }
 
@@ -833,6 +891,8 @@ export interface PluginDef {
   onEntry?(event: EntryEvent, kit: Kit): Promise<void>;
   /** A link asked for with `kit.links.read` was read. Needs the "links" permission. Since SDK 1.24.0. */
   onLink?(event: LinkEvent, kit: Kit): Promise<void>;
+  /** A parcel asked about with `kit.parcels.read` was looked up. Needs the "parcels" permission. Since SDK 1.31.0. */
+  onParcel?(event: ParcelEvent, kit: Kit): Promise<void>;
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
   /** Called with the intent Zelfred found for an unclear message. Required with `understand`. */
@@ -899,6 +959,8 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (def.web?.shared && !def.permissions?.includes("share")) throw new Error(`${def.id}: web.shared needs the "share" permission`);
   if (def.permissions?.includes("share") && !def.web?.shared) throw new Error(`${def.id}: the "share" permission needs web.shared (what a shared page shows)`);
   if ((def.onLink || def.links) && !def.permissions?.includes("links")) throw new Error(`${def.id}: onLink and links need the "links" permission`);
+  if (def.onParcel && !def.permissions?.includes("parcels")) throw new Error(`${def.id}: onParcel needs the "parcels" permission`);
+  if (def.permissions?.includes("parcels") && !def.onParcel) throw new Error(`${def.id}: the "parcels" permission needs onParcel (where the answer arrives)`);
   if (def.onGroup && !def.permissions?.includes("groups")) throw new Error(`${def.id}: onGroup needs the "groups" permission`);
   if (def.api) {
     if (!def.permissions?.includes("api")) throw new Error(`${def.id}: api needs the "api" permission`);

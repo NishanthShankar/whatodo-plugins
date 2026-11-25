@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type Photo, type Place, type PluginDef, type Sender, type SharedPage, type StoredItem } from "./sdk";
+import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type Parcel, type Photo, type Place, type PluginDef, type Sender, type SharedPage, type StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -70,6 +70,16 @@ export function photo(id: string, found: Partial<Omit<Photo, "id">> = {}): Photo
   return { id, type: "image/jpeg", size: 120_000, ...found };
 }
 
+/**
+ * What Zelfred would say about a parcel, for `t.parcel(plugin, what, parcel({ ... }))`. Left
+ * alone it is a FedEx parcel on its way; `parcel({ found: false, reason: "unsupported" })` is
+ * one Zelfred can't track.
+ */
+export function parcel(found: Partial<Parcel> = {}): Parcel {
+  if (found.found === false) return { carrier: null, carrierName: null, number: null, stage: null, status: null, place: null, at: null, due: null, reason: "unsupported", ...found, found: false };
+  return { carrier: "fedex", carrierName: "FedEx", number: "880154928525", stage: "transit", status: "In transit", place: null, at: null, due: null, ...found, found: true, reason: null };
+}
+
 export function createTestKit(opts: TestKitOptions = {}) {
   const rows = new Map<string, { data: Json; sort: string | number | null }>();
   const sent: Sent[] = [];
@@ -95,6 +105,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const shareCount = new Map<string, number>();
   /** Links the plugin asked Zelfred to read with kit.links.read(), in order. Answer one with `t.link()`. */
   const reads: { url: string; ref: Json }[] = [];
+  /** Parcels the plugin asked Zelfred about with kit.parcels.read(), in order. Answer one with `t.parcel()`. */
+  const parcelReads: { what: string; ref: Json }[] = [];
   /** Ids passed to kit.files.remove(), in order. */
   const removedFiles: string[] = [];
   /** What the plugin told the person's other systems with kit.emit(), in order. */
@@ -119,7 +131,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
   let current: PluginDef | null = null;
   /** Photos Zelfred holds for this install: the ones handed over with a message, and any added with `t.addFile()`. */
   const files = new Map<string, { type: string; size: number }>();
-  const need = (permission: "hooks" | "groups" | "share" | "links" | "photos", what: string) => {
+  const need = (permission: "hooks" | "groups" | "share" | "links" | "photos" | "parcels", what: string) => {
     if (current && !current.permissions?.includes(permission)) throw new Error(`${current.id}: ${what} needs the "${permission}" permission`);
   };
 
@@ -259,6 +271,14 @@ export function createTestKit(opts: TestKitOptions = {}) {
         reads.push({ url, ref: clone(ref) });
       },
     },
+    parcels: {
+      async read(what, ref) {
+        need("parcels", "kit.parcels.read");
+        if (typeof what !== "string" || !what.trim() || what.length > 2000) throw new Error("kit.parcels.read: give a tracking link or number");
+        if (ref === undefined) throw new Error("kit.parcels.read: give a ref");
+        parcelReads.push({ what, ref: clone(ref) });
+      },
+    },
     files: {
       async remove(id) {
         removedFiles.push(id);
@@ -344,6 +364,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
     shares,
     /** Links asked for with kit.links.read(), in order. */
     reads,
+    /** Parcels asked about with kit.parcels.read() and not answered yet, in order. */
+    parcelReads,
     /** Move the clock. */
     setToday(day: string) {
       state.today = day;
@@ -568,6 +590,19 @@ export function createTestKit(opts: TestKitOptions = {}) {
       const [asked] = reads.splice(at, 1);
       if (!plugin.onLink) throw new Error(`${plugin.id} has no onLink`);
       await plugin.onLink({ link: { ...found }, ref: asked.ref }, kit);
+    },
+    /**
+     * Zelfred asked the carrier about a parcel the plugin asked for: `onParcel` is called with
+     * `found` and the ref of the oldest open request for `what` (the link or number exactly as
+     * it was given to `kit.parcels.read`). Throws when nobody asked about it.
+     */
+    async parcel(plugin: PluginDef, what: string, found: Parcel) {
+      withDefaults(plugin);
+      const at = parcelReads.findIndex((r) => r.what === what);
+      if (at < 0) throw new Error(`${plugin.id}: nobody asked about the parcel ${what}`);
+      const [asked] = parcelReads.splice(at, 1);
+      if (!plugin.onParcel) throw new Error(`${plugin.id} has no onParcel`);
+      await plugin.onParcel({ parcel: { ...found }, ref: asked.ref }, kit);
     },
     /** What the shared page for `key` shows right now. Throws when that page isn't open (Zelfred would answer "not found"). */
     async shared(plugin: PluginDef, key: string): Promise<SharedPage | null> {

@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.31.0] - 2026-11-25
+
+### Added
+- Permission `"parcels"`: Zelfred asks a carrier where a parcel is. `kit.parcels.read(what, ref)` takes a tracking link or number as the person sent it; the answer arrives in `onParcel(event, kit)` as `event.parcel` (`Parcel`: carrier, number, stage, the carrier's own status line, place, time, expected day) with the `ref`. Every call is answered: a parcel that can't be tracked comes back with `found: false` and a `reason` (`"unsupported"`, `"unknown"`, `"unavailable"`). FedEx and UPS to begin with; which carriers are asked is Zelfred's to change, with no plugin release.
+- Test kit: `t.parcelReads`, `t.parcel(plugin, what, found)` and the `parcel()` builder.
+
 ## [1.30.0] - 2026-11-25
 
 ### Added
