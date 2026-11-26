@@ -26,6 +26,10 @@ export const LAST = fixed("last");
 export const LAST_EXAMPLE = fixed("last contact");
 export const NEW_ADDRESS_EXAMPLE = fixed("new address contact");
 export const CLOSE_EXAMPLE = fixed("close contact");
+export const MOVE_EXAMPLE = fixed("move demo to kyc group");
+export const MOVE_BACK_EXAMPLE = fixed("move demo to main group");
+/** What "move demo to ... group" reads as the main Forms group. */
+export const MAIN_GROUP_WORDS: readonly string[] = ["main", "forms", "📬 forms", "default", "first"];
 
 // ── Reactions ──
 
@@ -46,6 +50,7 @@ export const copy = {
       `_${NEW_FORM_EXAMPLE}_ makes a form and gives you its address`,
       `_${NEW_FORM_EXAMPLE} ${OWN_GROUP}_ also makes a WhatsApp group just for it`,
       `_${GROUP_EXAMPLE}_ gives a form you already have its own group`,
+      `_${MOVE_EXAMPLE}_ sends a form to another form's group, so several arrive together (_${MOVE_BACK_EXAMPLE}_ brings it back)`,
       `_${FORMS}_ lists your forms and their addresses`,
       `_${ADDRESS_EXAMPLE}_ shows one form's address again`,
       `_${LAST}_ (or _${LAST_EXAMPLE}_) shows the latest submission`,
@@ -147,6 +152,23 @@ export const copy = {
   ]),
   makingGroup: msg<{ name: string }>([({ name }) => `📬 I'm making a WhatsApp group just for *${name}*. Its submissions will arrive there (here until it's ready).`]),
   alreadyOwnGroup: msg<{ name: string }>([({ name }) => `*${name}* already has its own group.`]),
+
+  // ── Several forms in one group ──
+  /** A form was sent to another form's group (`group`, its name), or back to the main group (null). */
+  moved: msg<{ name: string; group: string | null }>([
+    ({ name, group }) => (group ? `📬 *${name}* now arrives in *${group}*. Its address hasn't changed.` : `📬 *${name}* now arrives in the main *📬 Forms* group again.`),
+  ]),
+  alreadyThere: msg<{ name: string }>([({ name }) => `*${name}* already arrives there.`]),
+  /** A form that has a group of its own can't be moved out of it. */
+  ownsGroup: msg<{ name: string }>([({ name }) => `*${name}* has a group of its own, so it stays there. You can move other forms into it.`]),
+  /** Asked to send a form to a form that has no group. Also shown on the web page (without the _ and *). */
+  noGroupYet: msg<{ name: string; key: string }>([({ name, key }) => `*${name}* has no group of its own yet. Send _group ${key}_ to make one, then move forms into it.`]),
+  /** Also shown on the web page (without the _ and *). */
+  noSuchGroup: msg<{ name: string }>([({ name }) => `I don't know a group called "${name}". Name the form whose group it is, like _${MOVE_EXAMPLE}_.`]),
+  /** In a group that several open forms share, a command without a form's name. */
+  whichForm: msg<{ names: string[] }>([
+    ({ names }) => `Which form? ${names.map((n) => `*${n}*`).join(", ")} all arrive in this group. Add its name, like _${ADDRESS_EXAMPLE}_.`,
+  ]),
   /** Asked to give a closed form a group. */
   closedReopenWithGroup: msg<{ name: string; key: string }>([({ name, key }) => `*${name}* is closed. Send _${NEW_FORM} ${key} ${OWN_GROUP}_ to open it again.`]),
 };
