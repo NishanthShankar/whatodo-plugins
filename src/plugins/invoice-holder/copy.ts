@@ -18,6 +18,8 @@ export const HELP = fixed("help");
 export const BOOKS = fixed("folders");
 /** The same, in the brief's first word for it. */
 export const BOOKS_TOO = fixed("books");
+/** Answers that mean "no note", understood without being taught. Compared after lower-casing and trimming end marks. */
+export const NO_NOTE = ["no", "nope", "none", "nothing", "no note", "no notes", "skip", "-", "nah", "no thanks", "not now", "na"];
 
 // ── Reactions ──
 
@@ -98,6 +100,18 @@ export const copy = {
     ({ month, count, priced, sum }) =>
       `${month}: ${count === 1 ? "1 bill" : `${count} bills`}. ${priced === 0 ? "None has an amount yet." : priced === count ? `Together ${sum}.` : `${priced} ${priced === 1 ? "has" : "have"} an amount: ${sum}. All ${count} are on your page.`}`,
   ]),
+  // ── Asking for a note when a bill comes by mail (docs/invoice-holder-note-ask-brief.md). Drafts until og-copy-bot reads them. ──
+  /** The first time ever: what this is, and that a reply any time adds the note. */
+  noteAskFirst: msg<{ who: string | null; count: number }>([
+    ({ who, count }) =>
+      `${who ? `${count > 1 ? `${count} bills` : "A bill"} from ${who} came by mail and ${count > 1 ? "are" : "is"} kept.` : `The ${count > 1 ? "bills" : "bill"} you forwarded ${count > 1 ? "are" : "is"} kept.`} Any note for ${count > 1 ? "them" : "it"}? Send it now, or reply to this message whenever you like.`,
+  ]),
+  /** After the first time: one short plain line. */
+  noteAsk: msg<{ who: string | null; count: number }>([
+    ({ who, count }) => `${who ? `${count > 1 ? `${count} bills` : "A bill"} from ${who} came by mail.` : `The ${count > 1 ? "bills" : "bill"} you forwarded ${count > 1 ? "are" : "is"} kept.`} Any note?`,
+  ]),
+  /** The first note taken, in words once; after that a 👍. */
+  noteTaught: msg(["Noted on the bill. Reply to my question any time to change it."]),
   /** Anything else typed. */
   unsure: msg(["I keep photos of bills here. Send one, or _help_ to see what else I can do."]),
   /** The name they gave is already a book's. */

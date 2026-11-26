@@ -395,11 +395,11 @@ describe("invoice-holder: 1.1.0", () => {
 });
 
 describe("invoice-holder: a bill by mail", () => {
-  it("keeps a mail's PDF as a bill waiting for a folder, with its sender, and says nothing", async () => {
+  it("keeps a mail's PDF as a bill waiting for a folder, with its sender, and says only the note question (1.4.0)", async () => {
     const t = await settled();
     const before = t.sent.length;
     expect(await t.mail(plugin, mail({ id: "m1", label: "hdfc", files: [{ id: "f1", type: "application/pdf", size: 9000 }] }))).toBe("took");
-    expect(t.sent.length).toBe(before);
+    expect(t.sent.slice(before).map((s) => (s.ref as any)?.kind)).toEqual(["note"]);
     expect(billOf(t, "f1")).toMatchObject({ source: "mail", state: "to-tag", book: null, mail: { from: "billing@example.com", domain: "example.com", label: "hdfc", id: "m1" } });
     const page = (await t.load(plugin)) as any;
     expect(JSON.stringify(page)).toContain("billing@example.com");
@@ -465,5 +465,149 @@ describe("invoice-holder: 1.3.0", () => {
     await t.act(plugin, "tag", { ids: [billOf(t, "c1").id], book: acme });
     await t.mail(plugin, mail({ id: "c2", files: [pdf("c2")] }));
     expect(billOf(t, "c2")).toMatchObject({ state: "filed", book: acme, tagged: { how: "sender" } });
+  });
+});
+
+describe("invoice-holder: 1.4.0, a note asked for when a bill comes by mail", () => {
+  const pdf = (id: string) => ({ id, type: "application/pdf" as const, size: 9000 });
+  const monid = { address: "billing@monid.com", domain: "monid.com", kind: "company" as const };
+  const fresh = (t: T, id: string, files = [pdf(`${id}-f`)], from: { address: string; domain: string; kind: "company" | "mailbox" } = monid, extra = {}) => t.mail(plugin, mail({ id, at: t.kit.now, from, files, ...extra }));
+  const question = (t: T) => t.sent.filter((s) => (s.ref as any)?.kind === "note");
+  const ofMail = (t: T, id: string) => bills(t).filter((b) => b.mail?.id === id);
+  const kit10 = () => createTestKit({ today: "2026-11-27", hour: 10 });
+
+  it("1, 15. a company's bill: one message naming the sender; long the first time, short after", async () => {
+    const t = kit10();
+    await fresh(t, "m1");
+    expect(t.sent).toHaveLength(1);
+    expect(t.sent[0].text).toContain("Monid");
+    expect(t.sent[0].text).not.toContain("monid.com");
+    expect(t.sent[0].text).toContain("reply to this message");
+    t.setHour(11);
+    await fresh(t, "m2");
+    expect(t.sent[1].text).toBe("A bill from Monid came by mail. Any note?");
+  });
+
+  it("2, 3. a plain line within 10 minutes is the whole note, never read for a folder or an amount", async () => {
+    const t = kit10();
+    await t.act(plugin, "addBook", { name: "Acme" });
+    await fresh(t, "m1");
+    await t.message(plugin, "3 licences for Acme");
+    expect(ofMail(t, "m1")[0]).toMatchObject({ note: "3 licences for Acme", amount: null, state: "to-tag", noteBy: "now" });
+    expect(t.sent.at(-1)!.text).toContain("Noted on the bill");
+    t.setHour(11);
+    await fresh(t, "m2");
+    await t.message(plugin, "Video generation credits");
+    expect(ofMail(t, "m2")[0].note).toBe("Video generation credits");
+    expect(t.reactions.at(-1)).toBe("👍");
+  });
+
+  it("4, 5. a reply to the question later sets the note, and a second reply replaces it", async () => {
+    const t = kit10();
+    await fresh(t, "m1");
+    const q = question(t)[0].ref;
+    await t.message(plugin, "", null, null, undefined, undefined, { photos: [photo("p1")] });
+    t.setHour(12);
+    await t.message(plugin, "credits", q);
+    await t.message(plugin, "credits for the demo", q);
+    const b = ofMail(t, "m1")[0];
+    expect(b.note).toBe("credits for the demo");
+    expect(b.history.filter((h) => h.what === "changed")).toHaveLength(2);
+  });
+
+  it("6. no means no note, and the next plain line is not a note", async () => {
+    const t = kit10();
+    await fresh(t, "m1");
+    await t.message(plugin, "No.");
+    expect(ofMail(t, "m1")[0]).toMatchObject({ note: null, noteBy: "no" });
+    expect(t.reactions.at(-1)).toBe("👍");
+    await t.message(plugin, "lunch");
+    expect(ofMail(t, "m1")[0].note).toBeNull();
+    expect(t.unsures).toHaveLength(1);
+  });
+
+  it("7. a folder's emoji on the question files the bill; taking it off unfiles it", async () => {
+    const t = kit10();
+    await t.act(plugin, "addBook", { name: "Acme" });
+    await fresh(t, "m1");
+    const q = question(t)[0].ref;
+    await t.react(plugin, "🏢", q);
+    expect(ofMail(t, "m1")[0]).toMatchObject({ state: "filed", tagged: { how: "reaction" } });
+    await t.react(plugin, null, q);
+    expect(ofMail(t, "m1")[0].state).toBe("to-tag");
+  });
+
+  it("8. a mail with three PDFs: one question, and the note goes on all three", async () => {
+    const t = kit10();
+    await fresh(t, "m1", [pdf("a"), pdf("b"), pdf("c")]);
+    expect(question(t)).toHaveLength(1);
+    await t.message(plugin, "team laptops");
+    expect(ofMail(t, "m1").map((b) => b.note)).toEqual(["team laptops", "team laptops", "team laptops"]);
+  });
+
+  it("9. two questions open at once: a plain line goes to neither; a reply goes to the one replied to", async () => {
+    const t = kit10();
+    await fresh(t, "m1");
+    await fresh(t, "m2", [pdf("m2-f")], { address: "x@airtel.in", domain: "airtel.in", kind: "company" });
+    await t.message(plugin, "which one?");
+    expect([ofMail(t, "m1")[0].note, ofMail(t, "m2")[0].note]).toEqual([null, null]);
+    await t.message(plugin, "broadband", question(t)[1].ref);
+    expect(ofMail(t, "m2")[0].note).toBe("broadband");
+  });
+
+  it("10. three monthly bills with no notes, then a fourth: no question", async () => {
+    const t = kit10();
+    for (const [i, day] of ["2026-08-27", "2026-09-27", "2026-10-27"].entries()) {
+      t.setToday(day);
+      await fresh(t, `m${i}`);
+      await t.message(plugin, "no");
+    }
+    t.setToday("2026-11-27");
+    const before = question(t).length;
+    await fresh(t, "m4");
+    expect(question(t).length).toBe(before);
+  });
+
+  it("11. two questions left with no note stop the asking; a note on the page starts it again", async () => {
+    const t = kit10();
+    await fresh(t, "m1");
+    t.setHour(12);
+    await fresh(t, "m2");
+    t.setHour(14);
+    await fresh(t, "m3");
+    expect(question(t)).toHaveLength(2);
+    await t.act(plugin, "edit", { id: ofMail(t, "m2")[0].id, note: "renewal" });
+    t.setHour(16);
+    await fresh(t, "m4");
+    expect(question(t)).toHaveLength(3);
+  });
+
+  it("12, 13, 14. never for old mail, never when the platform says no lines are left, never at night", async () => {
+    const t = kit10();
+    await t.mail(plugin, mail({ id: "old", at: t.kit.now - 3 * 3600_000, from: monid, files: [pdf("o")] }));
+    await fresh(t, "capped", [pdf("c")], monid, { lines: 0 });
+    t.setHour(3);
+    await fresh(t, "night");
+    expect(question(t)).toHaveLength(0);
+    expect(bills(t).filter((b) => b.source === "mail")).toHaveLength(3);
+  });
+
+  it("a forward is always asked about, by what it is, not who sent it", async () => {
+    const t = kit10();
+    await t.act(plugin, "setSenderAsk", { from: "me@gmail.com", ask: "no" });
+    await fresh(t, "m1", [pdf("f")], { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" });
+    expect(question(t)[0].text).toContain("The bill you forwarded");
+  });
+
+  it("the page can stop or force the question for a sender", async () => {
+    const t = kit10();
+    await t.act(plugin, "setSenderAsk", { from: "Billing@Monid.com", ask: "no" });
+    await fresh(t, "m1");
+    expect(question(t)).toHaveLength(0);
+    await t.act(plugin, "setSenderAsk", { from: "billing@monid.com", ask: "auto" });
+    t.setHour(12);
+    await fresh(t, "m2");
+    expect(question(t)).toHaveLength(1);
+    expect(((await t.load(plugin)) as any).senders).toEqual({});
   });
 });
