@@ -3,10 +3,11 @@ import { copy, HIDDEN, HISTORY_WORDS, LIST_WORDS, REMOVE_OPTIONS, SAME_OPTIONS, 
 import { dateOf, saysDate, directMatch, LOCKED, masked, overlap, readNumbers, readValue, remindOf, sameLabel, sameWord, sayDate, secretOf, shapeWords, tidyLabel, wordsOf, type DateParts, type Secret, type Shape, type Value } from "./read";
 
 /**
- * Digits: any number with a label, kept and given back. docs/measurements-brief.md in the Zelfred
+ * NumberKeeper (named Digits until 2026-11-27; the owner: "Lets make it NumberKeeper", of the Keeper
+ * family in docs/voice.md): any number with a label, kept and given back. docs/measurements-brief.md in the Zelfred
  * repo, section "2026-11-26: becoming any number, named Digits", holds the owner's rulings.
  *
- * To Digits a value is a string attached to a label, and maybe a photo. It never asks for a number
+ * To NumberKeeper a value is a string attached to a label, and maybe a photo. It never asks for a number
  * and never reads meaning into a label: "bp", "sugar", "Amma ring size" and "car number" are all
  * the same to it. A new value for a label is its current one, and every earlier one is kept with
  * its day, so a graph can always be drawn and any entry corrected or taken out.
@@ -501,9 +502,9 @@ async function countUp(kit: Kit, label: Row<Label>): Promise<void> {
 
 export default definePlugin({
   id: "digits-store",
-  version: "1.3.0",
+  version: "1.4.0",
   sdk: "1",
-  name: "Digits",
+  name: "NumberKeeper",
   icon: "🔢",
   tagline: "Any number you want kept, with a word for what it is. Ask for it back any time.",
   description:

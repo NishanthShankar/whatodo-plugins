@@ -1,5 +1,5 @@
 /**
- * Everything Digits puts on WhatsApp: its welcome and help, every answer and every reaction.
+ * Everything NumberKeeper puts on WhatsApp: its welcome and help, every answer and every reaction.
  * index.ts decides what to say; this file decides how.
  *
  * A message is a list of wordings (see src/copy.ts) and one is picked each time. A message
@@ -68,7 +68,7 @@ export interface Line {
 const latest = (l: Line) => `*${shown(l.name)}*: ${l.value}, kept ${l.when}.`;
 
 export const copy = {
-  groupName: msg(["🔢 Digits"]),
+  groupName: msg(["🔢 NumberKeeper"]),
 
   // A welcome that asks for nothing (docs/plugin-onboarding.md), and names one thing to send.
   // Picked by the owner, 2026-11-26, from og-copy-bot's two, with its aside as a line of its own.
@@ -76,7 +76,7 @@ export const copy = {
 
   help: msg([
     [
-      "*Digits*",
+      "*NumberKeeper*",
       "",
       "Send a number with a word for what it is, in your own words. A few ready-made ones:",
       "",

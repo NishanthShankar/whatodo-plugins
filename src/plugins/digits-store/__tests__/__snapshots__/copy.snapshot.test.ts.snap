@@ -7,8 +7,8 @@ exports[`digits copy 1`] = `
   "description": "Send a number with a word for what it is: "Amma ring size 14", "weight 72.4", "car service 45,200 km". Each one is kept with its day, and the one before is kept too, so you can ask for the latest, see every one, or look at a graph on the page. A photo sent with a number is kept with it. Nothing is asked for and nothing is judged.",
   "firstKept": "Kept: weight, 72.4. Ask me "weight?" today or next year, and you have it back. From now on a 👍 means kept.",
   "full": "I already keep 300 different things here, which is as many as I keep. Remove one to make room.",
-  "groupName": "🔢 Digits",
-  "help": "*Digits*
+  "groupName": "🔢 NumberKeeper",
+  "help": "*NumberKeeper*
 
 Send a number with a word for what it is, in your own words. A few ready-made ones:
 
