@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.32.0";
+export const SDK_VERSION = "1.33.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -807,6 +807,16 @@ export interface WebDef {
   /** Changes the web page can ask for. */
   actions?: Record<string, (kit: Kit, args: Record<string, Json>) => Promise<Json | void>>;
   /**
+   * Names of `actions` that need the person's lock: their passkey, passphrase or recovery key,
+   * the one lock they have across Zelfred. Zelfred runs such an action only when the call comes
+   * signed by that lock, for this plugin, this action and these very arguments, minutes ago at
+   * most and never twice. Without that the action does not run, so what it returns never leaves
+   * the server. The plugin does nothing else: no check of its own, and no way to switch it off.
+   * Use it for an action that hands back something kept hidden (a card number whole). Not for
+   * `load`, which runs with a login alone: keep what is hidden out of it. Since SDK 1.33.0.
+   */
+  locked?: string[];
+  /**
    * What the shared page for `key` shows to anyone holding its address (`kit.share.url(key)`).
    * Read-only, like `load`, and called on every visit. Return null when there is nothing to
    * show any more (the list was deleted): the visitor is told the page is gone. Needs the
@@ -969,6 +979,10 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (def.permissions?.includes("members") && def.permissions.includes("lock-members")) {
     throw new Error(`${def.id}: "members" and "lock-members" can't be used together`);
   }
+  for (const name of def.web?.locked ?? []) {
+    if (!def.web?.actions || !Object.hasOwn(def.web.actions, name)) throw new Error(`${def.id}: web.locked names "${name}", which is not one of web.actions`);
+  }
+  if (new Set(def.web?.locked ?? []).size !== (def.web?.locked ?? []).length) throw new Error(`${def.id}: web.locked names an action twice`);
   if (def.web?.loadFor && !def.permissions?.includes("members")) throw new Error(`${def.id}: web.loadFor needs the "members" permission`);
   if (def.onEntry && !def.permissions?.includes("vault")) throw new Error(`${def.id}: onEntry needs the "vault" permission`);
   if (def.permissions?.includes("vault")) {

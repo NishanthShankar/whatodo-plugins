@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.33.0] - 2026-11-26
+
+### Added
+- `web.locked`: the names of web actions that need the person's lock (their passkey, passphrase or recovery key, one lock across Zelfred). Zelfred runs such an action only when the call is signed by that lock for this plugin, this action and these arguments, within ten minutes and never twice. A plugin only lists the names; the check is Zelfred's. `definePlugin` refuses a name that is not in `web.actions`, and a name listed twice.
+- Test kit: `t.act` runs a locked action like any other, as if the person had unlocked. Whether Zelfred lets a call through is tested in Zelfred.
+
 ## [1.32.0] - 2026-11-26
 
 ### Added
