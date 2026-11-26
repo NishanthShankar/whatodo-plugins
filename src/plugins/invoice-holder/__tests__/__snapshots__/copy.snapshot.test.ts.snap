@@ -27,6 +27,21 @@ More folders, and other emoji, on your page.",
 }
 `;
 
+exports[`invoice-holder copy > 1.4.0: the note question, first and after, for a company and a forward, and the first note 1`] = `
+{
+  "asked": [],
+  "reactTos": [],
+  "reactions": [],
+  "sent": [
+    "A bill from Monid came by mail and is kept. Any note for it? Send it now, or reply to this message whenever you like.",
+    "Noted on the bill. Reply to my question any time to change it.",
+    "2 bills from Monid came by mail. Any note?",
+    "The bill you forwarded is kept. Any note?",
+  ],
+  "unsures": [],
+}
+`;
+
 exports[`invoice-holder copy > a first book whose name is already taken 1`] = `
 {
   "asked": [],
