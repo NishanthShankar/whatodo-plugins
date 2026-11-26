@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type MailAnswer, type MailEvent, type Parcel, type Photo, type Place, type PluginDef, type Sender, type SharedPage, type StoredItem } from "./sdk";
+import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type MailAnswer, type MailEvent, type MailRead, type Parcel, type Photo, type Place, type PluginDef, type Sender, type SharedPage, type StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -125,6 +125,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const parcelReads: { what: string; ref: Json }[] = [];
   /** Words the plugin asked Zelfred to sort with kit.sort(), in order. Answer one with `t.sorted()`. */
   const sorts: { text: string; choices: Record<string, string>; ref: Json; after: number }[] = [];
+  /** Files the plugin asked Zelfred to read with kit.files.read(), in order. Answer one with `t.fileRead()`. */
+  const fileReads: { id: string; ref: Json }[] = [];
   /** Ids passed to kit.files.remove(), in order. */
   const removedFiles: string[] = [];
   /** What the plugin told the person's other systems with kit.emit(), in order. */
@@ -149,7 +151,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
   let current: PluginDef | null = null;
   /** Photos Zelfred holds for this install: the ones handed over with a message, and any added with `t.addFile()`. */
   const files = new Map<string, { type: string; size: number }>();
-  const need = (permission: "hooks" | "groups" | "share" | "links" | "photos" | "parcels" | "sort", what: string) => {
+  const need = (permission: "hooks" | "groups" | "share" | "links" | "photos" | "parcels" | "sort" | "mail", what: string) => {
     if (current && !current.permissions?.includes(permission)) throw new Error(`${current.id}: ${what} needs the "${permission}" permission`);
   };
 
@@ -317,6 +319,12 @@ export function createTestKit(opts: TestKitOptions = {}) {
         const f = files.get(id);
         return f ? { id, ...f } : null;
       },
+      async read(id, ref) {
+        need("mail", "kit.files.read");
+        if (typeof id !== "string" || !id) throw new Error("kit.files.read: give a file id");
+        if (ref === undefined) throw new Error("kit.files.read: give a ref");
+        fileReads.push({ id, ref: clone(ref) });
+      },
     },
     groups: {
       async open(key, o) {
@@ -397,6 +405,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
     parcelReads,
     /** Words given to kit.sort() and not answered yet, in order. */
     sorts,
+    /** Files given to kit.files.read() and not answered yet, in order. */
+    fileReads,
     /** Move the clock. */
     setToday(day: string) {
       state.today = day;
@@ -661,6 +671,18 @@ export function createTestKit(opts: TestKitOptions = {}) {
       if (choice !== null && !(choice in asked.choices)) throw new Error(`${plugin.id}: "${choice}" was not one of the choices for "${text}"`);
       if (!plugin.onSorted) throw new Error(`${plugin.id} has no onSorted`);
       await plugin.onSorted({ ref: asked.ref, choice, confidence }, kit);
+    },
+    /**
+     * Zelfred read a file the plugin gave to `kit.files.read`: `onFileRead` is called with `read` and the ref of the
+     * oldest open request for that id. Throws when nobody asked.
+     */
+    async fileRead(plugin: PluginDef, id: string, read: MailRead) {
+      withDefaults(plugin);
+      const at = fileReads.findIndex((r) => r.id === id);
+      if (at < 0) throw new Error(`${plugin.id}: nobody asked to read file "${id}"`);
+      const [asked] = fileReads.splice(at, 1);
+      if (!plugin.onFileRead) throw new Error(`${plugin.id} has no onFileRead`);
+      await plugin.onFileRead({ fileId: id, ref: asked.ref, read }, kit);
     },
     /** What the shared page for `key` shows right now. Throws when that page isn't open (Zelfred would answer "not found"). */
     async shared(plugin: PluginDef, key: string): Promise<SharedPage | null> {

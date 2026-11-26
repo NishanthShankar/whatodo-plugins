@@ -364,6 +364,24 @@ describe("the mail permission", () => {
     expect(() => definePlugin({ ...base, permissions: ["mail"], onMail: async () => "took", mailSummary: { one: "1 more came.", many: "{n} more came." } })).not.toThrow();
   });
 
+  it("reads a file again when asked, answered through onFileRead (sdk 1.36.0)", async () => {
+    const got: unknown[] = [];
+    const plugin = definePlugin({
+      ...base,
+      permissions: ["mail"],
+      onMail: async () => "took",
+      onFileRead: async (e) => void got.push(e),
+      web: { load: async () => null, actions: { again: async (kit, a) => kit.files.read(String(a.id), { why: "again" }) } },
+    });
+    const t = createTestKit();
+    await t.act(plugin, "again", { id: "f1" });
+    expect(t.fileReads).toEqual([{ id: "f1", ref: { why: "again" } }]);
+    await t.fileRead(plugin, "f1", { state: "read", amount: 10 });
+    expect(got).toEqual([{ fileId: "f1", ref: { why: "again" }, read: { state: "read", amount: 10 } }]);
+    const without = definePlugin({ ...base, web: { load: async () => null, actions: { again: async (kit) => kit.files.read("f1", null) } } });
+    await expect(t.act(without, "again")).rejects.toThrow(/needs the "mail" permission/);
+  });
+
   it("hands over a mail's sender and files, keeps the files only when the plugin took them", async () => {
     const seen: string[] = [];
     const plugin = definePlugin({

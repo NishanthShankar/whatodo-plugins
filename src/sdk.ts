@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.35.0";
+export const SDK_VERSION = "1.36.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -362,6 +362,13 @@ export interface Kit {
      * the page before storing it. Since SDK 1.25.0.
      */
     get(id: string): Promise<{ id: string; type: string; size: number } | null>;
+    /**
+     * Read one of this install's PDFs again with Zelfred's bill reader (as a mailed bill is read before `onMail`):
+     * a moment later `onFileRead` gets what the bill says and the `ref` given here. Every call is answered, with
+     * `read.state` "failed" when it could not be read. For a page button such as "Read again". At most 20 a day for a
+     * person. Needs the "mail" permission. Since SDK 1.36.0.
+     */
+    read(id: string, ref: Json): Promise<void>;
   };
   /** Wall-clock helpers in the person's zone. */
   time: {
@@ -581,6 +588,14 @@ export interface MailEvent {
    * waits for an answer. Since SDK 1.34.0.
    */
   lines?: number;
+  /**
+   * The mail's own Message-ID, cleaned (angle brackets off, no control or format characters, at most 200 characters),
+   * to build a link back to the mail in the person's Gmail:
+   * `https://mail.google.com/mail/u/0/#search/rfc822msgid:${encodeURIComponent(messageId)}`. It works only in Gmail,
+   * and only in the mailbox the mail came through (a forward from their own Gmail); say so beside the link. Never
+   * show it as text, never put it in a message, a log or a count. Missing when the mail had none. Since SDK 1.36.0.
+   */
+  messageId?: string;
 }
 
 /** What a plugin says about a mail it was told of. Since SDK 1.33.0. */
@@ -782,6 +797,16 @@ export interface SortEvent {
   choice: string | null;
   /** 0 to 1; 0 when `choice` is null because nothing was asked. */
   confidence: number;
+}
+
+/** A PDF given to `kit.files.read` was read. Since SDK 1.36.0. */
+export interface FileReadEvent {
+  /** The file's id, as given. */
+  fileId: string;
+  /** The ref given to `kit.files.read`. */
+  ref: Json;
+  /** What the bill says, as `MailFile.read`; state "failed" when it could not be read or the day's limit was reached. */
+  read: MailRead;
 }
 
 /** A person deleted, for everyone, a message of theirs that the plugin had marked. Since SDK 1.30.0. */
@@ -992,6 +1017,8 @@ export interface PluginDef {
   onLink?(event: LinkEvent, kit: Kit): Promise<void>;
   /** A parcel asked about with `kit.parcels.read` was looked up. Needs the "parcels" permission. Since SDK 1.31.0. */
   onParcel?(event: ParcelEvent, kit: Kit): Promise<void>;
+  /** A PDF given to `kit.files.read` was read. Needs the "mail" permission. Since SDK 1.36.0. */
+  onFileRead?(event: FileReadEvent, kit: Kit): Promise<void>;
   /** Words given to `kit.sort` were sorted. Needs the "sort" permission. Since SDK 1.32.0. */
   onSorted?(event: SortEvent, kit: Kit): Promise<void>;
   /**
