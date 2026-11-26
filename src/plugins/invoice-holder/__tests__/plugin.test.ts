@@ -322,7 +322,8 @@ describe("invoice-holder: reading captions", () => {
     ["payment for homework", null, [], null, "payment for homework"],
     ["450/- home", "h", [], 450, null],
   ])("%s", (text, book, books, amount, note) => {
-    expect(readWords(text, B)).toEqual({ book, books, amount, note });
+    const { currency: _, ...rest } = readWords(text, B);
+    expect(rest).toEqual({ book, books, amount, note });
   });
 });
 
@@ -362,7 +363,7 @@ describe("invoice-holder: 1.1.0", () => {
     expect(t.sent.length).toBe(before);
     t.setToday("2026-11-29");
     await t.schedule(plugin, "waiting");
-    expect(t.sent.at(-1)!.text).toBe("2 bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.");
+    expect(t.sent.at(-1)!.text).toBe("2 bills have no folder yet. They are kept either way.\n\nTo file one, react to it with a folder's emoji, or use your page.");
     before = t.sent.length;
     await t.schedule(plugin, "waiting");
     expect(t.sent.length).toBe(before);
@@ -482,7 +483,8 @@ describe("invoice-holder: 1.4.0, a note asked for when a bill comes by mail", ()
     expect(t.sent).toHaveLength(1);
     expect(t.sent[0].text).toContain("Monid");
     expect(t.sent[0].text).not.toContain("monid.com");
-    expect(t.sent[0].text).toContain("Reply to this message");
+    expect(t.sent[0].text).toContain("Sorry, I can't read a bill yet");
+    expect(t.sent[0].text).toContain("Embarrassing, for a butler.");
     t.setHour(11);
     await fresh(t, "m2");
     expect(t.sent[1].text).toBe("A bill from Monid came by mail. What is it for?");
@@ -633,5 +635,42 @@ describe("invoice-holder: 1.5.0, a name apart from the note", () => {
     const b = bills(t).find((x) => x.mail?.id === "m1")!;
     expect(b.note).toBe("credits");
     expect(b.name ?? null).toBeNull();
+  });
+});
+
+describe("invoice-holder: 1.6.0, an amount in rupees or dollars", () => {
+  const B = [{ id: "m", name: "Monid" }];
+  it.each([
+    ["monid $52.50", 52.5, "USD"],
+    ["monid usd 52", 52, "USD"],
+    ["monid 52 dollars", 52, "USD"],
+    ["monid ₹450", 450, "INR"],
+    ["monid rs 1,200", 1200, "INR"],
+    ["monid 450/-", 450, "INR"],
+    ["monid 450", 450, null],
+  ])("%s", (text, amount, currency) => {
+    expect(readWords(text, B)).toMatchObject({ book: "m", amount, currency });
+  });
+
+  it("a caption's dollars stay dollars; the page can change a bill's currency", async () => {
+    const t = createTestKit();
+    await send(t, "p1", "$52.50");
+    expect(billOf(t, "p1")).toMatchObject({ amount: 52.5, currency: "USD" });
+    await t.act(plugin, "edit", { id: billOf(t, "p1").id, currency: "INR" });
+    expect(billOf(t, "p1").currency).toBe("INR");
+    await t.act(plugin, "edit", { id: billOf(t, "p1").id, currency: "EUR" });
+    expect(billOf(t, "p1").currency).toBeNull();
+    expect(((await t.load(plugin)) as any).bills[0].currency).toBeNull();
+  });
+
+  it("the month's line never adds rupees and dollars together", async () => {
+    const t = createTestKit({ today: "2026-11-10" });
+    await send(t, "p0");
+    await t.message(plugin, "Acme");
+    await send(t, "p1", "acme 450");
+    await send(t, "p2", "$52.50");
+    t.setToday("2026-12-01");
+    await t.schedule(plugin, "month");
+    expect(t.sent.at(-1)!.text).toBe("November 2026: 3 bills. 2 have an amount: ₹450 and $52.50. All 3 are on your page.");
   });
 });
