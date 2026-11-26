@@ -36,6 +36,8 @@ export const REMOVE_WORDS = [fixed("remove"), fixed("delete"), fixed("forget"), 
 
 /** On a message whose numbers were kept, when nothing is said in words. */
 export const SAVED = fixed("👍");
+/** On a message whose value is hidden (a card number, a PIN), every time, in place of the 👍. */
+export const HIDDEN = fixed("🔒");
 /** A reaction that takes a message's numbers out. */
 export const REMOVE_REACTIONS = [fixed("❌"), fixed("✖️"), fixed("🗑️"), fixed("🗑")];
 

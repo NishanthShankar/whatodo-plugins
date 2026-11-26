@@ -349,8 +349,12 @@ describe("numbers people may not want in a chat", () => {
     expect(last(t)).toContain(copy.firstKept({ name: "atm pin", value: "••••" }));
     expect(last(t)).toContain(copy.locked({ what: "pin" }));
     expect(last(t)).not.toContain("4821");
+    expect(t.reactions.at(-1)).toBe("🔒");
+    const said = t.sent.length;
     await t.message(digits, "card 4111 1111 1111 1111");
-    expect(last(t)).toBe(copy.locked({ what: "card" }));
+    // Explained once: the second hidden value gets the 🔒 alone.
+    expect(t.sent.length).toBe(said);
+    expect(t.reactions.at(-1)).toBe("🔒");
     await t.message(digits, "card?");
     expect(last(t)).toBe("*Card*: •••• 1111, kept today.");
     await t.message(digits, "list");

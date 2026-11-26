@@ -91,7 +91,7 @@ After a yes, our own matching tries the other name, so the model isn't asked aga
 
 Never refused (the owner, 2026-11-26).
 
-- **A card number or a PIN** (also a CVV, an OTP, a password: a 3 to 6 digit value with one of those words) **is hidden**: kept whole (not encrypted), shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN. A card is found by its check digit, a PIN by its word; a postal PIN code is not a PIN. The answer says so and suggests deleting the message.
+- **A card number or a PIN** (also a CVV, an OTP, a password: a 3 to 6 digit value with one of those words) **is hidden**: kept whole (not encrypted), shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN. A card is found by its check digit, a PIN by its word; a postal PIN code is not a PIN. The person's message gets a 🔒 every time; the first one also gets a line saying so and suggesting deleting the message.
 - **An Aadhaar number** (12 digits with a valid check digit) is kept as typed, and the answer offers a way out: delete the message for everyone and Digits forgets it too. Whether Aadhaar, PAN, passport and bank numbers should lock as well is the owner's open question.
 
 ## Schedules
