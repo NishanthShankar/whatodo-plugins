@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import plugin, { type Bill, type Book } from "..";
+import plugin, { type Bill, type Book, weekday } from "..";
 import { createTestKit, photo } from "../../../testing";
 import { readWords } from "../words";
 
@@ -323,5 +323,73 @@ describe("invoice-holder: reading captions", () => {
     ["450/- home", "h", [], 450, null],
   ])("%s", (text, book, books, amount, note) => {
     expect(readWords(text, B)).toEqual({ book, books, amount, note });
+  });
+});
+
+describe("invoice-holder: 1.1.0", () => {
+  it("knows the day of the week", () => {
+    expect(weekday("2026-11-29")).toBe(0);
+    expect(weekday("2026-11-26")).toBe(4);
+    expect(weekday("2027-01-01")).toBe(5);
+    expect(weekday("2024-02-29")).toBe(4);
+  });
+
+  it("a deleted photo keeps its bill, and says so", async () => {
+    const t = await settled();
+    await send(t, "p1");
+    await t.deleted(plugin, refOf(t, "p1"));
+    expect(billOf(t, "p1")).toBeTruthy();
+    expect(t.sent.at(-1)!.text).toContain("still on your page");
+  });
+
+  it("a deleted message whose bill was already removed says nothing", async () => {
+    const t = await settled();
+    await send(t, "p1");
+    const ref = refOf(t, "p1");
+    await t.act(plugin, "remove", { id: ref.id });
+    const before = t.sent.length;
+    await t.deleted(plugin, ref);
+    expect(t.sent.length).toBe(before);
+  });
+
+  it("on Sunday, says how many bills wait for a folder, once, and nothing when none wait", async () => {
+    const t = await settled();
+    await send(t, "p1");
+    await send(t, "p2");
+    t.setToday("2026-11-28");
+    let before = t.sent.length;
+    await t.schedule(plugin, "waiting");
+    expect(t.sent.length).toBe(before);
+    t.setToday("2026-11-29");
+    await t.schedule(plugin, "waiting");
+    expect(t.sent.at(-1)!.text).toBe("2 bills are waiting for a folder. React with an emoji on each, or file them on your page.");
+    before = t.sent.length;
+    await t.schedule(plugin, "waiting");
+    expect(t.sent.length).toBe(before);
+    for (const f of ["p1", "p2"]) await t.react(plugin, "🏠", refOf(t, f));
+    t.setToday("2026-12-06");
+    await t.schedule(plugin, "waiting");
+    expect(t.sent.length).toBe(before);
+  });
+
+  it("on the 1st, says how the month before went, once", async () => {
+    const t = createTestKit({ today: "2026-11-10" });
+    await send(t, "p0");
+    await t.message(plugin, "Acme");
+    await send(t, "p1", "acme 450");
+    await send(t, "p2", "rs 1,200");
+    t.setToday("2026-11-30");
+    let before = t.sent.length;
+    await t.schedule(plugin, "month");
+    expect(t.sent.length).toBe(before);
+    t.setToday("2026-12-01");
+    await t.schedule(plugin, "month");
+    expect(t.sent.at(-1)!.text).toBe("November 2026: 3 bills. 2 have an amount: ₹1,650. The rest are on your page.");
+    before = t.sent.length;
+    await t.schedule(plugin, "month");
+    expect(t.sent.length).toBe(before);
+    t.setToday("2027-01-01");
+    await t.schedule(plugin, "month");
+    expect(t.sent.length).toBe(before);
   });
 });

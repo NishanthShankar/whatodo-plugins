@@ -52,6 +52,20 @@ describe("invoice-holder copy", () => {
     expect(said(t)).toMatchSnapshot();
   });
 
+  it("1.1.0: a deleted photo, the weekly reminder, the month's line", async () => {
+    const t = createTestKit({ today: "2026-11-27" });
+    await send(t, "p1");
+    await t.message(plugin, "Acme");
+    await send(t, "p2");
+    await send(t, "p3", "1,200");
+    await t.deleted(plugin, { kind: "bill", id: Object.keys(t.dump()).find((k) => k.startsWith("bills/"))!.slice(6) });
+    t.setToday("2026-11-29");
+    await t.schedule(plugin, "waiting");
+    t.setToday("2026-12-01");
+    await t.schedule(plugin, "month");
+    expect(said(t)).toMatchSnapshot();
+  });
+
   it("a first book whose name is already taken", async () => {
     const t = createTestKit();
     await send(t, "p1");
