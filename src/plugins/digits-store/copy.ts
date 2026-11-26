@@ -69,7 +69,7 @@ export const copy = {
 
   // A welcome that asks for nothing (docs/plugin-onboarding.md), and names one thing to send.
   // Picked by the owner, 2026-11-26, from og-copy-bot's two, with its aside as a line of its own.
-  welcome: msg([`Send me a number with a word for what it is, like _${EXAMPLE}_. I keep it, and hand it back when you ask.\n\nYou may stop scrolling up for them.`]),
+  welcome: msg([`Send me a number with a word for what it is, like _${EXAMPLE}_. I keep it, and hand it back when you ask.\n\nYou may stop scrolling up for it.`]),
 
   help: msg([
     [

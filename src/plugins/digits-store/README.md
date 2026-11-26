@@ -15,7 +15,7 @@ Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines are og-c
 | The promise | "The numbers you only need now and then." (the welcome card's headline) |
 | The aside | "Send one once. I won't make you scroll for it." |
 | The first thing to send | `Amma ring size 14` (weight second, the owner, 2026-11-26) |
-| The welcome | "Send me a number with a word for what it is, like _Amma ring size 14_. I keep it, and hand it back when you ask." and, as its own line, "You may stop scrolling up for them." |
+| The welcome | "Send me a number with a word for what it is, like _Amma ring size 14_. I keep it, and hand it back when you ask." and, as its own line, "You may stop scrolling up for it." |
 | The first time line | "Kept: Amma ring size, 14. Ask me "Amma ring size?" today or next year, and you have it back. From now on a 👍 means kept." |
 | The moment it clicks | Minutes in: they ask "Amma ring size?" and get "*Amma ring size*: 14, kept today.", the first time with "It will still be here next year." under it. A date gets its message the morning it is due. |
 | The setup steps | None beyond adding the app. |
