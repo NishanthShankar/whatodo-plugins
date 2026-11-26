@@ -3,7 +3,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { useRandom } from "../../../copy";
-import { createTestKit, photo } from "../../../testing";
+import { createTestKit, mail, photo } from "../../../testing";
 import plugin from "../index";
 
 type T = ReturnType<typeof createTestKit>;
@@ -63,6 +63,18 @@ describe("invoice-holder copy", () => {
     await t.schedule(plugin, "waiting");
     t.setToday("2026-12-01");
     await t.schedule(plugin, "month");
+    expect(said(t)).toMatchSnapshot();
+  });
+
+  it("1.4.0: the note question, first and after, for a company and a forward, and the first note", async () => {
+    const t = createTestKit({ today: "2026-11-27", hour: 10 });
+    const pdf = (id: string) => ({ id, type: "application/pdf" as const, size: 9000 });
+    await t.mail(plugin, mail({ id: "a", at: t.kit.now, from: { address: "b@monid.com", domain: "monid.com", kind: "company" }, files: [pdf("a")] }));
+    await t.message(plugin, "Video generation credits");
+    t.setHour(12);
+    await t.mail(plugin, mail({ id: "b", at: t.kit.now, from: { address: "b@monid.com", domain: "monid.com", kind: "company" }, files: [pdf("b1"), pdf("b2")] }));
+    t.setHour(14);
+    await t.mail(plugin, mail({ id: "c", at: t.kit.now, from: { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" }, files: [pdf("c")] }));
     expect(said(t)).toMatchSnapshot();
   });
 

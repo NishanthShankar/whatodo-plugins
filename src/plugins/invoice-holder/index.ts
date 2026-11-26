@@ -1,5 +1,5 @@
 import { definePlugin, type Json, type Kit, type MailEvent, type Photo, type Sender } from "../../sdk";
-import { BOOK_EMOJI, BOOKS, BOOKS_TOO, copy, KEPT, money, NEVER_A_BOOK, type BookLine } from "./copy";
+import { BOOK_EMOJI, BOOKS, BOOKS_TOO, MAIL_SUMMARY_MANY, MAIL_SUMMARY_ONE, NO_NOTE, copy, KEPT, money, NEVER_A_BOOK, type BookLine } from "./copy";
 import { bare, cleanGst, cleanName, MAX_NOTE, oneEmoji, readWords } from "./words";
 
 /**
@@ -28,6 +28,13 @@ export const REMIND_DAY = 0;
 export const REMIND_HOUR = 10;
 /** The month's line goes on the 1st at this hour, about the month before. */
 export const MONTH_HOUR = 9;
+/** A plain line this soon after the note question is its answer, while it is the one open question. */
+export const NOTE_WINDOW_MS = 10 * 60_000;
+/** A mail older than this when the app hears of it (the catch-up of held mail) is never asked about. */
+export const CATCHUP_MS = 60 * 60_000;
+/** No note questions from NIGHT_FROM to NIGHT_TO, the person's time; they are not held for later either (z-research-bot: that steps round the cap). */
+export const NIGHT_FROM = 22;
+export const NIGHT_TO = 8;
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -125,12 +132,28 @@ export interface Bill {
   /** Pictures sent together share this. */
   batch: string | null;
   history: BillEvent[];
+  /** When BillKeeper asked for a note on this bill in WhatsApp (mailed bills, since 1.4.0). */
+  asked?: number | null;
+  /** How the note question was answered: "no" when they said no note. Since 1.4.0. */
+  noteBy?: "now" | "reply" | "no" | null;
+}
+
+/** Whether to ask for a note when a sender's bill comes: "auto" follows the routine rules, the page can force either way. */
+export interface SenderPref {
+  ask: "auto" | "yes" | "no";
 }
 
 interface BillRef {
   kind: "bill";
   id: string;
 }
+/** The note question about the bills of one mail. Its own kind: an answer is a note, never read for a folder or an amount. */
+interface NoteRef {
+  kind: "note";
+  bills: string[];
+}
+const isNoteRef = (r: unknown): r is NoteRef => !!r && typeof r === "object" && (r as NoteRef).kind === "note" && Array.isArray((r as NoteRef).bills);
+
 interface WhichRef {
   kind: "which";
   bill: string;
@@ -218,6 +241,96 @@ async function batchFor(kit: Kit): Promise<string> {
  * from the same sender was filed, this one goes in the same folder. Nothing is sent in WhatsApp: the weekly count
  * names the bills waiting (the platform's cap on lines for mail is not built yet). A mail with no PDF is not a bill.
  */
+/** "monid.com" as a name in a question: "Monid". Never the address or the domain itself (WhatsApp would make it a link). */
+function brandOf(domain: string): string {
+  const parts = domain.toLowerCase().split(".").filter((p) => p && !/^(?:www|mail|email|e|billing|bills|invoice|invoices|noreply|no-reply|alerts|info|accounts|notify)$/.test(p));
+  const first = parts[0] ?? domain;
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
+const isNoNote = (text: string) => NO_NOTE.includes(text.toLowerCase().replace(/[.!\s]+$/g, "").trim());
+
+/**
+ * A sender whose bills are routine, so no note is asked for (my default, not the owner's ruling; see the brief):
+ * three earlier mails each 25 to 35 days after the one before with no note on any, or the last two questions for
+ * this sender left with no note. A note on any of the sender's bills breaks the second rule.
+ */
+function routine(all: { data: Bill }[], from: string): boolean {
+  const mine = all.map((r) => r.data).filter((b) => b.source === "mail" && b.mail?.from === from);
+  // One entry per mail, its first PDF.
+  const mails = [...new Map(mine.map((b) => [b.mail!.id, b])).values()].sort((a, b) => a.at - b.at);
+  const notedAny = (id: string) => mine.some((b) => b.mail?.id === id && b.note);
+  const last = mails.slice(-3);
+  if (last.length === 3 && !last.some((b) => notedAny(b.mail!.id))) {
+    const day = 24 * 3600_000;
+    const gaps = [last[1].at - last[0].at, last[2].at - last[1].at];
+    if (gaps.every((g) => g >= 25 * day && g <= 35 * day)) return true;
+  }
+  const asked = mails.filter((b) => b.asked).slice(-2);
+  return asked.length === 2 && asked.every((b) => !notedAny(b.mail!.id));
+}
+
+const night = (kit: Kit) => {
+  const h = kit.time.hour(kit.now);
+  return h >= NIGHT_FROM || h < NIGHT_TO;
+};
+
+/** Ask for a note on one mail's bills, as one message that carries their ref. */
+async function askNote(kit: Kit, ids: string[], who: string | null) {
+  const first = !(await kit.store.get("state", "noteFirst"));
+  if (first) await kit.store.put("state", "noteFirst", 1);
+  kit.send((first ? copy.noteAskFirst : copy.noteAsk)({ who, count: ids.length }), { ref: { kind: "note", bills: ids } as unknown as Json });
+  for (const id of ids) {
+    const b = await kit.store.get<Bill>("bills", id);
+    if (b) await kit.store.put("bills", id, { ...b, asked: kit.now } as unknown as Json);
+  }
+  // One open question takes a plain line; two at once take none, a reply is needed (my default).
+  const open = await kit.store.get<{ bills: string[]; at: number } | { none: true; at: number }>("state", "noteOpen");
+  if (open && kit.now - open.at <= NOTE_WINDOW_MS) await kit.store.put("state", "noteOpen", { none: true, at: kit.now });
+  else await kit.store.put("state", "noteOpen", { bills: ids, at: kit.now });
+}
+
+/** Whether a mail's bills get the note question now, later (night), or never. */
+async function noteQuestion(kit: Kit, e: MailEvent, ids: string[]) {
+  if (kit.now - e.at > CATCHUP_MS) return;
+  const own = e.from.kind === "mailbox";
+  if (!own) {
+    const pref = (await kit.store.get<SenderPref>("senders", e.from.address.toLowerCase()))?.ask ?? "auto";
+    if (pref === "no") return;
+    if (pref === "auto") {
+      const all = (await kit.store.list<Bill>("bills")).filter((r) => !ids.includes(r.key));
+      if (routine(all, e.from.address)) return;
+    }
+  }
+  // The platform caps lines caused by mail (SDK 1.34.0); when none are left for this mail, ask nothing and open no
+  // window, or a plain line would become a note on a bill the person was never asked about.
+  if (e.lines !== undefined && e.lines <= 0) return;
+  if (night(kit)) return;
+  await askNote(kit, ids, own ? null : brandOf(e.from.domain));
+}
+
+/** Their answer to a note question: the whole text is the note, or "no". */
+async function takeNote(kit: Kit, ids: string[], text: string, how: "now" | "reply", by: string | null) {
+  await kit.store.delete("state", "noteOpen");
+  const no = isNoNote(text);
+  const note = text.replace(/\s+/g, " ").trim().slice(0, MAX_NOTE);
+  let any = false;
+  for (const id of ids) {
+    const b = await kit.store.get<Bill>("bills", id);
+    if (!b) continue;
+    any = true;
+    const next: Bill = no ? { ...b, noteBy: "no" } : withEvent({ ...b, note, noteBy: how }, { at: kit.now, what: "changed", how: "reply", by });
+    await kit.store.put("bills", id, next as unknown as Json);
+  }
+  if (!any) return kit.send(copy.gone());
+  // The first note gets words, once; after that the 👍 is the whole answer. A reaction or a reply, never both.
+  if (!no && !(await kit.store.get("state", "noteTaught"))) {
+    await kit.store.put("state", "noteTaught", 1);
+    return kit.send(copy.noteTaught());
+  }
+  kit.react(KEPT);
+}
+
 async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> {
   if (!e.files.length) return "not-for-me";
   const all = await kit.store.list<Bill>("bills");
@@ -228,6 +341,7 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
   const book = earlier?.data.book && (await kit.store.get<Book>("books", earlier.data.book)) ? earlier.data.book : null;
   // Each PDF is its own bill, so each is filed on its own; "2 of 3" keeps them together on the page.
   const n = e.files.length;
+  const ids: string[] = [];
   for (let i = 0; i < n; i++) {
     const f = e.files[i];
     const name = typeof (f as { name?: unknown }).name === "string" ? ((f as { name?: string }).name ?? "").slice(0, 120) || null : null;
@@ -248,8 +362,11 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
       history: [{ at: kit.now, what: "came" }, ...(book ? [{ at: kit.now, what: "filed" as const, how: "sender" as How, book, by: null }] : [])],
     };
     // Sorted by arrival, the mail's own order kept within it.
-    await kit.store.put("bills", kit.id(), bill as unknown as Json, e.at + i);
+    const bid = kit.id();
+    ids.push(bid);
+    await kit.store.put("bills", bid, bill as unknown as Json, e.at + i);
   }
+  await noteQuestion(kit, e, ids);
   return "took";
 }
 
@@ -356,6 +473,8 @@ function shown(id: string, b: Bill) {
     source: b.source,
     from: b.mail?.from ?? null,
     mail: b.mail ? { domain: b.mail.domain, label: b.mail.label, kind: b.mail.kind ?? null, part: b.mail.part ?? 1, of: b.mail.of ?? b.files.length, name: b.mail.name ?? null } : null,
+    asked: b.asked ?? null,
+    noteBy: b.noteBy ?? null,
     files: b.files,
     at: b.at,
     state: b.state,
@@ -408,7 +527,7 @@ const noteOf = (raw: unknown): string | null => (typeof raw === "string" ? raw.r
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.3.0",
+  version: "1.4.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -431,16 +550,21 @@ export default definePlugin({
     { id: "waiting", hour: REMIND_HOUR },
     { id: "month", hour: MONTH_HOUR },
   ],
+  // Zelfred's 8pm line when the day's mail lines were held back past the cap (og-copy-bot's words, SDK 1.34.0).
+  mailSummary: { one: MAIL_SUMMARY_ONE, many: MAIL_SUMMARY_MANY },
   welcome: copy.welcome(),
   help: copy.help(),
 
   async onMessage(event, kit) {
     const text = event.text.trim().replace(/\s+/g, " ");
     if (event.photos?.length) {
+      // A photo closes the window for a plain-line note.
+      await kit.store.delete("state", "noteOpen");
       for (const photo of event.photos) await keepPhoto(kit, photo, text, event.sender);
       return;
     }
     if (!text) return;
+    if (isNoteRef(event.quotedRef)) return takeNote(kit, event.quotedRef.bills, text, "reply", senderOf(event.sender));
     if (isBillRef(event.quotedRef)) return onReply(kit, event.quotedRef.id, text, event.sender);
     if (text.toLowerCase() === BOOKS || text.toLowerCase() === BOOKS_TOO) return listBooks(kit);
 
@@ -450,6 +574,9 @@ export default definePlugin({
       if ((await allBooks(kit)).length) await kit.store.delete("state", "asking");
       else if (!oneEmoji(text) && (await firstBook(kit, asking.bill, text, senderOf(event.sender)))) return;
     }
+    // Straight after a note question, the next plain line is its note, while it is the one open question.
+    const open = await kit.store.get<{ bills?: string[]; at: number }>("state", "noteOpen");
+    if (open?.bills && kit.now - open.at <= NOTE_WINDOW_MS) return takeNote(kit, open.bills, text, "now", senderOf(event.sender));
     kit.unsure(copy.unsure());
   },
 
@@ -458,6 +585,25 @@ export default definePlugin({
    * taking it off unfiles a bill a reaction had filed. Done-marks and unknown emoji change nothing.
    */
   async onReaction(event, kit) {
+    // On a note question: a folder's emoji files its bills; a done mark means no note.
+    if (isNoteRef(event.ref)) {
+      const by = senderOf(event.sender);
+      const e = event.emoji ? bare(event.emoji) : null;
+      if (e && NEVER_A_BOOK.some((n) => bare(n) === e)) {
+        const open = await kit.store.get<{ bills?: string[] }>("state", "noteOpen");
+        if (open?.bills?.join() === event.ref.bills.join()) await kit.store.delete("state", "noteOpen");
+        return;
+      }
+      const book = e ? (await allBooks(kit)).find((b) => b.book.emoji && bare(b.book.emoji) === e) : null;
+      for (const id of event.ref.bills) {
+        const bill = await kit.store.get<Bill>("bills", id);
+        if (!bill) continue;
+        if (!e) {
+          if (bill.tagged?.how === "reaction") await file(kit, id, null, "reaction", by);
+        } else if (book && bill.book !== book.id) await file(kit, id, book.id, "reaction", by);
+      }
+      return;
+    }
     if (!isBillRef(event.ref)) return;
     const bill = await kit.store.get<Bill>("bills", event.ref.id);
     if (!bill) return;
@@ -530,6 +676,8 @@ export default definePlugin({
         suggest: nextEmoji(books),
         books: books.map(({ id, book }) => ({ id, ...book, count: counts.get(id) ?? 0 })),
         toTag: bills.filter((b) => b.data.state === "to-tag").length,
+        // Per sender, whether a note is asked for when their bill comes: "auto", "yes" or "no".
+        senders: Object.fromEntries((await kit.store.list<SenderPref>("senders")).map((r) => [r.key, r.data.ask])),
         total: bills.length,
         bills: bills.slice(0, limit).map((b) => shown(b.key, b.data)),
       } as unknown as Json;
@@ -592,6 +740,14 @@ export default definePlugin({
           ids.push(id);
         }
         return { ids };
+      },
+      /** Whether to ask for a note when this sender's bill comes: "auto" (the routine rules), "yes" or "no". */
+      async setSenderAsk(kit, args) {
+        const from = typeof args.from === "string" ? args.from.trim().toLowerCase().slice(0, 200) : "";
+        if (!from) throw new Error("That sender isn't known.");
+        const ask = args.ask === "yes" || args.ask === "no" ? args.ask : "auto";
+        if (ask === "auto") await kit.store.delete("senders", from);
+        else await kit.store.put("senders", from, { ask } as unknown as Json);
       },
       /** Remove a bill and its pictures. The page asks first. */
       async remove(kit, args) {

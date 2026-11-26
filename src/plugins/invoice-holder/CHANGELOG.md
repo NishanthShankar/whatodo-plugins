@@ -2,6 +2,19 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-11-27
+
+### Added
+- When a bill comes by mail, one message in the group asks for a note (docs/invoice-holder-note-ask-brief.md in the whatodo repo). The next plain line within 10 minutes is the note, while it is the one open question; a reply to the question sets it any time later; "no" means none. The whole text is the note, never read for a folder or an amount. A folder's emoji on the question files the mail's bills.
+- Not asked: old mail handed over when the app is added, mail the platform says has no lines left, at night (10pm to 8am), and routine senders: three monthly bills with no notes, or the last two questions left with no note. These are my defaults, not the owner's. A note on any of the sender's bills starts the asking again.
+- `setSenderAsk` on the page: ask for a sender always, never, or by the rules.
+- Built on SDK 1.34.0: the question reads the mail's line allowance (`lines`) and stays silent when none are left, and the 8pm summary of held-back mail lines is in BillKeeper's words (`mailSummary`).
+
+### Data
+- `bills`: `asked` (when the question went) and `noteBy` ("now", "reply" or "no").
+- `senders`: key the sender's address, `{ ask: "yes" | "no" }` (no row means by the rules).
+- `state`: `noteOpen`, `noteFirst`, `noteTaught`.
+
 ## [1.3.0] - 2026-11-27
 
 ### Changed
