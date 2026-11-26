@@ -131,7 +131,7 @@ describe("invoice-holder: filing", () => {
   it("6. a caption with a book's name files it, a number in it is the amount, a number alone files nothing", async () => {
     const t = await settled();
     await send(t, "p1", "acme uber 450");
-    expect(billOf(t, "p1")).toMatchObject({ state: "filed", amount: 450, note: "uber", tagged: { how: "caption" } });
+    expect(billOf(t, "p1")).toMatchObject({ state: "filed", amount: 450, name: "uber", note: null, tagged: { how: "caption" } });
     expect(t.reactions.at(-1)).toBe("🏢");
     expect(t.sent.at(-1)!.text).toContain("Read from your caption");
     const after = t.sent.length;
@@ -160,11 +160,11 @@ describe("invoice-holder: filing", () => {
     expect(billOf(t, "p3")).toMatchObject({ state: "filed", tagged: { how: "poll" } });
   });
 
-  it("a reply that names no book asks which, and keeps the words as the note", async () => {
+  it("a reply that names no book asks which, and keeps the words as the name", async () => {
     const t = await settled();
     await send(t, "p1");
     await t.message(plugin, "diesel", refOf(t, "p1"));
-    expect(billOf(t, "p1").note).toBe("diesel");
+    expect(billOf(t, "p1").name).toBe("diesel");
     expect(t.asked).toHaveLength(1);
   });
 
@@ -609,5 +609,29 @@ describe("invoice-holder: 1.4.0, a note asked for when a bill comes by mail", ()
     await fresh(t, "m2");
     expect(question(t)).toHaveLength(1);
     expect(((await t.load(plugin)) as any).senders).toEqual({});
+  });
+});
+
+describe("invoice-holder: 1.5.0, a name apart from the note", () => {
+  it("a long caption is the note, a short one the name; the page sets either, and a note keeps its lines", async () => {
+    const t = createTestKit();
+    const long = "credits for the video campaign, split across the three client projects we are running this quarter";
+    await send(t, "p1", long);
+    expect(billOf(t, "p1")).toMatchObject({ name: null, note: long });
+    await t.act(plugin, "edit", { id: billOf(t, "p1").id, name: "  Video   credits ", note: "line one\n\n\n\nline   two" });
+    expect(billOf(t, "p1")).toMatchObject({ name: "Video credits", note: "line one\n\nline two" });
+    await t.act(plugin, "edit", { id: billOf(t, "p1").id, name: "x".repeat(90) });
+    expect(billOf(t, "p1").name).toHaveLength(60);
+    const page = (await t.load(plugin)) as any;
+    expect(page.bills[0].name).toHaveLength(60);
+  });
+
+  it("the answer to the note question is the note, however short, never the name", async () => {
+    const t = createTestKit({ today: "2026-11-27", hour: 10 });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, files: [{ id: "f", type: "application/pdf", size: 9 }] }));
+    await t.message(plugin, "credits");
+    const b = bills(t).find((x) => x.mail?.id === "m1")!;
+    expect(b.note).toBe("credits");
+    expect(b.name ?? null).toBeNull();
   });
 });
