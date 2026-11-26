@@ -422,3 +422,17 @@ describe("invoice-holder: a bill by mail", () => {
     expect(bills(t).filter((b) => b.source === "mail")).toHaveLength(1);
   });
 });
+
+describe("invoice-holder: 1.2.1", () => {
+  it("a flag, a keycap or a tagged flag can be a folder's emoji, and files by reaction", async () => {
+    const t = createTestKit();
+    await t.act(plugin, "addBook", { name: "Eetaa Inc", emoji: "🇺🇸" });
+    await t.act(plugin, "addBook", { name: "Home", emoji: "1️⃣" });
+    await t.act(plugin, "addBook", { name: "London", emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" });
+    expect(books(t).map((b) => b.emoji)).toEqual(["🇺🇸", "1️⃣", "🏴󠁧󠁢󠁥󠁮󠁧󠁿"]);
+    await send(t, "p1");
+    await t.react(plugin, "🇺🇸", refOf(t, "p1"));
+    expect(billOf(t, "p1").book).toBe(books(t)[0].id);
+    await expect(t.act(plugin, "addBook", { name: "Two", emoji: "🇺🇸🇮🇳" })).rejects.toThrow("one emoji");
+  });
+});

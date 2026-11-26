@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-11-27
+
+### Fixed
+- A flag (🇮🇳), a keycap (1️⃣) or a tagged flag (🏴󠁧󠁢󠁥󠁮󠁧󠁿) can be a folder's emoji, on the page and as a reaction. They were refused as "not one emoji".
+
 ## [1.2.0] - 2026-11-27
 
 ### Added

@@ -384,7 +384,7 @@ const noteOf = (raw: unknown): string | null => (typeof raw === "string" ? raw.r
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.2.0",
+  version: "1.2.1",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",

@@ -107,12 +107,16 @@ const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** An emoji without its skin tone or the mark that makes it a picture, so one picture in two forms is one. */
 export const bare = (emoji: string) => emoji.replace(/[\u{1F3FB}-\u{1F3FF}️]/gu, "");
 
-/** Exactly one emoji and nothing else; null otherwise. */
+/**
+ * Exactly one emoji and nothing else; null otherwise. A picture (with its joined forms, 👨‍👩‍👧), a flag made of two
+ * letter symbols (🇮🇳), a keycap (1️⃣) or a flag with a tag sequence (🏴󠁧󠁢󠁥󠁮󠁧󠁿).
+ */
 export function oneEmoji(text: string): string | null {
   const t = bare(text.replace(/\s+/g, ""));
-  if (!t || t.length > 20 || /[\p{L}\p{N}#*]/u.test(t)) return null;
-  const m = /^\p{Extended_Pictographic}(?:‍\p{Extended_Pictographic})*$/u.exec(t);
-  return m ? m[0] : null;
+  if (!t || t.length > 40) return null;
+  const one =
+    /^(?:\p{Regional_Indicator}{2}|[0-9#*]\u20E3|\p{Extended_Pictographic}[\u{E0020}-\u{E007F}]*(?:\u200D\p{Extended_Pictographic}[\u{E0020}-\u{E007F}]*)*)$/u;
+  return one.test(t) ? t : null;
 }
 
 /** A book's name as typed: one line, trimmed, at most 40 characters. */
