@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.33.0";
+export const SDK_VERSION = "1.34.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -524,6 +524,12 @@ export interface MailFile {
   type: "application/pdf";
   /** Bytes. */
   size: number;
+  /**
+   * The attachment's name as its sender wrote it ("Airtel_Nov_2026.pdf"), made safe to show: no control or
+   * direction-changing characters, no slashes, at most 100 characters. Sender-written text: show it, never trust it.
+   * Missing when the mail gave none. Since SDK 1.34.0.
+   */
+  name?: string;
 }
 
 /**
