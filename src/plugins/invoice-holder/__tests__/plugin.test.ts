@@ -482,10 +482,10 @@ describe("invoice-holder: 1.4.0, a note asked for when a bill comes by mail", ()
     expect(t.sent).toHaveLength(1);
     expect(t.sent[0].text).toContain("Monid");
     expect(t.sent[0].text).not.toContain("monid.com");
-    expect(t.sent[0].text).toContain("reply to this message");
+    expect(t.sent[0].text).toContain("Reply to this message");
     t.setHour(11);
     await fresh(t, "m2");
-    expect(t.sent[1].text).toBe("A bill from Monid came by mail. Any note?");
+    expect(t.sent[1].text).toBe("A bill from Monid came by mail. What is it for?");
   });
 
   it("2, 3. a plain line within 10 minutes is the whole note, never read for a folder or an amount", async () => {

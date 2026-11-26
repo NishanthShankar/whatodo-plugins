@@ -33,10 +33,12 @@ exports[`invoice-holder copy > 1.4.0: the note question, first and after, for a 
   "reactTos": [],
   "reactions": [],
   "sent": [
-    "A bill from Monid came by mail and is kept. Any note for it? Send it now, or reply to this message whenever you like.",
-    "Noted on the bill. Reply to my question any time to change it.",
-    "2 bills from Monid came by mail. Any note?",
-    "The bill you forwarded is kept. Any note?",
+    "A bill from Monid came by mail and is kept.
+
+What is it for? I keep your answer with the bill as its note. Reply to this message whenever you like.",
+    "Noted on the bill. Reply to my question again to change it.",
+    "2 bills from Monid came by mail. What are they for?",
+    "The bill you forwarded is kept. What is it for?",
   ],
   "unsures": [],
 }
