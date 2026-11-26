@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.34.0";
+export const SDK_VERSION = "1.35.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -530,6 +530,33 @@ export interface MailFile {
    * Missing when the mail gave none. Since SDK 1.34.0.
    */
   name?: string;
+  /**
+   * What Zelfred read inside the PDF, with its own code in a closed place that keeps nothing. Since SDK 1.35.0.
+   * Missing when it was not read in time. `state` says whether it could be read: "locked" (a password), "picture" (a
+   * scan with no text) or "failed". Every fact is "the bill says": show it as something the person can change, never
+   * state it as true in Zelfred's voice, and never turn `due` into a reminder unless the person agreed once for that
+   * sender. A fact Zelfred was not sure of is left out, never guessed. `seller` is the sender's own words, like `name`.
+   */
+  read?: MailRead;
+}
+
+/** What Zelfred read in a mailed PDF (MailFile.read). Since SDK 1.35.0. */
+export interface MailRead {
+  state: "read" | "locked" | "picture" | "failed";
+  /** The bill's total, with at most 2 decimals. */
+  amount?: number;
+  /** ISO 4217: INR, USD, EUR, GBP, AED or SGD. */
+  currency?: string;
+  /** The bill's date, YYYY-MM-DD. */
+  date?: string;
+  /** When it is due, YYYY-MM-DD. */
+  due?: string;
+  /** The bill's own number (invoice, bill, receipt or order), never an account or card number. At most 40 characters. */
+  number?: string;
+  /** GST numbers found, the seller's and the buyer's alike, at most 4, each with a valid check character. */
+  gstins?: string[];
+  /** The seller's name as printed, at most 80 characters. */
+  seller?: string;
 }
 
 /**

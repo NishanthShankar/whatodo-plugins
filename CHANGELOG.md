@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.35.0] - 2026-11-27
+
+### Added
+
+- `MailFile.read` (`MailRead`): what Zelfred read inside a mailed PDF, with its own code in a closed place that keeps nothing: `state` (read, locked, picture, failed) and, when read, `amount`, `currency`, `date`, `due`, `number`, `gstins` (at most 4) and `seller`. Missing when not read in time. Every fact is "the bill says": show it as editable, never as true in Zelfred's voice; a due date never becomes a reminder without the person's yes for that sender.
+
 ## [1.34.0] - 2026-11-27
 
 ### Added
