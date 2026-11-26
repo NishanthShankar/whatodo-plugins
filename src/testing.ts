@@ -107,6 +107,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
   const reads: { url: string; ref: Json }[] = [];
   /** Parcels the plugin asked Zelfred about with kit.parcels.read(), in order. Answer one with `t.parcel()`. */
   const parcelReads: { what: string; ref: Json }[] = [];
+  /** Words the plugin asked Zelfred to sort with kit.sort(), in order. Answer one with `t.sorted()`. */
+  const sorts: { text: string; choices: Record<string, string>; ref: Json; after: number }[] = [];
   /** Ids passed to kit.files.remove(), in order. */
   const removedFiles: string[] = [];
   /** What the plugin told the person's other systems with kit.emit(), in order. */
@@ -131,7 +133,7 @@ export function createTestKit(opts: TestKitOptions = {}) {
   let current: PluginDef | null = null;
   /** Photos Zelfred holds for this install: the ones handed over with a message, and any added with `t.addFile()`. */
   const files = new Map<string, { type: string; size: number }>();
-  const need = (permission: "hooks" | "groups" | "share" | "links" | "photos" | "parcels", what: string) => {
+  const need = (permission: "hooks" | "groups" | "share" | "links" | "photos" | "parcels" | "sort", what: string) => {
     if (current && !current.permissions?.includes(permission)) throw new Error(`${current.id}: ${what} needs the "${permission}" permission`);
   };
 
@@ -279,6 +281,17 @@ export function createTestKit(opts: TestKitOptions = {}) {
         parcelReads.push({ what, ref: clone(ref) });
       },
     },
+    async sort(text, choices, ref, opts) {
+      need("sort", "kit.sort");
+      if (typeof text !== "string" || !text.trim() || text.length > 200) throw new Error("kit.sort: give up to 200 characters of text");
+      const ids = Object.keys(choices ?? {});
+      if (ids.length < 1 || ids.length > 20) throw new Error("kit.sort: give 1 to 20 choices");
+      for (const id of ids) if (!id || id.length > 40 || typeof choices[id] !== "string" || !choices[id].trim() || choices[id].length > 300) throw new Error("kit.sort: each choice needs an id of up to 40 characters and words of up to 300");
+      const after = opts?.after ?? 0;
+      if (typeof after !== "number" || !(after >= 0 && after <= 600)) throw new Error("kit.sort: after is 0 to 600 seconds");
+      if (ref === undefined) throw new Error("kit.sort: give a ref");
+      sorts.push({ text, choices: { ...choices }, ref: clone(ref), after });
+    },
     files: {
       async remove(id) {
         removedFiles.push(id);
@@ -366,6 +379,8 @@ export function createTestKit(opts: TestKitOptions = {}) {
     reads,
     /** Parcels asked about with kit.parcels.read() and not answered yet, in order. */
     parcelReads,
+    /** Words given to kit.sort() and not answered yet, in order. */
+    sorts,
     /** Move the clock. */
     setToday(day: string) {
       state.today = day;
@@ -603,6 +618,19 @@ export function createTestKit(opts: TestKitOptions = {}) {
       const [asked] = parcelReads.splice(at, 1);
       if (!plugin.onParcel) throw new Error(`${plugin.id} has no onParcel`);
       await plugin.onParcel({ parcel: { ...found }, ref: asked.ref }, kit);
+    },
+    /**
+     * Zelfred sorted words the plugin gave to `kit.sort`: `onSorted` is called with `choice` and
+     * the ref of the oldest open request for `text` (exactly as given). Throws when nobody asked.
+     */
+    async sorted(plugin: PluginDef, text: string, choice: string | null, confidence = choice === null ? 0 : 0.9) {
+      withDefaults(plugin);
+      const at = sorts.findIndex((r) => r.text === text);
+      if (at < 0) throw new Error(`${plugin.id}: nobody asked to sort "${text}"`);
+      const [asked] = sorts.splice(at, 1);
+      if (choice !== null && !(choice in asked.choices)) throw new Error(`${plugin.id}: "${choice}" was not one of the choices for "${text}"`);
+      if (!plugin.onSorted) throw new Error(`${plugin.id} has no onSorted`);
+      await plugin.onSorted({ ref: asked.ref, choice, confidence }, kit);
     },
     /** What the shared page for `key` shows right now. Throws when that page isn't open (Zelfred would answer "not found"). */
     async shared(plugin: PluginDef, key: string): Promise<SharedPage | null> {

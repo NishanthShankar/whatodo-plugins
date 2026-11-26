@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.32.0] - 2026-11-26
+
+### Added
+- Permission `"sort"`: `kit.sort(text, choices, ref, { after })` puts a few words in one of the plugin's own groups, `after` seconds later (0 to 600). The answer arrives in `onSorted(event, kit)` as `{ ref, choice, confidence }`; `choice` is null when none fitted, the model is off or it failed. Zelfred takes numbers out before the words go to its sorting model (jev).
+- Test kit: `t.sorts` and `t.sorted(plugin, text, choice, confidence?)`.
+- TripExpenses 1.10.0 (`expense-tracker`) is the first to use it.
+
 ## [1.31.0] - 2026-11-25
 
 ### Added

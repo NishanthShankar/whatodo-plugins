@@ -122,6 +122,8 @@ export interface Expense {
   bill?: string | null;
   /** The emoji someone in the group reacted to it with: the group it is in. */
   mark?: string | null;
+  /** True when the mark was put by sorting (`kit.sort`), not by a person. A person's reaction or the page clears it. */
+  sorted?: boolean;
 }
 
 /** A line read as an expense, with the labels that were on it. */
@@ -143,6 +145,43 @@ interface CurrencyRef {
 const isCurrencyRef = (ref: unknown): ref is CurrencyRef =>
   !!ref && typeof ref === "object" && (ref as CurrencyRef).kind === "currency" && typeof (ref as CurrencyRef).trip === "string" && Array.isArray((ref as CurrencyRef).codes) && (ref as CurrencyRef).codes.every((c) => typeof c === "string");
 const currencyRef = (trip: string, codes: string[]): CurrencyRef => ({ kind: "currency", trip, codes });
+
+/** One expense waiting to be sorted into an emoji's group, and the ids its message holds (for the reaction on it). */
+interface SortRef {
+  kind: "sort";
+  trip: string;
+  id: string;
+  ids: string[];
+}
+const isSortRef = (ref: unknown): ref is SortRef =>
+  !!ref && typeof ref === "object" && (ref as SortRef).kind === "sort" && typeof (ref as SortRef).trip === "string" && typeof (ref as SortRef).id === "string" && Array.isArray((ref as SortRef).ids) && (ref as SortRef).ids.every((i) => typeof i === "string");
+
+/** How long people have to react with an emoji themselves before an expense is sorted. */
+export const SORT_AFTER = 30;
+/** How many emoji groups people must have made on a trip before new expenses are sorted into them. */
+export const SORT_FROM = 2;
+/** How many of a group's expenses describe it to the sorting model. */
+const SORT_EXAMPLES = 8;
+
+/**
+ * The emoji groups people made on a trip, each described by what its expenses were: the choices
+ * a new expense is sorted into. Only marks a person put count, so a wrong guess never teaches the
+ * next one. Null while fewer than SORT_FROM groups exist.
+ */
+function sortChoices(items: { data: Expense }[]): Record<string, string> | null {
+  const by = new Map<string, string[]>();
+  for (const { data: e } of [...items].reverse()) {
+    if (!e.mark || e.sorted) continue;
+    const list = by.get(e.mark) ?? by.set(e.mark, []).get(e.mark)!;
+    const what = e.what.trim().toLowerCase();
+    if (list.length < SORT_EXAMPLES && !list.includes(what)) list.push(what);
+  }
+  if (by.size < SORT_FROM) return null;
+  const choices: Record<string, string> = {};
+  for (const [mark, whats] of [...by].slice(0, 19)) choices[mark] = `${mark}, like ${whats.join(", ")}`.slice(0, 300);
+  choices.none = "None of these: something else";
+  return choices;
+}
 
 type Found = { id: string; trip: Trip };
 
@@ -434,6 +473,13 @@ async function keep(kit: Kit, here: Here, reads: Kept[], bad: string[], sender: 
   await save(kit, f);
   kit.mark({ kind: "expense", trip: f.id, ids } as unknown as Json);
   await heard(kit, here);
+  // Once people have made emoji groups on this trip, each new expense is sorted into one, a little later: whoever reacts
+  // with an emoji first wins.
+  const choices = sortChoices(await expensesOf(kit, f.id));
+  if (choices) for (const [i, r] of reads.entries()) {
+    const text = r.what.trim().slice(0, 200);
+    if (text) await kit.sort(text, choices, { kind: "sort", trip: f.id, id: ids[i], ids } as unknown as Json, { after: SORT_AFTER });
+  }
 
   // A trip with no currency yet takes it from the first expense that names one.
   const named = reads.find((r) => r.currency)?.currency ?? null;
@@ -968,7 +1014,7 @@ async function page(kit: Kit, args: Record<string, Json>): Promise<Json> {
 
 export default definePlugin({
   id: "expense-tracker",
-  version: "1.9.0",
+  version: "1.10.0",
   sdk: "1",
   name: "TripExpenses",
   icon: "🧾",
@@ -981,7 +1027,8 @@ export default definePlugin({
   tier: 1,
   // "members": friends on the trip send their expenses too. "groups": it takes a group they already have.
   // "photos": a photo of the bill is kept with its expense. Any other photo sent in the group is deleted at once.
-  permissions: ["members", "groups", "photos"],
+  // "sort": once people have made emoji groups on a trip, a new expense is put in one if nobody did within half a minute.
+  permissions: ["members", "groups", "photos", "sort"],
   listing: {
     title: "Trip Expense Tracker: Added Up as You Go | Zelfred",
     description: "Tell me what you paid and the amount, like \"lunch 450\". Your trip's expenses are added up as you go, with what each friend sent. Nothing to install.",
@@ -1032,7 +1079,8 @@ export default definePlugin({
       async setMark(kit, { trip, id, mark }) {
         const { key, e } = await pageExpense(kit, trip, id);
         if (!(mark === null || (typeof mark === "string" && mark.trim() && [...mark.trim()].length <= 8 && !/[\p{L}\p{N}\s]/u.test(mark.trim())))) throw new Error("Pick one emoji.");
-        await kit.store.put("expenses", key, { ...e, mark: mark === null ? null : mark.trim() } as unknown as Json);
+        const { sorted: _, ...rest } = e;
+        await kit.store.put("expenses", key, { ...rest, mark: mark === null ? null : mark.trim() } as unknown as Json);
       },
       /** An expense's labels, all of them at once. */
       async setTags(kit, { trip, id, tags }) {
@@ -1211,8 +1259,29 @@ export default definePlugin({
     for (const id of event.ref.ids) {
       const key = `${event.ref.trip}:${id}`;
       const e = await kit.store.get<Expense>("expenses", key);
-      if (e && (e.mark ?? null) !== mark) await kit.store.put("expenses", key, { ...e, mark } as unknown as Json);
+      if (!e) continue;
+      // A person's reaction always wins over sorting, and from now on it describes its group.
+      if ((e.mark ?? null) !== mark || e.sorted) {
+        const { sorted: _, ...rest } = e;
+        await kit.store.put("expenses", key, { ...rest, mark } as unknown as Json);
+      }
     }
+  },
+
+  /**
+   * An expense was sorted into one of the trip's emoji groups. Nothing changes when someone put it in a group meanwhile,
+   * when it is gone, or when no group fitted. Otherwise it joins that group, and when every expense its message holds is
+   * in the same group, the emoji goes on the message in place of my 👍, so the group can see it and react to change it.
+   */
+  async onSorted(event, kit) {
+    if (!isSortRef(event.ref) || !event.choice || event.choice === "none") return;
+    const { trip, id, ids } = event.ref;
+    const key = `${trip}:${id}`;
+    const e = await kit.store.get<Expense>("expenses", key);
+    if (!e || e.mark) return;
+    await kit.store.put("expenses", key, { ...e, mark: event.choice, sorted: true } as unknown as Json);
+    const marks = await Promise.all(ids.map(async (i) => (await kit.store.get<Expense>("expenses", `${trip}:${i}`))?.mark ?? null));
+    if (marks.every((m) => m === event.choice)) kit.reactTo({ kind: "expense", trip, ids } as unknown as Json, event.choice);
   },
 
   /**

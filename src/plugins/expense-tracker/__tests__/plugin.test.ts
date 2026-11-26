@@ -1278,3 +1278,78 @@ describe("taking an expense out by a reaction or by deleting the message", () =>
     expect(expenses(t)[0].mark).toBe("🍕");
   });
 });
+
+describe("sorting into an emoji's group", () => {
+  /** A trip where people made two groups: 🍔 for food and 🚕 for getting about. */
+  async function grouped() {
+    const t = await started();
+    await t.message(plugin, "cab 300");
+    await t.react(plugin, "🍔", t.marks[0]);
+    await t.react(plugin, "🚕", t.marks[1]);
+    return t;
+  }
+
+  it("waits until people have made two groups", async () => {
+    const t = await started();
+    await t.react(plugin, "🍔", t.marks[0]);
+    await t.message(plugin, "dinner 800");
+    expect(t.sorts).toEqual([]);
+  });
+
+  it("asks half a minute later, with each group described by what is in it, and no amounts", async () => {
+    const t = await grouped();
+    await t.message(plugin, "dinner 800");
+    expect(t.sorts).toHaveLength(1);
+    expect(t.sorts[0].text).toBe("dinner");
+    expect(t.sorts[0].after).toBe(30);
+    expect(t.sorts[0].choices).toEqual({ "🚕": "🚕, like cab", "🍔": "🍔, like lunch", none: "None of these: something else" });
+  });
+
+  it("puts the expense in the group and shows the emoji on its message", async () => {
+    const t = await grouped();
+    await t.message(plugin, "dinner 800");
+    await t.sorted(plugin, "dinner", "🍔");
+    expect(expenses(t)[2]).toMatchObject({ what: "dinner", mark: "🍔", sorted: true });
+    expect(t.reactTos.at(-1)).toEqual({ ref: t.marks[2], emoji: "🍔" });
+  });
+
+  it("leaves it alone when someone reacted first", async () => {
+    const t = await grouped();
+    await t.message(plugin, "dinner 800");
+    await t.react(plugin, "🎉", t.marks[2]);
+    await t.sorted(plugin, "dinner", "🍔");
+    expect(expenses(t)[2].mark).toBe("🎉");
+    expect(t.reactTos).toEqual([]);
+  });
+
+  it("leaves it alone when no group fits", async () => {
+    const t = await grouped();
+    await t.message(plugin, "sunscreen 400");
+    await t.sorted(plugin, "sunscreen", "none");
+    await t.message(plugin, "socks 200");
+    await t.sorted(plugin, "socks", null);
+    expect(expenses(t).slice(2).map((e) => e.mark ?? null)).toEqual([null, null]);
+    expect(t.reactTos).toEqual([]);
+  });
+
+  it("gives way to a reaction afterwards, and a sorted one never describes its group", async () => {
+    const t = await grouped();
+    await t.message(plugin, "dinner 800");
+    await t.sorted(plugin, "dinner", "🍔");
+    await t.message(plugin, "chai 40");
+    expect(t.sorts[0].choices["🍔"]).toBe("🍔, like lunch");
+    await t.react(plugin, "🚕", t.marks[2]);
+    expect(expenses(t)[2].mark).toBe("🚕");
+    expect(expenses(t)[2].sorted).toBeUndefined();
+  });
+
+  it("sorts each line of a message, and shows an emoji only when they all land in one group", async () => {
+    const t = await grouped();
+    await t.message(plugin, "dinner 800\nauto 90");
+    expect(t.sorts.map((s) => s.text)).toEqual(["dinner", "auto"]);
+    await t.sorted(plugin, "dinner", "🍔");
+    await t.sorted(plugin, "auto", "🚕");
+    expect(expenses(t).slice(2).map((e) => e.mark)).toEqual(["🍔", "🚕"]);
+    expect(t.reactTos).toEqual([]);
+  });
+});

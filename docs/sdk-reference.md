@@ -37,6 +37,7 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onGroup` | `(event: GroupEvent, kit) => Promise<void>` | no | The person handed the plugin a WhatsApp group they already had, or took it back. Having it is what makes the plugin a choice for existing groups. Needs `"groups"`. Since SDK 1.17.0. |
 | `onGroupInfo` | `(event: GroupInfoEvent, kit) => Promise<void>` | no | Someone gave one of the plugin's groups a new name or description. Zelfred finds out when the next message arrives there and tells the plugin before that message's `onMessage`. Zelfred's own changes never arrive. Not for `"vault"`. Since SDK 1.28.0. |
 | `onParcel` | `(event: ParcelEvent, kit) => Promise<void>` | no | A parcel asked about with `kit.parcels.read` was looked up. Needs `"parcels"`. See [Parcels](#parcels). Since SDK 1.31.0. |
+| `onSorted` | `(event: SortEvent, kit) => Promise<void>` | no | Words given to `kit.sort` were sorted: `{ ref, choice, confidence }`, `choice` null when none fitted. Needs `"sort"`. See [Sorting](#sorting). Since SDK 1.32.0. |
 | `onLink` | `(event: LinkEvent, kit) => Promise<void>` | no | A link asked for with `kit.links.read` was read. Needs `"links"`. See [Links](#links). Since SDK 1.24.0. |
 | `links` | `{ price?: boolean }` | no | What more to look for on the links read for this plugin. `price`: what the thing costs. Needs `"links"`. Since SDK 1.24.0. |
 | `permissions` | `Permission[]` | no | What it may do beyond its own group and storage. See [Permissions](#permissions). Since SDK 1.6.0. |
@@ -125,6 +126,7 @@ interface EntryEvent    { change: "added" | "edited" | "removed"; id: string; ki
 | `share.remove(key)` | `Promise<void>` | Stop sharing. The address stops working for good; `url(key)` afterwards makes a new one. Since SDK 1.24.0. |
 | `links.read(url, ref)` | `Promise<void>` | Ask Zelfred to read a link that didn't come in a message. `onLink` is called with what it found and `ref`. Since SDK 1.24.0. |
 | `parcels.read(what, ref)` | `Promise<void>` | Ask Zelfred where a parcel is. `what` is a tracking link or number. `onParcel` is called with the answer and `ref`. Since SDK 1.31.0. |
+| `sort(text, choices, ref, { after })` | `Promise<void>` | Put a few words in one of your own groups, `after` seconds later (0 to 600). `onSorted` is called with the choice and `ref`. Since SDK 1.32.0. |
 | `time.day(ms)` | string | `YYYY-MM-DD` of an instant in the person's zone. |
 | `time.shiftDay(day, n)` | string | Add `n` days to a `YYYY-MM-DD`. |
 | `time.hour(ms)` | number | Local hour (0-23) of an instant. |
@@ -162,6 +164,7 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"photos"` | Get the photos people send in its groups, as ids (`event.photos`), and send one back (`kit.send` with `photo`). Zelfred keeps the files. See [Photos](#photos). | Built (SDK 1.25.0) |
 | `"location"` | Get a position shared in its groups: `event.place`. See [A position](#a-position). | Built (SDK 1.25.0) |
 | `"parcels"` | Have Zelfred ask a carrier where a parcel is: `kit.parcels.read`, `onParcel`. See [Parcels](#parcels). | Built (SDK 1.31.0): FedEx and UPS |
+| `"sort"` | Have Zelfred put a few words in one of the plugin's groups: `kit.sort`, `onSorted`. See [Sorting](#sorting). | Built (SDK 1.32.0) |
 | `"vault"` | Nothing: it takes reading away. What is written in the plugin's group is locked on arrival with a key only the person's browser holds. The plugin gets `onEntry` and never a message. See [A vault](#a-vault-entries-nobody-else-can-read). | Built (SDK 1.21.0), unlisted plugins only until the locking is reviewed |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.
@@ -295,6 +298,26 @@ async onParcel(event, kit) {
 - Carriers today: FedEx and UPS. Anything else comes back `"unsupported"`.
 
 Test with `t.parcelReads` and `await t.parcel(plugin, what, parcel({ status: "Out for delivery", stage: "out" }))`.
+
+## Sorting
+
+A plugin can't call a model. With the `"sort"` permission it hands Zelfred a few words and its own groups, and hears back which group fits. Since SDK 1.32.0.
+
+```ts
+await kit.sort("dinner at the shack", { "🍔": "lunch, chai, dinner", "🚕": "cab, auto, fuel" }, { id }, { after: 30 });
+
+async onSorted(event, kit) {
+  if (event.choice === null) return;          // none fitted, or the model is off
+  // check nobody put it somewhere themselves in the meantime, then act
+}
+```
+
+- Zelfred takes every number out of `text` and the choices before they go to the model. The model is run outside Zelfred (jev, by TypeSafe), so send only what the person wrote about the thing itself: never a phone number, an address or anything from a locked app.
+- `after` lets people do it themselves first. The answer can arrive after they did, so check before acting.
+- Every call is answered once. Below Zelfred's confidence threshold the choice is null.
+- At most 30 calls while handling one event. Not on page loads.
+
+Test with `t.sorts` and `await t.sorted(plugin, text, "🍔")`.
 
 ## Shared pages: a page anyone can open
 
