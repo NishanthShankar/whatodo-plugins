@@ -2,6 +2,18 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-11-27
+
+### Changed
+- Each PDF a mail brings is its own bill, so each is filed on its own. They stay next to each other on the page, marked "1 of 3".
+- A forward (a mail from the person's own address) is never filed by sender: every forward comes from them, so the rule would put them all in one folder.
+
+### Added
+- What the page needs to tell mailed bills apart: whether the sender is a company or the person, which of the mail's PDFs it is, the file's size, and the file's name once Zelfred passes one.
+
+### Data
+- `bills`: `mail` gains `kind`, `part`, `of` and `name`; `files` entries gain `size`. Bills kept before have none of these; the page treats them as one PDF from a company.
+
 ## [1.2.1] - 2026-11-27
 
 ### Fixed

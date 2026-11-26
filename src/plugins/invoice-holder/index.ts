@@ -78,6 +78,8 @@ export interface BillFile {
   id: string;
   /** "image/jpeg" today; a PDF once bills come by mail. */
   type: string;
+  /** Bytes, when known (mailed PDFs, since 1.3.0). */
+  size?: number;
 }
 
 export interface BillEvent {
@@ -96,7 +98,19 @@ export interface Bill {
   /** Its pictures, or its PDFs for a bill that came by mail. */
   files: BillFile[];
   /** For a bill that came by mail: who sent it (as Zelfred proved it), the person's label and Zelfred's mail id. */
-  mail?: { from: string; domain: string; label: string; id: string } | null;
+  mail?: {
+    from: string;
+    domain: string;
+    label: string;
+    id: string;
+    /** "mailbox" when it came from the person's own address: a forward. Since 1.3.0. */
+    kind?: "company" | "mailbox";
+    /** Which of the mail's PDFs this is, and how many it brought; each PDF is its own bill. Since 1.3.0. */
+    part?: number;
+    of?: number;
+    /** The PDF's file name as sent, when Zelfred passes one. Since 1.3.0. */
+    name?: string | null;
+  } | null;
   /** Who sent it (`sender.id`), even though only one person can today. */
   by: string | null;
   at: number;
@@ -206,27 +220,36 @@ async function batchFor(kit: Kit): Promise<string> {
  */
 async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> {
   if (!e.files.length) return "not-for-me";
-  if ((await kit.store.list<Bill>("bills")).some((r) => r.data.mail?.id === e.id)) return "took";
-  const id = kit.id();
-  const earlier = (await kit.store.list<Bill>("bills")).filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book).sort((a, b) => b.data.at - a.data.at)[0];
+  const all = await kit.store.list<Bill>("bills");
+  if (all.some((r) => r.data.mail?.id === e.id)) return "took";
+  // Filed where the last bill from this sender went, unless it is a forward: every forward comes from the person.
+  const own = e.from.kind === "mailbox";
+  const earlier = own ? undefined : all.filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book).sort((a, b) => b.data.at - a.data.at)[0];
   const book = earlier?.data.book && (await kit.store.get<Book>("books", earlier.data.book)) ? earlier.data.book : null;
-  const bill: Bill = {
-    v: 1,
-    source: "mail",
-    files: e.files.map((f) => ({ id: f.id, type: f.type })),
-    mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id },
-    by: null,
-    at: e.at,
-    state: book ? "filed" : "to-tag",
-    book,
-    tagged: book ? { how: "sender", by: null, at: kit.now } : null,
-    amount: null,
-    billDate: null,
-    note: null,
-    batch: null,
-    history: [{ at: kit.now, what: "came" }, ...(book ? [{ at: kit.now, what: "filed" as const, how: "sender" as How, book, by: null }] : [])],
-  };
-  await kit.store.put("bills", id, bill as unknown as Json, e.at);
+  // Each PDF is its own bill, so each is filed on its own; "2 of 3" keeps them together on the page.
+  const n = e.files.length;
+  for (let i = 0; i < n; i++) {
+    const f = e.files[i];
+    const name = typeof (f as { name?: unknown }).name === "string" ? ((f as { name?: string }).name ?? "").slice(0, 120) || null : null;
+    const bill: Bill = {
+      v: 1,
+      source: "mail",
+      files: [{ id: f.id, type: f.type, size: f.size }],
+      mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id, kind: e.from.kind, part: i + 1, of: n, name },
+      by: null,
+      at: e.at,
+      state: book ? "filed" : "to-tag",
+      book,
+      tagged: book ? { how: "sender", by: null, at: kit.now } : null,
+      amount: null,
+      billDate: null,
+      note: null,
+      batch: n > 1 ? `mail:${e.id}` : null,
+      history: [{ at: kit.now, what: "came" }, ...(book ? [{ at: kit.now, what: "filed" as const, how: "sender" as How, book, by: null }] : [])],
+    };
+    // Sorted by arrival, the mail's own order kept within it.
+    await kit.store.put("bills", kit.id(), bill as unknown as Json, e.at + i);
+  }
   return "took";
 }
 
@@ -332,6 +355,7 @@ function shown(id: string, b: Bill) {
     id,
     source: b.source,
     from: b.mail?.from ?? null,
+    mail: b.mail ? { domain: b.mail.domain, label: b.mail.label, kind: b.mail.kind ?? null, part: b.mail.part ?? 1, of: b.mail.of ?? b.files.length, name: b.mail.name ?? null } : null,
     files: b.files,
     at: b.at,
     state: b.state,
@@ -384,7 +408,7 @@ const noteOf = (raw: unknown): string | null => (typeof raw === "string" ? raw.r
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.2.1",
+  version: "1.3.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",

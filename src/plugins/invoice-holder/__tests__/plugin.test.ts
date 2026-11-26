@@ -436,3 +436,34 @@ describe("invoice-holder: 1.2.1", () => {
     await expect(t.act(plugin, "addBook", { name: "Two", emoji: "🇺🇸🇮🇳" })).rejects.toThrow("one emoji");
   });
 });
+
+describe("invoice-holder: 1.3.0", () => {
+  const pdf = (id: string) => ({ id, type: "application/pdf" as const, size: 9000 });
+
+  it("each PDF of a mail is its own bill, marked which of how many", async () => {
+    const t = createTestKit();
+    expect(await t.mail(plugin, mail({ id: "m1", files: [pdf("f1"), pdf("f2"), pdf("f3")] }))).toBe("took");
+    const got = bills(t).filter((b) => b.source === "mail").sort((a, b) => (a.mail!.part ?? 0) - (b.mail!.part ?? 0));
+    expect(got.map((b) => [b.files[0].id, b.mail!.part, b.mail!.of])).toEqual([["f1", 1, 3], ["f2", 2, 3], ["f3", 3, 3]]);
+    expect(new Set(got.map((b) => b.batch)).size).toBe(1);
+    expect(await t.mail(plugin, mail({ id: "m1", files: [pdf("f1")] }))).toBe("took");
+    expect(bills(t).filter((b) => b.source === "mail")).toHaveLength(3);
+    const page = (await t.load(plugin)) as any;
+    expect(page.bills[0].mail).toMatchObject({ kind: "company", of: 3 });
+  });
+
+  it("a forward is never filed by sender; a company's next bill is", async () => {
+    const t = createTestKit();
+    await t.act(plugin, "addBook", { name: "Acme" });
+    const acme = books(t)[0].id;
+    const me = { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" as const };
+    await t.mail(plugin, mail({ id: "a1", from: me, files: [pdf("a1")] }));
+    await t.act(plugin, "tag", { ids: [billOf(t, "a1").id], book: acme });
+    await t.mail(plugin, mail({ id: "a2", from: me, files: [pdf("a2")] }));
+    expect(billOf(t, "a2")).toMatchObject({ state: "to-tag", mail: { kind: "mailbox" } });
+    await t.mail(plugin, mail({ id: "c1", files: [pdf("c1")] }));
+    await t.act(plugin, "tag", { ids: [billOf(t, "c1").id], book: acme });
+    await t.mail(plugin, mail({ id: "c2", files: [pdf("c2")] }));
+    expect(billOf(t, "c2")).toMatchObject({ state: "filed", book: acme, tagged: { how: "sender" } });
+  });
+});
