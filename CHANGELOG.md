@@ -6,6 +6,7 @@ Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Ea
 
 ### Added
 
+- `mailSummary: { one, many }` on a plugin with "mail": the one line Zelfred posts in its group at 8pm when its lines caused by mail were held back past the owner's cap (2 a day across all apps). Without it Zelfred uses plain words of its own.
 - `MailFile.name`: the attachment's name as its sender wrote it, made safe to show (no control or direction-changing characters, no slashes, at most 100 characters). Optional: missing when the mail gave none. Sender-written text, to show and never to trust.
 
 ## [1.33.0] - 2026-11-27
