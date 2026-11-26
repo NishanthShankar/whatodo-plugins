@@ -420,9 +420,9 @@ describe("two names for one person", () => {
     await t.message(digits, "ring Amma 14");
     await t.message(digits, "ring Mom");
     await t.sorted(digits, "ring Mom", label(t, "ring Amma").id);
-    expect(t.asked.at(-1)).toMatchObject({ question: copy.samePerson({ asked: "mom", kept: "amma" }), options: ["Yes, the same", "No"] });
+    expect(t.asked.at(-1)).toMatchObject({ question: copy.samePerson({ asked: "mom", kept: "amma" }), options: ["Yes, the same", "No, two"] });
     await t.answer(digits, t.asked.at(-1)!.ref, 0);
-    expect(last(t)).toBe(copy.sameKept({ a: "amma", b: "mom" }));
+    expect(last(t)).toBe(copy.sameKept({ asked: "mom", kept: "amma" }));
     await t.message(digits, "Mom's ring?");
     expect(t.sorts).toHaveLength(0);
     expect(last(t)).toContain("*Ring Amma*: 14");

@@ -40,7 +40,7 @@ export const REMOVE_REACTIONS = [fixed("❌"), fixed("✖️"), fixed("🗑️")
 // ── The options of the one question, in order. index.ts matches a vote by its place. ──
 
 export const REMOVE_OPTIONS = [fixed("Remove"), fixed("Keep it")];
-export const SAME_OPTIONS = [fixed("Yes, the same"), fixed("No")];
+export const SAME_OPTIONS = [fixed("Yes, the same"), fixed("No, two")];
 
 const SECRET: Record<Secret, string> = { pin: "a PIN", card: "a card number", aadhaar: "an Aadhaar number" };
 
@@ -76,7 +76,7 @@ export const copy = {
       "",
       `• _${EXAMPLE}_: kept`,
       `• _${EXAMPLE_SEVERAL}_: two kept at once`,
-      `• _${EXAMPLE_ASK}_: the latest, and the first`,
+      `• _${EXAMPLE_ASK}_: the latest, with the first`,
       `• _${HISTORY_EXAMPLE}_: every one, newest first`,
       `• _${LIST}_: everything I keep`,
       `• _${UNDO}_: takes the last one out`,
@@ -103,24 +103,25 @@ export const copy = {
   /** Kept and locked: a card number or a PIN is shown by its last four, or not at all (the owner, 2026-11-26). */
   locked: msg<{ what: Secret }>([
     ({ what }) =>
-      `Kept, and locked: I'll only ever show it ${what === "card" ? "by its last four" : "as dots"}, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.`,
+      `Kept, and hidden: I'll only ever show it ${what === "card" ? "by its last four" : "as dots"}, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.`,
   ]),
 
   /** A date, said back in words so 12/03 is never read the wrong way round, and when it will be reminded. */
   keptDate: msg<{ name: string; date: string; remind: "yearly" | "once" | null }>([
-    ({ name, date, remind }) => `Kept: ${name}, ${date}.${remind === "yearly" ? " I'll remind you on the day, every year." : remind === "once" ? " I'll remind you a week before, and on the day." : ""}`,
+    ({ name, date, remind }) => `Kept: ${name}, ${date}.${remind === "yearly" ? " I'll say so on the day, every year." : remind === "once" ? " I'll say so a week before, and on the day." : ""}`,
   ]),
   /** The same promise, after the first keep's own line. */
-  remindLine: msg<{ kind: "yearly" | "once" }>([({ kind }) => (kind === "yearly" ? "I'll remind you on the day, every year." : "I'll remind you a week before, and on the day.")]),
+  remindLine: msg<{ kind: "yearly" | "once" }>([({ kind }) => (kind === "yearly" ? "I'll say so on the day, every year." : "I'll say so a week before, and on the day.")]),
 
   /** The morning a date is due, or a week before one that comes once. */
   reminder: msg<{ name: string; date: string; due: "today" | "soon"; kind: "yearly" | "once" }>([
     ({ name, date, due }) => (due === "today" ? `Today: *${shown(name)}*, ${date}.` : `A week from today: *${shown(name)}*, ${date}.`),
   ]),
 
-  /** Asked once, when one name was asked for in place of another (the owner: "ask once and remember when in doubt"). Wording waits on og-copy-bot. */
-  samePerson: msg<{ asked: string; kept: string }>([({ asked, kept }) => `Are ${shown(asked)} and ${shown(kept)} the same?`]),
-  sameKept: msg<{ a: string; b: string }>([({ a, b }) => `Noted. ${shown(a)} and ${shown(b)} are one from now on.`]),
+  /** Asked once, when one name was asked for in place of another (the owner: "ask once and remember when in doubt"). og-copy-bot's pick of three, waiting for the owner's. */
+  samePerson: msg<{ asked: string; kept: string }>([({ asked, kept }) => `${shown(asked)} and ${shown(kept)}. One and the same, I take it?`]),
+  sameKept: msg<{ asked: string; kept: string }>([({ asked, kept }) => `Noted. ${shown(asked)} and ${shown(kept)} are one and the same. I shan't ask again.`]),
+  sameNot: msg([`Noted. Two, then. I'll keep them apart.`]),
 
   /** A later day, a second value under a label: kept, and the page named once, in place of the 👍. */
   keptWithPage: msg<{ name: string; count: number }>([({ name, count }) => `Kept. That's ${count} for ${name}, and they make a graph now: ${PAGE}`]),

@@ -13,7 +13,7 @@ Send a number with a word for what it is, in your own words. A few ready-made on
 
 • _weight 72.4_: kept
 • _waist 34 hips 39_: two kept at once
-• _weight?_: the latest, and the first
+• _weight?_: the latest, with the first
 • _history weight_: every one, newest first
 • _list_: everything I keep
 • _undo_: takes the last one out
@@ -27,9 +27,9 @@ Every number has a page with its graph: app.zelfred.com/plugins/digits",
 72.4, today
 73, yesterday",
   "jump": "Kept: waist, 340. The one before was 34.",
-  "keptDateOnce": "Kept: passport, 3 March 2031. I'll remind you a week before, and on the day.",
+  "keptDateOnce": "Kept: passport, 3 March 2031. I'll say so a week before, and on the day.",
   "keptDatePast": "Kept: joined office, 1 June 2019.",
-  "keptDateYearly": "Kept: Riya birthday, 12 March. I'll remind you on the day, every year.",
+  "keptDateYearly": "Kept: Riya birthday, 12 March. I'll say so on the day, every year.",
   "keptLabel": "No problem. Weight stays.",
   "keptWithPage": "Kept. That's 2 for weight, and they make a graph now: app.zelfred.com/plugins/digits",
   "list": "What I keep for you:
@@ -42,8 +42,8 @@ And 3 more on the page: app.zelfred.com/plugins/digits",
     "h1": "Send me a number once. Ask for it back whenever you like.",
     "title": "Remember any number: sizes, readings, weights | Zelfred",
   },
-  "lockedCard": "Kept, and locked: I'll only ever show it by its last four, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
-  "lockedPin": "Kept, and locked: I'll only ever show it as dots, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
+  "lockedCard": "Kept, and hidden: I'll only ever show it by its last four, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
+  "lockedPin": "Kept, and hidden: I'll only ever show it as dots, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
   "notFound": "Nothing kept as "shoe size". Send _list_ to see what I keep.",
   "nothingToUndo": "Nothing to take out.",
   "nothingYet": "Nothing kept yet. Send a number with a word for what it is, like _weight 72.4_.",
@@ -57,8 +57,9 @@ And 3 more on the page: app.zelfred.com/plugins/digits",
   "remindSoon": "A week from today: *Passport*, 3 March 2031.",
   "remindToday": "Today: *Riya birthday*, 12 March.",
   "removedLabel": "Weight is gone, with everything kept under it.",
-  "sameKept": "Noted. Amma and Mom are one from now on.",
-  "samePerson": "Are Mom and Amma the same?",
+  "sameKept": "Noted. Mom and Amma are one and the same. I shan't ask again.",
+  "sameNot": "Noted. Two, then. I'll keep them apart.",
+  "samePerson": "Mom and Amma. One and the same, I take it?",
   "secret": "Kept. That looks like an Aadhaar number, and it now sits in this chat. If you'd rather it didn't, delete your message for everyone and I'll forget it too.",
   "tagline": "Any number you want kept, with a word for what it is. Ask for it back any time.",
   "takenOut": "Taken out: weight, 79.",

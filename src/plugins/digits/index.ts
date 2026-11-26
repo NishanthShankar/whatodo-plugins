@@ -29,7 +29,7 @@ import { dateOf, saysDate, directMatch, LOCKED, masked, overlap, readNumbers, re
  *   state    key: "told:<label>:<day>:<when>"  data: 1 once a date's reminder went
  *
  * Locked values (a card number, a PIN, a CVV, an OTP; the owner, 2026-11-26: "certain messages lock
- * it") are kept whole but shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN.
+ * it") are kept whole, not encrypted, but shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN.
  * The page shows one whole only through the "reveal" action, behind an unlock the owner has not yet
  * chosen.
  *
@@ -121,7 +121,7 @@ type MessageRef = { k: "m"; ids: string[] };
 type LabelRef = { k: "l"; id: string };
 type RemoveRef = { k: "rm"; id: string };
 type SortRef = { k: "q"; words: string };
-type SameRef = { k: "al"; a: string; b: string };
+type SameRef = { k: "al"; a: string; b: string; asked?: string; kept?: string };
 
 const j = (x: unknown) => x as Json;
 const isMessageRef = (r: unknown): r is MessageRef => !!r && typeof r === "object" && (r as MessageRef).k === "m" && Array.isArray((r as MessageRef).ids) && (r as MessageRef).ids.every((i) => typeof i === "string");
@@ -581,20 +581,20 @@ export default definePlugin({
       const [a, b] = [theirs[0], ours[0]].sort();
       if (!(await kit.store.get("state", `asked:${a}|${b}`))) {
         await kit.store.put("state", `asked:${a}|${b}`, 1);
-        kit.ask(copy.samePerson({ asked: theirs[0], kept: ours[0] }), [...SAME_OPTIONS], { ref: j({ k: "al", a, b } satisfies SameRef), confirm: false });
+        kit.ask(copy.samePerson({ asked: theirs[0], kept: ours[0] }), [...SAME_OPTIONS], { ref: j({ k: "al", a, b, asked: theirs[0], kept: ours[0] } satisfies SameRef), confirm: false });
       }
     }
   },
 
   async onAnswer(event, kit) {
     if (isSameRef(event.ref)) {
-      if (event.choice !== 0) return kit.react(SAVED);
+      if (event.choice !== 0) return kit.send(copy.sameNot());
       const { a, b } = event.ref;
       const aliases = (await kit.store.get<Record<string, string[]>>("state", "aliases")) ?? {};
       aliases[a] = [...new Set([...(aliases[a] ?? []), b])];
       aliases[b] = [...new Set([...(aliases[b] ?? []), a])];
       await kit.store.put("state", "aliases", j(aliases));
-      return kit.send(copy.sameKept({ a, b }));
+      return kit.send(copy.sameKept({ asked: event.ref.asked ?? a, kept: event.ref.kept ?? b }));
     }
     if (!isRemoveRef(event.ref)) return;
     const label = await kit.store.get<Label>("labels", event.ref.id);

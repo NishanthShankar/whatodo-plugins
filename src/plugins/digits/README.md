@@ -72,7 +72,7 @@ When the sorting model answers a question with a label that differs from it by o
 
 | Question | Options | Closes | Confirm line |
 |---|---|---|---|
-| Are Mom and Amma the same? | Yes, the same / No | On the first answer | Off. Yes: "Noted. Amma and Mom are one from now on."; No: a 👍 |
+| Mom and Amma. One and the same, I take it? | Yes, the same / No, two | On the first answer | Off. Yes: "Noted. Mom and Amma are one and the same. I shan't ask again."; No: "Noted. Two, then. I'll keep them apart." |
 
 After a yes, our own matching tries the other name, so the model isn't asked again.
 
@@ -86,7 +86,7 @@ After a yes, our own matching tries the other name, so the model isn't asked aga
 
 Never refused (the owner, 2026-11-26).
 
-- **A card number or a PIN** (also a CVV, an OTP, a password: a 3 to 6 digit value with one of those words) **is locked**: kept whole, shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN. A card is found by its check digit, a PIN by its word; a postal PIN code is not a PIN. The answer says so and suggests deleting the message.
+- **A card number or a PIN** (also a CVV, an OTP, a password: a 3 to 6 digit value with one of those words) **is hidden**: kept whole (not encrypted), shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN. A card is found by its check digit, a PIN by its word; a postal PIN code is not a PIN. The answer says so and suggests deleting the message.
 - **An Aadhaar number** (12 digits with a valid check digit) is kept as typed, and the answer offers a way out: delete the message for everyone and Digits forgets it too. Whether Aadhaar, PAN, passport and bank numbers should lock as well is the owner's open question.
 
 ## Schedules
