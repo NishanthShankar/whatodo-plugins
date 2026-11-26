@@ -1,6 +1,6 @@
 import { definePlugin, type Json, type Kit, type MailEvent, type Photo, type Sender } from "../../sdk";
 import { BOOK_EMOJI, BOOKS, BOOKS_TOO, MAIL_SUMMARY_MANY, MAIL_SUMMARY_ONE, NO_NOTE, copy, KEPT, money, NEVER_A_BOOK, type BookLine } from "./copy";
-import { bare, cleanGst, cleanName, MAX_NOTE, oneEmoji, readWords } from "./words";
+import { bare, cleanGst, cleanName, MAX_NAME, MAX_NOTE, oneEmoji, readWords } from "./words";
 
 /**
  * BillKeeper (id "invoice-holder"; called InvoiceHolder until 1.1.0)
@@ -129,6 +129,8 @@ export interface Bill {
   /** The date on the bill, YYYY-MM-DD, when someone gave it. */
   billDate: string | null;
   note: string | null;
+  /** The bill's short name, its title on the page; apart from the note since 1.5.0. */
+  name?: string | null;
   /** Pictures sent together share this. */
   batch: string | null;
   history: BillEvent[];
@@ -387,7 +389,7 @@ async function keepPhoto(kit: Kit, photo: Photo, text: string, sender: Sender | 
     tagged: null,
     amount: read?.amount ?? null,
     billDate: null,
-    note: read?.note ?? null,
+    ...wordsOf(read?.note ?? null),
     batch: await batchFor(kit),
     history: [{ at: kit.now, what: "came", by }],
   };
@@ -446,7 +448,8 @@ async function onReply(kit: Kit, id: string, text: string, sender: Sender | unde
 
   let next = bill;
   if (read.amount !== null || read.note) {
-    next = withEvent({ ...bill, amount: read.amount ?? bill.amount, note: read.note ?? bill.note }, { at: kit.now, what: "changed", how: "reply", by });
+    const words = wordsOf(read.note);
+    next = withEvent({ ...bill, amount: read.amount ?? bill.amount, name: words.name ?? bill.name ?? null, note: words.note ?? bill.note }, { at: kit.now, what: "changed", how: "reply", by });
     await kit.store.put("bills", id, next as unknown as Json);
   }
   if (read.book) await file(kit, id, read.book, "reply", by);
@@ -483,6 +486,7 @@ function shown(id: string, b: Bill) {
     amount: b.amount,
     billDate: b.billDate,
     note: b.note,
+    name: b.name ?? null,
     batch: b.batch,
     history: b.history,
   };
@@ -523,11 +527,20 @@ function dateOf(raw: unknown): string | null {
   return raw;
 }
 
-const noteOf = (raw: unknown): string | null => (typeof raw === "string" ? raw.replace(/\s+/g, " ").trim().slice(0, MAX_NOTE) || null : null);
+/** A note as typed on the page: lines kept, spaces tidied, at most MAX_NOTE. */
+const noteOf = (raw: unknown): string | null =>
+  typeof raw === "string" ? raw.replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, MAX_NOTE) || null : null;
+/** A name: one line, at most MAX_NAME. */
+const nameOf = (raw: unknown): string | null => (typeof raw === "string" ? raw.replace(/\s+/g, " ").trim().slice(0, MAX_NAME) || null : null);
+/** A caption's or a reply's leftover words: short ones name the bill, longer ones are its note. */
+function wordsOf(text: string | null): { name: string | null; note: string | null } {
+  if (!text) return { name: null, note: null };
+  return text.length <= MAX_NAME ? { name: text, note: null } : { name: null, note: text.slice(0, MAX_NOTE) };
+}
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.4.0",
+  version: "1.5.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -699,6 +712,7 @@ export default definePlugin({
         if ("amount" in args) next.amount = amountOf(args.amount);
         if ("billDate" in args) next.billDate = dateOf(args.billDate);
         if ("note" in args) next.note = noteOf(args.note);
+        if ("name" in args) next.name = nameOf(args.name);
         await kit.store.put("bills", id, withEvent(next, { at: kit.now, what: "changed", how: "page", by: kit.person.id ?? null }) as unknown as Json);
       },
       /** Bills added on the page: one per picture, the pictures added together in one batch. */
@@ -714,6 +728,7 @@ export default definePlugin({
         const amount = found.length === 1 ? amountOf(args.amount) : null;
         const billDate = dateOf(args.billDate);
         const note = noteOf(args.note);
+        const name = nameOf(args.name);
         const batch = found.length > 1 ? kit.id() : null;
         const by = kit.person.id ?? null;
         const ids: string[] = [];
@@ -733,6 +748,7 @@ export default definePlugin({
             amount,
             billDate,
             note,
+            name,
             batch,
             history,
           };

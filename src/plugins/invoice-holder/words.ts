@@ -29,7 +29,9 @@ export interface Read {
 /** Words too common to stand for a book on their own. */
 const COMMON = new Set(["the", "and", "for", "of", "my", "our", "a", "an", "to", "at", "in", "on", "co", "ltd", "pvt", "llp", "inc", "llc", "company", "and"]);
 
-export const MAX_NOTE = 200;
+/** A note can be long (the owner, 2026-11-27: "note can go toooooo long"); a name is short and is the bill's title. */
+export const MAX_NOTE = 2000;
+export const MAX_NAME = 60;
 
 const words = (s: string) => s.toLowerCase().normalize("NFKC").split(/[^\p{L}\p{N}&']+/u).filter(Boolean);
 

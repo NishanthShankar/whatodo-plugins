@@ -2,6 +2,15 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-11-27
+
+### Changed
+- A bill has a short name apart from its note (the owner, 2026-11-27: "name and notes have been combined now? not what i wanted. note can go toooooo long"). The name is its title, at most 60 characters. The note can be long, up to 2000, and keeps its lines.
+- A caption's or a reply's leftover words name the bill when they are short, and are its note when longer. The answer to the note question is always the note.
+
+### Data
+- `bills`: `name`. Notes kept before stay notes.
+
 ## [1.4.0] - 2026-11-27
 
 ### Added
