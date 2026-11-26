@@ -184,7 +184,7 @@ export const copy = {
   // Voice 10 (docs/voice.md, "When Zelfred cannot do something"): sorry, and never hand the work back.
 
   /** A photo with no number and nothing kept just now to go with. The photo is kept and goes with the answer. */
-  photoAlone: msg(["Sorry, I can't read a number off a photo yet, which a butler ought to. What number is it?"]),
+  photoAlone: msg(["Sorry, I can't read a number off a photo yet. Not my proudest skill.\n\nWhat number is it?"]),
   photosFull: msg(["Sorry, I can keep four photos with one number, so I left this one out."]),
 
   /** The most labels an install keeps. */

@@ -53,7 +53,9 @@ And 3 more on the page: app.zelfred.com/plugins/digits-store",
   "nothingYet": "Nothing kept yet. Send a number with a word for what it is, like _Amma ring size 14_.",
   "nowCounting": "Kept. Gym goes up one at a time, so from now on send "gym" and I'll add one. To see it without adding, send "gym?".",
   "page": "Everything I keep for you is on one page too, and a number that changes gets its graph: app.zelfred.com/plugins/digits-store",
-  "photoAlone": "Sorry, I can't read a number off a photo yet, which a butler ought to. What number is it?",
+  "photoAlone": "Sorry, I can't read a number off a photo yet. Not my proudest skill.
+
+What number is it?",
   "photosFull": "Sorry, I can keep four photos with one number, so I left this one out.",
   "recall": "*Weight*: 72.4 kg, kept today. The first was 75, on 3 August. 6 kept.",
   "recallMany": "*Weight*: 72.4 kg, kept today.
