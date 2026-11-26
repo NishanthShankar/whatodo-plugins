@@ -1,0 +1,70 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`digits copy 1`] = `
+{
+  "askRemove": "Remove weight, all 6 kept?",
+  "description": "Send a number with a word for what it is: "Amma ring size 14", "weight 72.4", "car service 45,200 km". Each one is kept with its day, and the one before is kept too, so you can ask for the latest, see every one, or look at a graph on the page. A photo sent with a number is kept with it. Nothing is asked for and nothing is judged.",
+  "firstKept": "Kept: weight, 72.4. Ask me "weight?" whenever you want it back, with the ones before it. From now on a 👍 means kept.",
+  "full": "I already keep 300 different things here, which is as many as I keep. Remove one to make room.",
+  "groupName": "🔢 Digits",
+  "help": "*Digits*
+
+Send a number with a word for what it is, in your own words. A few ready-made ones:
+
+• _Amma ring size 14_: kept
+• _weight 72.4_: kept, with the ones before it
+• _waist 34 hips 39_: two kept at once
+• _weight?_: the latest, with the first
+• _history weight_: every one, newest first
+• _list_: everything I keep
+• _undo_: takes the last one out
+• _remove weight_: takes weight out, with all of it
+
+A photo sent with its number is kept with it. To change one, reply to your message with the right number, or react ❌ to take it out.
+
+Every number has a page with its graph: app.zelfred.com/plugins/digits-store",
+  "history": "*Weight*, newest first:
+
+72.4, today
+73, yesterday",
+  "jump": "Kept: waist, 340. The one before was 34.",
+  "keptDateOnce": "Kept: passport, 3 March 2031. I'll say so a week before, and on the day.",
+  "keptDatePast": "Kept: joined office, 1 June 2019.",
+  "keptDateYearly": "Kept: Riya birthday, 12 March. I'll say so on the day, every year.",
+  "keptLabel": "No problem. Weight stays.",
+  "keptWithPage": "Kept. That's 2 for weight, and they make a graph now: app.zelfred.com/plugins/digits-store",
+  "list": "What I keep for you:
+
+*Weight*: 72.4 kg, today.
+
+And 3 more on the page: app.zelfred.com/plugins/digits-store",
+  "listing": {
+    "description": "Send me a number with a word for what it is. I keep it with the ones before, and give it back when you ask.",
+    "h1": "Send me a number once. Ask for it back whenever you like.",
+    "title": "Remember any number: sizes, readings, weights | Zelfred",
+  },
+  "lockedCard": "Kept, and hidden: I'll only ever show it by its last four, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
+  "lockedPin": "Kept, and hidden: I'll only ever show it as dots, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
+  "notFound": "Nothing kept as "shoe size". Send _list_ to see what I keep.",
+  "nothingToUndo": "Nothing to take out.",
+  "nothingYet": "Nothing kept yet. Send a number with a word for what it is, like _Amma ring size 14_.",
+  "page": "Every number has a page too, with a graph of how it has moved: app.zelfred.com/plugins/digits-store",
+  "photoAlone": "I keep a photo with its number. Send it again with the number written under it.",
+  "photosFull": "That one already has four photos, so I left this one out.",
+  "recall": "*Weight*: 72.4 kg, today. The first was 75, on 3 August. 6 kept.",
+  "recallMany": "*Weight*: 72.4 kg, today.
+*Waist*: 34, today.",
+  "recallOne": "*Weight*: 72.4 kg, today.",
+  "remindSoon": "A week from today: *Passport*, 3 March 2031.",
+  "remindToday": "Today: *Riya birthday*, 12 March.",
+  "removedLabel": "Weight is gone, with everything kept under it.",
+  "sameKept": "Noted. Mom and Amma are one and the same. I shan't ask again.",
+  "sameNot": "Noted. Two, then. I'll keep them apart.",
+  "samePerson": "Are Mom and Amma the same person?",
+  "secret": "Kept. That looks like an Aadhaar number, and it now sits in this chat. If you'd rather it didn't, delete your message for everyone and I'll forget it too.",
+  "tagline": "Any number you want kept, with a word for what it is. Ask for it back any time.",
+  "takenOut": "Taken out: weight, 79.",
+  "welcome": "Numbers live here. Send one with a word for what it is, like _Amma ring size 14_, and ask for it back whenever you like.",
+  "whatIsIt": "What is 72.4?",
+}
+`;
