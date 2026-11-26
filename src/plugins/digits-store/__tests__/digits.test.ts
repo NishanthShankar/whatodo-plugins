@@ -260,7 +260,7 @@ describe("the page, named once after the first day", () => {
     await t.message(digits, "weight 79");
     expect(last(t)).toBe(copy.keptWithPage({ name: "weight", count: 2 }));
     await t.message(digits, "waist 30");
-    await t.message(digits, "waist 31");
+    await t.message(digits, "waist 32");
     expect(t.reactions).toEqual(["👍", "👍"]);
   });
 });
@@ -533,3 +533,85 @@ describe("the page", () => {
     expect(entries(t)).toHaveLength(0);
   });
 });
+
+describe("counting up by name", () => {
+  it("a bare label gives its number back when it isn't counted", async () => {
+    const t = taught();
+    await t.message(digits, "Amma ring size 14");
+    await t.message(digits, "Amma ring size");
+    expect(last(t)).toBe("*Amma ring size*: 14, today.");
+    expect(label(t, "Amma ring size").count).toBe(1);
+  });
+
+  it("starts counting once it sees one added at a time twice in a row, and says so once", async () => {
+    const t = taught();
+    await t.message(digits, "waist 30");
+    await t.message(digits, "waist 31");
+    expect(label(t, "waist").counter).toBeUndefined();
+    await t.message(digits, "gym 11");
+    await t.message(digits, "gym 12");
+    await t.message(digits, "gym 13");
+    expect(last(t)).toBe(copy.nowCounting({ name: "gym" }));
+    expect(label(t, "gym").counter).toBe(true);
+    await t.message(digits, "gym 15");
+    expect(t.sent.filter((m) => m.text === copy.nowCounting({ name: "gym" }))).toHaveLength(1);
+  });
+
+  it("adds one for its name alone, or with today, and says the new count", async () => {
+    const t = taught();
+    await t.message(digits, "gym 11");
+    await t.message(digits, "gym 12");
+    await t.message(digits, "gym 13");
+    await t.message(digits, "gym");
+    expect(last(t)).toBe(copy.counted({ name: "gym", count: 14 }));
+    await t.message(digits, "Gym today");
+    expect(last(t)).toBe(copy.counted({ name: "gym", count: 15 }));
+    expect(label(t, "gym")).toMatchObject({ count: 5, current: { text: "15" } });
+  });
+
+  it("gives the count, without adding, when it is asked for", async () => {
+    const t = taught();
+    await t.message(digits, "gym 11");
+    await t.message(digits, "gym 12");
+    await t.message(digits, "gym 13");
+    for (const q of ["gym?", "gym count", "get gym", "show gym", "what's gym"]) {
+      await t.message(digits, q);
+      expect(last(t)).toContain("*Gym*: 13");
+    }
+    expect(label(t, "gym").count).toBe(3);
+  });
+
+  it("takes a count back on undo", async () => {
+    const t = taught();
+    await t.message(digits, "gym 11");
+    await t.message(digits, "gym 12");
+    await t.message(digits, "gym 13");
+    await t.message(digits, "gym");
+    await t.message(digits, "undo");
+    expect(label(t, "gym").current?.text).toBe("13");
+  });
+
+  it("never counts a decimal, a unit or a jump", async () => {
+    const t = taught();
+    await t.message(digits, "weight 72");
+    await t.message(digits, "weight 73 kg");
+    await t.message(digits, "steps 100");
+    await t.message(digits, "steps 102");
+    expect(label(t, "weight").counter).toBeUndefined();
+    expect(label(t, "steps").counter).toBeUndefined();
+  });
+
+  it("can be turned off on the page, and stays off", async () => {
+    const t = taught();
+    await t.message(digits, "gym 11");
+    await t.message(digits, "gym 12");
+    await t.message(digits, "gym 13");
+    await t.act(digits, "setCounter", { label: label(t, "gym").id, on: false });
+    await t.message(digits, "gym 14");
+    expect(label(t, "gym").counter).toBe(false);
+    await t.message(digits, "gym");
+    expect(last(t)).toContain("*Gym*: 14");
+    expect(label(t, "gym").count).toBe(4);
+  });
+});
+

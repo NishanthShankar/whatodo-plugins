@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0] - 2026-11-26
+
+### Added
+
+- Counting up by name. A label seen added to one at a time twice in a row (12, 13, 14) counts from then on: its name alone ("gym", "gym today") adds one and says the new count. "gym?", "gym count", "get gym" and "show gym" give the count. Any other bare label gives its number back, as before. The page can turn counting off for a label, and it stays off.
+
+### Data
+
+- `labels` may carry `counter` (true, or false when turned off on the page). Labels without it work as before.
+
 ## [1.0.0] - 2026-11-26
 
 ### Added
