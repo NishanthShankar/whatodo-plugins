@@ -7,7 +7,7 @@
  *   await t.message(plugin, "add meditate");
  *   expect(t.reactions).toEqual(["👍"]);
  */
-import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type Parcel, type Photo, type Place, type PluginDef, type Sender, type SharedPage, type StoredItem } from "./sdk";
+import { checkAsk, type EntryEvent, type HookFile, type Json, type Kit, type Link, type MailAnswer, type MailEvent, type Parcel, type Photo, type Place, type PluginDef, type Sender, type SharedPage, type StoredItem } from "./sdk";
 
 export interface TestKitOptions {
   /** Today in the person's zone, "YYYY-MM-DD". Default "2026-11-15". */
@@ -63,6 +63,21 @@ const MAX_TEXT = 4000;
  */
 export function link(url: string, found: Partial<Omit<Link, "url">> = {}): Link {
   return { url, canonical: url, site: "example.com", kind: "page", found: true, title: null, description: null, author: null, image: null, seconds: null, ...found };
+}
+
+/**
+ * A mail as Zelfred would hand it over, for `t.mail(plugin, mail({ ... }))`. Left alone it is a bill from
+ * billing@example.com with one PDF, "f1".
+ */
+export function mail(found: Partial<MailEvent> = {}): MailEvent {
+  return {
+    id: "m1",
+    at: Date.parse("2026-11-27T06:30:00Z"),
+    label: "",
+    from: { address: "billing@example.com", domain: "example.com", kind: "company" },
+    files: [{ id: "f1", type: "application/pdf", size: 80_000 }],
+    ...found,
+  };
 }
 
 /** A photo as Zelfred would hand it over, for `t.message(..., { photos: [photo("p1")] })`. */
@@ -618,6 +633,20 @@ export function createTestKit(opts: TestKitOptions = {}) {
       const [asked] = parcelReads.splice(at, 1);
       if (!plugin.onParcel) throw new Error(`${plugin.id} has no onParcel`);
       await plugin.onParcel({ parcel: { ...found }, ref: asked.ref }, kit);
+    },
+    /**
+     * A mail came to the person's Zelfred mail address from a sender they accepted: `onMail` is called with it and
+     * its answer returned. Its files are the install's while the plugin keeps them; with any answer but "took" they
+     * are taken back, as Zelfred does. Needs the "mail" permission.
+     */
+    async mail(plugin: PluginDef, event: MailEvent = mail()): Promise<MailAnswer> {
+      withDefaults(plugin);
+      if (!plugin.onMail || !plugin.permissions?.includes("mail")) throw new Error(`${plugin.id} has no onMail with the "mail" permission`);
+      for (const f of event.files) files.set(f.id, { type: f.type, size: f.size });
+      const answer = await plugin.onMail(structuredClone(event), kit);
+      if (!["took", "not-for-me", "could-not-read"].includes(answer)) throw new Error(`${plugin.id}: onMail answered "${answer}"; it must be "took", "not-for-me" or "could-not-read"`);
+      if (answer !== "took") for (const f of event.files) files.delete(f.id);
+      return answer;
     },
     /**
      * Zelfred sorted words the plugin gave to `kit.sort`: `onSorted` is called with `choice` and
