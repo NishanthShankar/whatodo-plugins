@@ -181,10 +181,14 @@ export const copy = {
 
   // ── Photos ──
 
-  /** A photo with no number and nothing kept just now to go with. */
-  photoAlone: msg(["I keep a photo with its number. Send it again with the number written under it."]),
-  photosFull: msg(["That one already has four photos, so I left this one out."]),
+  // Voice 10 (docs/voice.md, "When Zelfred cannot do something"): sorry, and never hand the work back.
+
+  /** A photo with no number and nothing kept just now to go with. The photo is kept and goes with the answer. */
+  photoAlone: msg(["Sorry, I can't read a number off a photo yet, which a butler ought to. What number is it?"]),
+  photosFull: msg(["Sorry, I can keep four photos with one number, so I left this one out."]),
 
   /** The most labels an install keeps. */
-  full: msg<{ max: number }>([({ max }) => `I already keep ${max} different things here, which is as many as I keep. Remove one to make room.`]),
+  full: msg<{ max: number }>([({ max }) => `Sorry, ${max} different things is as many as I can keep here for now. Remove one and send this again.`]),
+  /** The most values one label keeps. */
+  fullOne: msg<{ max: number }>([({ max }) => `Sorry, ${max} is as many as I can keep under one name for now. Remove some on the page and send this again.`]),
 };
