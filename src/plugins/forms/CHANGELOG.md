@@ -2,6 +2,22 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-11-26
+
+### Added
+- Several forms can arrive in one WhatsApp group, not only the main Forms group or a group each. `move demo to kyc group` sends a form to another form's own group (found by that form's name or the group's name); `move demo to main group` brings it back. Its address doesn't change.
+- A form made inside a form's own group (`new form demo` sent there) arrives in that group. `move demo here` works in any form's group, and in the main group sends it back there.
+- In a group several open forms share, `last` covers them all; `address`, `new address`, `rename` and `close` without a name ask which form.
+- On the page, each form has "Arrives in": the main group, a group of its own, or any form's group. The same choice is there when making a form.
+- Page action `moveForm { key, to }` (`to`: the key of the form whose group it is, or null for the main group); `createForm` takes `sendTo`; `load` returns each form's `sendTo` and `sendToName`.
+
+### Changed
+- Deleting a form whose group others share closes that group, and those forms arrive in the main group again. The delete confirmation says which.
+- `group <form>` on a form that shares another's group takes it into a group of its own.
+
+### Data
+- `forms`: new optional `sendTo`, the key of the form whose own group this form arrives in. Never set with `ownGroup`.
+
 ## [1.3.1] - 2026-11-25
 
 ### Changed

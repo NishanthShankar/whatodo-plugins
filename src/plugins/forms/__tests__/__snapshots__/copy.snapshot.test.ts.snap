@@ -653,6 +653,7 @@ exports[`forms copy: what the plugin says about itself > help, and a message tha
 _new form contact_ makes a form and gives you its address
 _new form contact in its own group_ also makes a WhatsApp group just for it
 _group contact_ gives a form you already have its own group
+_move demo to kyc group_ sends a form to another form's group, so several arrive together (_move demo to main group_ brings it back)
 _forms_ lists your forms and their addresses
 _address contact_ shows one form's address again
 _last_ (or _last contact_) shows the latest submission
@@ -681,6 +682,7 @@ exports[`forms copy: what the plugin says about itself > welcome, help and group
 _new form contact_ makes a form and gives you its address
 _new form contact in its own group_ also makes a WhatsApp group just for it
 _group contact_ gives a form you already have its own group
+_move demo to kyc group_ sends a form to another form's group, so several arrive together (_move demo to main group_ brings it back)
 _forms_ lists your forms and their addresses
 _address contact_ shows one form's address again
 _last_ (or _last contact_) shows the latest submission

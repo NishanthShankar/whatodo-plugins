@@ -1,9 +1,10 @@
 import { definePlugin, type HookFile, type Json, type Kit } from "../../sdk";
-import { CLOSED, copy, MARKED_DONE } from "./copy";
+import { CLOSED, copy, MAIN_GROUP_WORDS, MARKED_DONE } from "./copy";
 
 /**
  * Forms: a backend for the forms on your own websites. Each form gets a web address; whatever
- * is posted to it (fields and files) is kept here and announced in the Forms group.
+ * is posted to it (fields and files) is kept here and announced in the Forms group, in a group
+ * of its own, or in another form's group (several forms can share one).
  *
  * Storage
  *   forms        key = form key ("contact")   data = Form         sort = created (ms)
@@ -26,6 +27,11 @@ interface Form {
   ownGroup?: boolean;
   /** The name the person gave that group on the page. Unset: it is named after the form as it was when the group was made. */
   groupName?: string;
+  /**
+   * Its submissions go to another form's own group: that form's key. Never set with `ownGroup`.
+   * If that form loses its group (deleted), this is cleared and the form is back in the main group.
+   */
+  sendTo?: string;
 }
 
 interface Submission {
@@ -89,7 +95,6 @@ async function findForm(kit: Kit, text: string): Promise<{ key: string; form: Fo
   return named ? { key: named.key, form: named.data } : null;
 }
 
-/** The WhatsApp group of a form that has its own: named after the form. */
 /** What a form's own group is called: the name the person gave it, else the form's name with the mailbox. */
 const groupNameOf = (form: Form) => form.groupName ?? copy.groupTitle({ name: form.name }).slice(0, 25);
 
@@ -120,6 +125,43 @@ async function renameForm(kit: Kit, key: string, form: Form, name: string | null
   return { form: next };
 }
 
+/** The group a form's submissions go to: its own, another form's (by that form's key), or null for the main group. */
+const groupOf = (key: string, form: Form): string | null => (form.ownGroup ? key : (form.sendTo ?? null));
+
+/** Every form whose submissions go to the group `group` (a form's key), the group's own form first. */
+async function formsIn(kit: Kit, group: string) {
+  return (await forms(kit)).filter((f) => groupOf(f.key, f.data) === group).sort((a, b) => Number(b.key === group) - Number(a.key === group));
+}
+
+/** A form's own group, found by the form's name or key or by the group's name. */
+async function findGroup(kit: Kit, text: string): Promise<{ key: string; form: Form } | null> {
+  const want = slug(text);
+  if (!want) return null;
+  const all = await forms(kit);
+  const hit = all.find((f) => f.key === want) ?? all.find((f) => slug(f.data.name) === want) ?? all.find((f) => f.data.ownGroup && slug(groupNameOf(f.data)) === want);
+  return hit ? { key: hit.key, form: hit.data } : null;
+}
+
+/**
+ * Point a form at another form's own group (`to`, that form's key), or back at the main group
+ * (null). A form with a group of its own stays in it. Returns the form, or why it couldn't be done.
+ */
+async function moveForm(kit: Kit, key: string, form: Form, to: string | null): Promise<{ form: Form; group: string | null } | { error: string }> {
+  if (form.ownGroup) return to === key ? { error: copy.alreadyOwnGroup({ name: form.name }) } : { error: copy.ownsGroup({ name: form.name }) };
+  let group: string | null = null;
+  if (to !== null) {
+    const target = await kit.store.get<Form>("forms", to);
+    if (!target) return { error: copy.noSuchForm({ name: to }) };
+    if (to === key || !target.ownGroup) return { error: copy.noGroupYet({ name: target.name, key: to }) };
+    group = groupNameOf(target);
+  }
+  const next: Form = { ...form };
+  if (to === null) delete next.sendTo;
+  else next.sendTo = to;
+  await kit.store.put("forms", key, next as unknown as Json, next.created);
+  return { form: next, group };
+}
+
 async function openGroup(kit: Kit, key: string, form: Form) {
   await kit.groups.open(key, {
     name: groupNameOf(form),
@@ -127,19 +169,24 @@ async function openGroup(kit: Kit, key: string, form: Form) {
   });
 }
 
-async function createForm(kit: Kit, name: string, ownGroup = false): Promise<{ key: string; form: Form } | { error: string }> {
+/** `sendTo`: put it in that form's own group (a form's key). Reopening a form keeps where it went. */
+async function createForm(kit: Kit, name: string, ownGroup = false, sendTo: string | null = null): Promise<{ key: string; form: Form } | { error: string }> {
   const clean = name.trim().replace(/\s+/g, " ").slice(0, 40);
   const key = slug(clean);
   if (!key) return { error: copy.formNeedsName() };
   const existing = await kit.store.get<Form>("forms", key);
   if (existing && !existing.closed) return { error: copy.formExists({ name: existing.name, key }) };
   if (!existing && (await forms(kit)).length >= MAX_FORMS) return { error: copy.tooManyForms({ max: MAX_FORMS }) };
+  const target = sendTo && sendTo !== key ? await kit.store.get<Form>("forms", sendTo) : null;
+  if (sendTo && !target?.ownGroup) return { error: copy.noSuchGroup({ name: sendTo }) };
   // Reopening a closed form gives it a new address; the old one stays dead.
   const url = await kit.hooks.url(key);
   const form: Form = { name: existing?.name ?? clean, url, createdDay: existing?.createdDay ?? kit.today, created: existing?.created ?? kit.now, count: existing?.count ?? 0 };
   if (ownGroup || existing?.ownGroup) {
     form.ownGroup = true;
     await openGroup(kit, key, form);
+  } else if (sendTo ?? existing?.sendTo) {
+    form.sendTo = (sendTo ?? existing?.sendTo)!;
   }
   await kit.store.put("forms", key, form as unknown as Json, form.created);
   return { key, form };
@@ -182,7 +229,7 @@ async function removeSubmission(kit: Kit, id: string) {
 
 export default definePlugin({
   id: "forms",
-  version: "1.3.1",
+  version: "1.4.0",
   sdk: "1",
   name: "Forms",
   icon: "📬",
@@ -207,14 +254,19 @@ export default definePlugin({
     const text = event.text.trim().replace(/\s+/g, " ");
     const lower = text.toLowerCase().replace(/[!.]+$/, "");
 
-    // In a form's own group, "last", "address" and "close" are about that form.
-    const here = event.group ? await kit.store.get<Form>("forms", event.group) : null;
-    const hereKey = here ? event.group! : null;
+    // In a form's own group, "last", "address" and "close" are about the form that arrives there.
+    // Several forms can share a group: then "last" covers them all, and the others need a name.
+    const inGroup = event.group ? await formsIn(kit, event.group) : [];
+    const open = inGroup.filter((f) => !f.data.closed);
+    const hereKey = open.length === 1 ? open[0].key : !open.length && inGroup.length ? inGroup[0].key : null;
+    const many = open.length > 1;
+    const which = () => kit.send(copy.whichForm({ names: open.map((f) => f.data.name) }));
 
     let m = text.match(/^(?:new|add|create|make)\s+(?:a\s+)?form\s+(.+)$/i);
     if (m) {
       const own = m[1].match(/^(.+?)\s+(?:in|with)\s+(?:its\s+|a\s+|an\s+)?(?:own\s+|new\s+|separate\s+)?group$/i);
-      const made = await createForm(kit, own ? own[1] : m[1], !!own);
+      // Made in a form's own group, it arrives in that group.
+      const made = await createForm(kit, own ? own[1] : m[1], !!own, !own && inGroup.length ? event.group! : null);
       if ("error" in made) return kit.send(made.error);
       return kit.send(addressText(made.key, made.form, true));
     }
@@ -231,15 +283,35 @@ export default definePlugin({
       if (!found) return kit.send(copy.noSuchForm({ name: m[1] }));
       if (found.form.closed) return kit.send(copy.closedReopenWithGroup({ name: found.form.name, key: found.key }));
       if (found.form.ownGroup) return kit.send(copy.alreadyOwnGroup({ name: found.form.name }));
-      const form = { ...found.form, ownGroup: true };
+      const form: Form = { ...found.form, ownGroup: true };
+      delete form.sendTo;
       await openGroup(kit, found.key, form);
       await kit.store.put("forms", found.key, form as unknown as Json, form.created);
       return kit.send(copy.makingGroup({ name: form.name }));
     }
 
+    // "move demo to kyc group", "send demo to the main group", "move demo here".
+    m = lower.match(/^(?:move|put|send)\s+(.+?)\s+(?:to|in|into)\s+(?:the\s+)?(.+?)(?:'s|’s)?\s+group$/) ?? lower.match(/^(?:move|put|send)\s+(.+?)\s+(here)$/);
+    if (m) {
+      const found = await findForm(kit, m[1]);
+      if (!found) return kit.send(copy.noSuchForm({ name: m[1] }));
+      const here = m[2] === "here";
+      let to: string | null = null;
+      if (here ? inGroup.length : !MAIN_GROUP_WORDS.includes(m[2])) {
+        const target = here ? { key: event.group! } : await findGroup(kit, m[2]);
+        if (!target) return kit.send(copy.noSuchGroup({ name: m[2] }));
+        to = target.key;
+      }
+      if (groupOf(found.key, found.form) === to && !found.form.ownGroup) return kit.send(copy.alreadyThere({ name: found.form.name }));
+      const done = await moveForm(kit, found.key, found.form, to);
+      if ("error" in done) return kit.send(done.error);
+      return kit.send(copy.moved({ name: done.form.name, group: done.group }));
+    }
+
     m = text.match(/^rename(?:\s+(?:the\s+)?form)?(?:\s+(.+?))?\s+to\s+(.+)$/i) ?? text.match(/^rename\b(.*)$/i);
-    if (m && (m[2] === undefined || m[1] || hereKey)) {
+    if (m && (m[2] === undefined || m[1] || hereKey || many)) {
       if (m[2] === undefined) return kit.send(copy.renameNeedsName());
+      if (!m[1] && !hereKey) return which();
       const found = await findForm(kit, m[1] ?? hereKey!);
       if (!found) return kit.send(copy.noSuchForm({ name: `${m[1] ?? hereKey}` }));
       const done = await renameForm(kit, found.key, found.form, m[2], null);
@@ -248,7 +320,8 @@ export default definePlugin({
     }
 
     m = lower.match(/^(?:new|change|replace|reset|rotate)\s+(?:the\s+)?(?:address|url|link)(?:(?:\s+(?:of|for))?\s+(.+))?$/);
-    if (m && (m[1] || hereKey)) {
+    if (m && (m[1] || hereKey || many)) {
+      if (!m[1] && !hereKey) return which();
       const found = await findForm(kit, m[1] ?? hereKey!);
       if (!found) return kit.send(copy.noSuchForm({ name: `${m[1] ?? hereKey}` }));
       if (found.form.closed) return kit.send(copy.closedReopen({ name: found.form.name, key: found.key }));
@@ -257,7 +330,8 @@ export default definePlugin({
     }
 
     m = lower.match(/^(?:address|url|link|endpoint)(?:(?:\s+(?:of|for))?\s+(.+))?$/);
-    if (m && (m[1] || hereKey)) {
+    if (m && (m[1] || hereKey || many)) {
+      if (!m[1] && !hereKey) return which();
       const found = await findForm(kit, m[1] ?? hereKey!);
       if (!found) return kit.send(copy.noSuchForm({ name: `${m[1] ?? hereKey}` }));
       if (found.form.closed) return kit.send(copy.closedReopen({ name: found.form.name, key: found.key }));
@@ -266,10 +340,12 @@ export default definePlugin({
 
     m = lower.match(/^(?:last|latest|recent)(?:\s+(.+))?$/);
     if (m) {
-      const found = m[1] ? await findForm(kit, m[1]) : hereKey ? { key: hereKey, form: here! } : null;
+      const found = m[1] ? await findForm(kit, m[1]) : null;
       if (m[1] && !found) return kit.send(copy.noSuchForm({ name: m[1] }));
+      // In a form's own group, every form that arrives there.
+      const keys = found ? [found.key] : inGroup.length ? inGroup.map((f) => f.key) : null;
       const all = await kit.store.list<Submission>("submissions");
-      const mine = found ? all.filter((s) => s.data.form === found.key) : all;
+      const mine = keys ? all.filter((s) => keys.includes(s.data.form)) : all;
       const latest = mine.at(-1);
       if (!latest) return kit.send(copy.nothingYet());
       const form = await kit.store.get<Form>("forms", latest.data.form);
@@ -278,7 +354,8 @@ export default definePlugin({
     }
 
     m = lower.match(/^(?:close|stop|pause)(?:\s+(?:this\s+)?form)?(?:\s+(.+))?$/);
-    if (m && (m[1] || hereKey)) {
+    if (m && (m[1] || hereKey || many)) {
+      if (!m[1] && !hereKey) return which();
       const found = await findForm(kit, m[1] ?? hereKey!);
       if (!found) return kit.send(copy.noSuchForm({ name: `${m[1] ?? hereKey}` }));
       await kit.hooks.remove(found.key);
@@ -309,8 +386,10 @@ export default definePlugin({
     const sentToday = (await kit.store.get<number>("days", dayKey)) ?? 0;
     if (sentToday > limit) return;
     await kit.store.put("days", dayKey, sentToday + 1, kit.today);
-    // A form with its own group is announced there (in the main group until that group exists).
-    const where = form.ownGroup ? { group: event.key } : {};
+    // A form with its own group is announced there (in the main group until that group exists);
+    // one sent to another form's group, there while that form still has it.
+    const target = form.sendTo ? await kit.store.get<Form>("forms", form.sendTo) : null;
+    const where = form.ownGroup ? { group: event.key } : target?.ownGroup ? { group: form.sendTo! } : {};
     if (sentToday === limit) {
       return kit.send(copy.tooManyToday({ name: form.name, limit }), where);
     }
@@ -338,14 +417,29 @@ export default definePlugin({
       const all = await kit.store.list<Submission>("submissions");
       const mine = (only ? all.filter((s) => s.data.form === only) : all).reverse().slice(0, limit);
       return {
-        forms: (await forms(kit)).map((f) => ({ key: f.key, name: f.data.name, url: f.data.url, closed: !!f.data.closed, count: f.data.count, createdDay: f.data.createdDay, ownGroup: !!f.data.ownGroup, groupName: f.data.ownGroup ? groupNameOf(f.data) : null })),
+        forms: (await forms(kit)).map((f, _, all) => {
+          // Where it arrives: its own group, another form's (by that form's key), or the main one (null).
+          const target = f.data.sendTo ? all.find((g) => g.key === f.data.sendTo && g.data.ownGroup) : undefined;
+          return {
+            key: f.key,
+            name: f.data.name,
+            url: f.data.url,
+            closed: !!f.data.closed,
+            count: f.data.count,
+            createdDay: f.data.createdDay,
+            ownGroup: !!f.data.ownGroup,
+            groupName: f.data.ownGroup ? groupNameOf(f.data) : null,
+            sendTo: target ? target.key : null,
+            sendToName: target ? groupNameOf(target.data) : null,
+          };
+        }),
         submissions: mine.map((s) => ({ id: s.key, form: s.data.form, at: s.data.at, fields: s.data.fields, order: ordered(s.data).map(([k]) => k), files: s.data.files, origin: s.data.origin, done: !!s.data.done })),
         total: all.length,
       } as unknown as Json;
     },
     actions: {
-      async createForm(kit, { name, ownGroup }) {
-        const made = await createForm(kit, String(name ?? ""), ownGroup === true);
+      async createForm(kit, { name, ownGroup, sendTo }) {
+        const made = await createForm(kit, String(name ?? ""), ownGroup === true, typeof sendTo === "string" && sendTo ? sendTo : null);
         if ("error" in made) throw new Error(made.error.replace(/[_*]/g, ""));
         return { key: made.key, url: made.form.url };
       },
@@ -376,15 +470,31 @@ export default definePlugin({
         const k = String(key);
         const form = await kit.store.get<Form>("forms", k);
         if (!form || form.closed || form.ownGroup) return;
-        const next = { ...form, ownGroup: true };
+        const next: Form = { ...form, ownGroup: true };
+        delete next.sendTo;
         await openGroup(kit, k, next);
         await kit.store.put("forms", k, next as unknown as Json, next.created);
       },
-      /** Delete a form with everything it received, files included. */
+      /** Send a form's submissions to another form's own group (`to`, its key), or to the main group (`to` null). */
+      async moveForm(kit, { key, to }) {
+        const k = String(key);
+        const form = await kit.store.get<Form>("forms", k);
+        if (!form) throw new Error("That form isn't there any more.");
+        const done = await moveForm(kit, k, form, typeof to === "string" && to ? to : null);
+        if ("error" in done) throw new Error(done.error.replace(/[_*]/g, ""));
+        return { key: k, sendTo: done.form.sendTo ?? null };
+      },
+      /** Delete a form with everything it received, files included. Forms that shared its group go back to the main group. */
       async deleteForm(kit, { key }) {
         const k = String(key);
         await kit.hooks.remove(k);
         await kit.groups.close(k);
+        for (const f of await forms(kit)) {
+          if (f.data.sendTo !== k) continue;
+          const next: Form = { ...f.data };
+          delete next.sendTo;
+          await kit.store.put("forms", f.key, next as unknown as Json, next.created);
+        }
         for (const s of await kit.store.list<Submission>("submissions")) if (s.data.form === k) await removeSubmission(kit, s.key);
         for (const d of await kit.store.list("days", { prefix: `${k}:` })) await kit.store.delete("days", d.key);
         await kit.store.delete("forms", k);

@@ -33,18 +33,20 @@ await fetch("THE_ADDRESS", { method: "POST", body: new FormData(formElement) });
 
 ## Commands
 
-Send these in the Forms group.
+Send these in the Forms group. In a form's own group, `new form demo` makes a form that arrives in that group, and `address`, `new address`, `rename` and `close` without a name mean the form that arrives there (if several do, I ask which).
 
 | Message | What happens |
 |---|---|
 | `new form contact` | Makes a form and replies with its address. Names become keys: "Partner applications" is `partner-applications`. Up to 50 forms. |
 | `new form contact in its own group` | Makes the form and a WhatsApp group just for it, named after the form. Its submissions arrive there (in the main group until the new one is ready). |
 | `group contact` | Gives a form you already have its own group. |
+| `move demo to kyc group` | Sends a form's submissions to another form's own group, so several forms arrive together. The group is found by its form's name or its own name. `move demo to main group` brings it back. A form with a group of its own stays in it. Its address doesn't change. |
+| `move demo here` | In a form's own group: send that form here. In the main group: back to the main group. |
 | `forms` | Your forms, how many submissions each has had, and their addresses. |
 | `address contact` | One form's address again. In a form's own group, `address` is enough. |
 | `rename contact to Contact us` | Gives the form a new name. Its address and what it received stay. In a form's own group, `rename to Contact us` is enough. The group keeps its name; change that on the page. |
 | `new address contact` | Replaces the form's address, for when the old one got out and is being misused. The old address stops working at once; update your website with the new one. Everything the form received stays. In a form's own group, `new address` is enough. |
-| `last` / `last contact` | The latest submission, of any form or of one. In a form's own group, `last` means that form. |
+| `last` / `last contact` | The latest submission, of any form or of one. In a form's own group, `last` means the forms that arrive there. |
 | `close contact` | In a form's own group, `close` is enough. The form stops taking submissions; its address no longer works. What it received stays. `new form contact` opens it again with a new address. 👍 |
 | `help` | This list. |
 
@@ -60,17 +62,17 @@ Each submission arrives as one message: the form's name, its fields (the first 1
 
 On app.zelfred.com, behind your PIN if you've set one:
 
-- Your forms, their addresses and counts. Make a form (with its own WhatsApp group if you tick the box), give an existing form its own group, close one, or delete one with everything it received.
+- Your forms, their addresses and counts. Make a form and pick where it arrives (the main group, a new group of its own, or another form's group), change that later, close one, or delete one with everything it received. Deleting a form whose group others share closes the group and sends them back to the main group.
 - Every submission, newest first: when, from which site, its fields, and its files to open or download.
 - Mark a submission done, or delete it (its files go with it).
 
-Actions: `createForm { name, ownGroup? }`, `giveGroup { key }`, `newAddress { key }`, `closeForm { key }`, `deleteForm { key }`, `deleteSubmission { id }`, `setDone { id, done }`.
+Actions: `createForm { name, ownGroup?, sendTo? }`, `giveGroup { key }`, `moveForm { key, to }` (`to`: a form's key, or null for the main group), `newAddress { key }`, `closeForm { key }`, `deleteForm { key }`, `deleteSubmission { id }`, `setDone { id, done }`.
 
 ## Data
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `forms` | form key | `{ name, url, createdDay, created, closed?, count, ownGroup? }` | created (ms) |
+| `forms` | form key | `{ name, url, createdDay, created, closed?, count, ownGroup?, groupName?, sendTo? }` (`sendTo`: the form whose own group it arrives in) | created (ms) |
 | `submissions` | id | `{ form, at, fields, order, files: [{ id, field, name, type, size }], origin, done? }` (`order`: field names as sent) | received (ms) |
 | `days` | `<form>:<day>` | messages sent that day | day |
 
@@ -81,7 +83,7 @@ Files themselves are held by Zelfred, not in these rows.
 | Permission | Why |
 |---|---|
 | `hooks` | To receive what your website's forms post to their addresses, files included. |
-| `groups` | To make a WhatsApp group for a form when you ask for one. |
+| `groups` | To make a WhatsApp group for a form when you ask for one. Other forms can share it. |
 
 ## Privacy
 

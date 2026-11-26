@@ -304,6 +304,119 @@ describe("forms: a group per form", () => {
   });
 });
 
+describe("forms: several forms in one group", () => {
+  type Shared = { forms: { key: string; ownGroup: boolean; sendTo: string | null; sendToName: string | null }[] };
+
+  it("move <form> to <other> group sends its submissions there, and back to the main group", async () => {
+    const t = T();
+    await t.message(forms, "new form kyc in its own group");
+    await t.message(forms, "new form demo");
+    await t.message(forms, "move demo to kyc group");
+    expect(last(t)).toBe("📬 *demo* now arrives in *📬 kyc*. Its address hasn't changed.");
+    await t.hook(forms, "demo", { name: "Ravi" });
+    expect(t.sent.at(-1)).toMatchObject({ group: "kyc", text: "📬 *demo*\n*name:* Ravi" });
+    // Found by the group's own name too.
+    await t.message(forms, "new form leads");
+    await t.message(forms, "send leads to the 📬 kyc group");
+    expect(last(t)).toContain("now arrives in *📬 kyc*");
+    await t.message(forms, "move demo to kyc group");
+    expect(last(t)).toBe("*demo* already arrives there.");
+    await t.message(forms, "move demo to main group");
+    expect(last(t)).toContain("main *📬 Forms* group again");
+    await t.hook(forms, "demo", { name: "Asha" });
+    expect(t.sent.at(-1)!.group).toBe(null);
+    // Only one WhatsApp group was ever made.
+    expect([...t.groups.keys()]).toEqual(["kyc"]);
+  });
+
+  it("won't move into a form with no group, nor move a form out of its own group", async () => {
+    const t = T();
+    await t.message(forms, "new form kyc in its own group");
+    await t.message(forms, "new form demo");
+    await t.message(forms, "new form leads");
+    await t.message(forms, "move leads to demo group");
+    expect(last(t)).toBe("*demo* has no group of its own yet. Send _group demo_ to make one, then move forms into it.");
+    await t.message(forms, "move kyc to main group");
+    expect(last(t)).toContain("*kyc* has a group of its own, so it stays there");
+    await t.message(forms, "move leads to nowhere group");
+    expect(last(t)).toContain(`I don't know a group called "nowhere"`);
+    await t.message(forms, "move nope to kyc group");
+    expect(last(t)).toContain(`I don't have a form called "nope"`);
+  });
+
+  it("a form made in a form's group arrives there; move <form> here works too", async () => {
+    const t = T();
+    await t.message(forms, "new form kyc in its own group");
+    await t.message(forms, "new form demo", null, "kyc");
+    expect(last(t)).toContain("Submissions will arrive here.");
+    await t.hook(forms, "demo", { name: "Ravi" });
+    expect(t.sent.at(-1)).toMatchObject({ group: "kyc" });
+    await t.message(forms, "new form leads");
+    await t.message(forms, "move leads here", null, "kyc");
+    expect(last(t)).toContain("*leads* now arrives in *📬 kyc*");
+    await t.message(forms, "move leads here");
+    expect(last(t)).toContain("main *📬 Forms* group again");
+  });
+
+  it("in a shared group, last covers every form there and the rest ask which form", async () => {
+    const t = T();
+    await t.message(forms, "new form kyc in its own group");
+    await t.message(forms, "new form demo", null, "kyc");
+    await t.message(forms, "new form other");
+    await t.hook(forms, "kyc", { name: "Asha" });
+    t.setHour(11);
+    await t.hook(forms, "demo", { name: "Ravi" });
+    t.setHour(12);
+    await t.hook(forms, "other", { name: "Mira" });
+    await t.message(forms, "last", null, "kyc");
+    expect(last(t)).toContain("*demo*\n*name:* Ravi");
+    await t.message(forms, "address", null, "kyc");
+    expect(last(t)).toBe("Which form? *kyc*, *demo* all arrive in this group. Add its name, like _address contact_.");
+    await t.message(forms, "close", null, "kyc");
+    expect(last(t)).toContain("Which form?");
+    expect(t.hooks.has("kyc")).toBe(true);
+    await t.message(forms, "address demo", null, "kyc");
+    expect(last(t)).toContain("https://hooks.test/demo");
+    // Once one is closed, a bare command means the one still open.
+    await t.message(forms, "close demo", null, "kyc");
+    await t.message(forms, "address", null, "kyc");
+    expect(last(t)).toContain("https://hooks.test/kyc");
+  });
+
+  it("group <form> takes a shared form into its own group", async () => {
+    const t = T();
+    await t.message(forms, "new form kyc in its own group");
+    await t.message(forms, "new form demo", null, "kyc");
+    await t.message(forms, "group demo");
+    await t.hook(forms, "demo", { name: "Ravi" });
+    expect(t.sent.at(-1)).toMatchObject({ group: "demo" });
+    const page = (await t.load(forms)) as unknown as Shared;
+    expect(page.forms.find((f) => f.key === "demo")).toMatchObject({ ownGroup: true, sendTo: null });
+  });
+
+  it("the page can move forms between groups; deleting the group's form sends the rest back to the main group", async () => {
+    const t = T();
+    await t.act(forms, "createForm", { name: "KYC", ownGroup: true });
+    t.setHour(11);
+    await t.act(forms, "createForm", { name: "Demo", sendTo: "kyc" });
+    t.setHour(12);
+    await t.act(forms, "createForm", { name: "Leads" });
+    await t.act(forms, "moveForm", { key: "leads", to: "kyc" });
+    let page = (await t.load(forms)) as unknown as Shared;
+    expect(page.forms.map((f) => [f.key, f.sendTo, f.sendToName])).toEqual([["kyc", null, null], ["demo", "kyc", "📬 KYC"], ["leads", "kyc", "📬 KYC"]]);
+    await expect(t.act(forms, "moveForm", { key: "kyc", to: "demo" })).rejects.toThrow("has a group of its own");
+    await expect(t.act(forms, "moveForm", { key: "leads", to: "demo" })).rejects.toThrow("has no group of its own");
+    await expect(t.act(forms, "createForm", { name: "Other", sendTo: "demo" })).rejects.toThrow("I don't know a group");
+    await t.act(forms, "moveForm", { key: "leads", to: null });
+    await t.act(forms, "deleteForm", { key: "kyc" });
+    expect(t.groups.size).toBe(0);
+    page = (await t.load(forms)) as unknown as Shared;
+    expect(page.forms.map((f) => [f.key, f.sendTo])).toEqual([["demo", null], ["leads", null]]);
+    await t.hook(forms, "demo", { name: "Ravi" });
+    expect(t.sent.at(-1)!.group).toBe(null);
+  });
+});
+
 describe("forms: basics", () => {
   it("is unlisted and answers help", async () => {
     expect(forms.unlisted).toBe(true);
