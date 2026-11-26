@@ -1,16 +1,16 @@
-# 🔢 Digits
+# 🔢 NumberKeeper
 
 Any number a person wants kept, with a word for what it is: a weight, a ring size, a car's number, the electricity meter, a birthday. Each value is kept with its day, and the ones before are kept too, so the latest can be asked for, every one can be seen, and the page draws a graph. A photo sent with a number is kept with it.
 
-To Digits a value is a string attached to a label. It never asks for a number and never reads meaning into a label. The owner's rulings are in `docs/measurements-brief.md` in the Zelfred repo, section "2026-11-26: becoming any number, named Digits", and in `docs/digits-research.md`, "The owner's answers".
+To NumberKeeper a value is a string attached to a label. It never asks for a number and never reads meaning into a label. The owner's rulings are in `docs/measurements-brief.md` in the Zelfred repo, section "2026-11-26: becoming any number, named Digits", and in `docs/digits-research.md`, "The owner's answers".
 
-Its id is `digits-store` (the owner, 2026-11-26). It lives in its own WhatsApp group, "🔢 Digits", between the person and Zelfred. It is unlisted while it is tried.
+Its id is `digits-store` (the owner, 2026-11-26). Its name was Digits until 2026-11-27, when the owner named it NumberKeeper, of the Keeper family (`docs/voice.md` in the Zelfred repo, "Naming an app"). It lives in its own WhatsApp group, "🔢 NumberKeeper", between the person and Zelfred. It is unlisted while it is tried.
 
 ## First five minutes
 
 Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines are og-copy-bot's, picked by the owner on 2026-11-26.
 
-| Field | For Digits |
+| Field | For NumberKeeper |
 |---|---|
 | The promise | "The numbers you only need now and then." (the welcome card's headline) |
 | The aside | "Send one once. I won't make you scroll for it." |
@@ -93,7 +93,7 @@ After a yes, our own matching tries the other name, so the model isn't asked aga
 Never refused (the owner, 2026-11-26).
 
 - **A card number or a PIN** (also a CVV, an OTP, a password: a 3 to 6 digit value with one of those words) **is hidden**: kept whole (not encrypted), shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN. A card is found by its check digit, a PIN by its word; a postal PIN code is not a PIN. The person's message gets a 🔒 every time; the first one also gets a line saying so and suggesting deleting the message.
-- **An Aadhaar number** (12 digits with a valid check digit) is kept as typed, and the answer offers a way out: delete the message for everyone and Digits forgets it too. Whether Aadhaar, PAN, passport and bank numbers should lock as well is the owner's open question.
+- **An Aadhaar number** (12 digits with a valid check digit) is kept as typed, and the answer offers a way out: delete the message for everyone and NumberKeeper forgets it too. Whether Aadhaar, PAN, passport and bank numbers should lock as well is the owner's open question.
 
 ## Schedules
 

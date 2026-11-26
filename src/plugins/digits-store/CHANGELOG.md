@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.0] - 2026-11-27
+
+### Changed
+
+- The name people see is NumberKeeper (the owner, 2026-11-27), of the Keeper family. The id stays `digits-store`, and "digits" still lists everything. New groups are called "🔢 NumberKeeper".
+
+### Data
+
+- None.
+
 ## [1.3.0] - 2026-11-26
 
 ### Changed
