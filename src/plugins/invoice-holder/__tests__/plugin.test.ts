@@ -743,3 +743,52 @@ describe("invoice-holder: 1.7.0, what the bill says", () => {
     expect(t.sorts).toHaveLength(0);
   });
 });
+
+describe("invoice-holder: 1.8.0, read again", () => {
+  const monid = { address: "billing@monid.com", domain: "monid.com", kind: "company" as const };
+  const kit = () => createTestKit({ today: "2026-11-27", hour: 10 });
+  const read = (r: Partial<MailRead>) => ({ state: "read", ...r }) as MailRead;
+  const only = (t: T) => bills(t)[0];
+
+  it("reads a bill's PDF again and fills what the person hasn't changed, marked as what the bill says", async () => {
+    const t = kit();
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: monid, files: [{ id: "f1", type: "application/pdf", size: 9000 }] }));
+    await t.act(plugin, "edit", { id: only(t).id, billDate: "2026-11-01" });
+    await t.act(plugin, "reread", { id: only(t).id });
+    expect(t.fileReads).toEqual([{ id: "f1", ref: { kind: "reread", bill: only(t).id } }]);
+    expect(only(t).reading).toBeTruthy();
+    await t.fileRead(plugin, "f1", read({ amount: 1180, currency: "INR", date: "2026-11-20", number: "INV-9" }));
+    expect(only(t)).toMatchObject({ amount: 1180, currency: "INR", billDate: "2026-11-01", reading: null, unread: null, facts: { number: "INV-9" } });
+  });
+
+  it("replaces what an earlier reading said, but never what the person typed", async () => {
+    const t = kit();
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: monid, files: [{ id: "f1", type: "application/pdf", size: 9000, read: read({ amount: 10, date: "2026-11-02" }) }] }));
+    await t.act(plugin, "edit", { id: only(t).id, amount: 25 });
+    await t.act(plugin, "reread", { id: only(t).id });
+    await t.fileRead(plugin, "f1", read({ amount: 99, date: "2026-11-03" }));
+    expect(only(t)).toMatchObject({ amount: 25, billDate: "2026-11-03" });
+  });
+
+  it("says why when it can't read it, and files an unfiled bill by what it found", async () => {
+    const t = kit();
+    await t.act(plugin, "addBook", { name: "Apollo" });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: { ...monid, kind: "mailbox" }, files: [{ id: "f1", type: "application/pdf", size: 9000 }] }));
+    await t.act(plugin, "reread", { id: only(t).id });
+    await t.fileRead(plugin, "f1", { state: "locked" } as MailRead);
+    expect(only(t)).toMatchObject({ unread: "locked", reading: null, state: "to-tag" });
+    await t.act(plugin, "reread", { id: only(t).id });
+    await t.fileRead(plugin, "f1", read({ seller: "Apollo Pharmacy" }));
+    expect(only(t)).toMatchObject({ unread: null, state: "filed", tagged: { how: "seller" } });
+  });
+
+  it("only PDFs, and the Gmail link only from the mail's own Message-ID", async () => {
+    const t = kit();
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: monid, messageId: "abc@mail.monid.com", files: [{ id: "f1", type: "application/pdf", size: 9000 }] }));
+    const page = await t.load(plugin);
+    expect((page as { bills: { gmail: string | null }[] }).bills[0].gmail).toBe("https://mail.google.com/mail/u/0/#search/rfc822msgid:abc%40mail.monid.com");
+    await t.act(plugin, "add", { files: [{ id: "p1", type: "image/jpeg" }] }).catch(() => {});
+    const photo = bills(t).find((b) => b.source !== "mail");
+    if (photo) await expect(t.act(plugin, "reread", { id: photo.id })).rejects.toThrow(/PDF/);
+  });
+});
