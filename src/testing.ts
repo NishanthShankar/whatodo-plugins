@@ -75,7 +75,8 @@ export function mail(found: Partial<MailEvent> = {}): MailEvent {
     at: Date.parse("2026-11-27T06:30:00Z"),
     label: "",
     from: { address: "billing@example.com", domain: "example.com", kind: "company" },
-    files: [{ id: "f1", type: "application/pdf", size: 80_000 }],
+    files: [{ id: "f1", type: "application/pdf", size: 80_000, name: "Bill_Nov_2026.pdf" }],
+    lines: 2,
     ...found,
   };
 }

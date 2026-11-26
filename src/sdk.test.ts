@@ -359,6 +359,9 @@ describe("the mail permission", () => {
     expect(() => definePlugin({ ...base, onMail: async () => "took" })).toThrow(/onMail needs the "mail" permission/);
     expect(() => definePlugin({ ...base, permissions: ["mail"] })).toThrow(/needs onMail/);
     expect(() => definePlugin({ ...base, permissions: ["mail", "vault"], onMail: async () => "took" })).toThrow(/can't be combined with "vault"/);
+    expect(() => definePlugin({ ...base, mailSummary: { one: "a", many: "{n} b" } })).toThrow(/needs the "mail" permission/);
+    expect(() => definePlugin({ ...base, permissions: ["mail"], onMail: async () => "took", mailSummary: { one: "a", many: "no count" } })).toThrow(/with "\{n\}"/);
+    expect(() => definePlugin({ ...base, permissions: ["mail"], onMail: async () => "took", mailSummary: { one: "1 more came.", many: "{n} more came." } })).not.toThrow();
   });
 
   it("hands over a mail's sender and files, keeps the files only when the plugin took them", async () => {

@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.33.0";
+export const SDK_VERSION = "1.34.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -524,6 +524,12 @@ export interface MailFile {
   type: "application/pdf";
   /** Bytes. */
   size: number;
+  /**
+   * The attachment's name as its sender wrote it ("Airtel_Nov_2026.pdf"), made safe to show: no control or
+   * direction-changing characters, no slashes, at most 100 characters. Sender-written text: show it, never trust it.
+   * Missing when the mail gave none. Since SDK 1.34.0.
+   */
+  name?: string;
 }
 
 /**
@@ -541,6 +547,13 @@ export interface MailEvent {
   from: { address: string; domain: string; kind: "company" | "mailbox" };
   /** Its PDFs, up to 3. */
   files: MailFile[];
+  /**
+   * How many WhatsApp lines (sends and questions) the plugin may still send for this mail. 0 when the person's
+   * lines caused by mail are used up for the day (2 across all apps), when the mail is old (the plugin was just
+   * added), or at hours Zelfred keeps quiet. Zelfred drops anything past it; read it before starting something that
+   * waits for an answer. Since SDK 1.34.0.
+   */
+  lines?: number;
 }
 
 /** What a plugin says about a mail it was told of. Since SDK 1.33.0. */
@@ -960,6 +973,13 @@ export interface PluginDef {
    * Needs the "mail" permission. Since SDK 1.33.0.
    */
   onMail?(event: MailEvent, kit: Kit): Promise<MailAnswer>;
+  /**
+   * The one line Zelfred posts in the app's group at 8pm when the app's lines caused by mail were held back past the
+   * owner's cap (2 a day across all apps). `one` for a single held line, `many` with "{n}" for more. Name no sender
+   * and nothing from a mail: only the count and where to look. Without it Zelfred says it in plain words of its own.
+   * Needs the "mail" permission. Since SDK 1.34.0.
+   */
+  mailSummary?: { one: string; many: string };
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
   /** Called with the intent Zelfred found for an unclear message. Required with `understand`. */
@@ -1034,6 +1054,11 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (def.onMail && !def.permissions?.includes("mail")) throw new Error(`${def.id}: onMail needs the "mail" permission`);
   if (def.permissions?.includes("mail") && !def.onMail) throw new Error(`${def.id}: the "mail" permission needs onMail (where mail arrives)`);
   if (def.permissions?.includes("mail") && def.permissions.includes("vault")) throw new Error(`${def.id}: "mail" can't be combined with "vault"`);
+  if (def.mailSummary) {
+    if (!def.permissions?.includes("mail")) throw new Error(`${def.id}: mailSummary needs the "mail" permission`);
+    const { one, many } = def.mailSummary;
+    if (!one?.trim() || !many?.includes("{n}") || one.length > 200 || many.length > 200) throw new Error(`${def.id}: mailSummary needs one and many (with "{n}"), each at most 200 characters`);
+  }
   if (def.onGroup && !def.permissions?.includes("groups")) throw new Error(`${def.id}: onGroup needs the "groups" permission`);
   if (def.api) {
     if (!def.permissions?.includes("api")) throw new Error(`${def.id}: api needs the "api" permission`);
