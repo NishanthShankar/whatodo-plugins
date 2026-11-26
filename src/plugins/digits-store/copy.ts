@@ -19,7 +19,7 @@ export const UNDO = fixed("undo");
 export const HISTORY_EXAMPLE = fixed("history weight");
 export const REMOVE_EXAMPLE = fixed("remove weight");
 /** Where the page lives. The address is sent plain until a plugin can send a link that signs people in. */
-export const PAGE = fixed("app.zelfred.com/plugins/digits");
+export const PAGE = fixed("app.zelfred.com/plugins/digits-store");
 
 /** Words that ask for everything. */
 export const LIST_WORDS = [LIST, fixed("all"), fixed("everything"), fixed("numbers"), fixed("digits"), fixed("show all"), fixed("list all")];

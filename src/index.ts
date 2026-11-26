@@ -9,7 +9,7 @@ import subscriptionTracker from "./plugins/subscription-tracker";
 import wishlist from "./plugins/wishlist";
 import chores from "./plugins/chores";
 import shipmentTracker from "./plugins/shipment-tracker";
-import digits from "./plugins/digits";
+import digits from "./plugins/digits-store";
 import type { PluginDef } from "./sdk";
 
 export * from "./sdk";

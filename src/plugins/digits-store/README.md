@@ -4,7 +4,7 @@ Any number a person wants kept, with a word for what it is: a weight, a ring siz
 
 To Digits a value is a string attached to a label. It never asks for a number and never reads meaning into a label. The owner's rulings are in `docs/measurements-brief.md` in the Zelfred repo, section "2026-11-26: becoming any number, named Digits", and in `docs/digits-research.md`, "The owner's answers".
 
-It lives in its own WhatsApp group, "🔢 Digits", between the person and Zelfred. It is unlisted while it is tried.
+Its id is `digits-store` (the owner, 2026-11-26). It lives in its own WhatsApp group, "🔢 Digits", between the person and Zelfred. It is unlisted while it is tried.
 
 ## First five minutes
 
@@ -121,7 +121,7 @@ At most 300 labels and 2000 values under each.
 |---|---|---|
 | `add` | `{ label }` or `{ name }`, `value`, `day?` | Keeps a value on any day up to today. Returns `{ label, entry }`. |
 | `edit` | `label, entry, value?, day?` | Corrects a value, its day, or both. |
-| `reveal` | `label, entry` | A locked value whole: `{ text }`. The page calls it only behind the person's unlock, which the owner has not chosen yet. |
+| `reveal` | `label, entry` | A hidden value whole: `{ text }`. The page calls it only behind the same unlock as a vault, the person's passkey or passphrase (the owner, 2026-11-26), once Zelfred has one lock for every page. |
 | `remove` | `label, entry` | Takes one value out, with its photos. |
 | `rename` | `label, name` | Renames a label; refused when another has the same words. |
 | `removeLabel` | `label` | A label and everything under it. The page asks first. |
@@ -131,7 +131,7 @@ At most 300 labels and 2000 values under each.
 
 - Values are private to the person: the group has only them and Zelfred, and the plugin has no "members" permission.
 - No model ever sees a value. Our own matching reads every message. Only an unplaced question goes to the sorting model, with labels and each value's shape in words, after Zelfred takes every digit out.
-- Card numbers and PINs are shown masked everywhere; whole only through the page's unlock.
+- Card numbers and PINs are shown masked everywhere; whole only behind the vault's unlock (passkey or passphrase), once that lock reaches every page.
 - Zelfred counts that the app was used (messages, answers), never a value or a label's text.
 - Deleting a message for everyone forgets what it kept, photos included. The page removes any value, any label, or everything.
 - Ordinary care, as for every app; no special handling of health numbers (the owner, 2026-11-26).

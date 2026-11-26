@@ -21,7 +21,7 @@ Send a number with a word for what it is, in your own words. A few ready-made on
 
 A photo sent with its number is kept with it. To change one, reply to your message with the right number, or react ❌ to take it out.
 
-Every number has a page with its graph: app.zelfred.com/plugins/digits",
+Every number has a page with its graph: app.zelfred.com/plugins/digits-store",
   "history": "*Weight*, newest first:
 
 72.4, today
@@ -31,12 +31,12 @@ Every number has a page with its graph: app.zelfred.com/plugins/digits",
   "keptDatePast": "Kept: joined office, 1 June 2019.",
   "keptDateYearly": "Kept: Riya birthday, 12 March. I'll say so on the day, every year.",
   "keptLabel": "No problem. Weight stays.",
-  "keptWithPage": "Kept. That's 2 for weight, and they make a graph now: app.zelfred.com/plugins/digits",
+  "keptWithPage": "Kept. That's 2 for weight, and they make a graph now: app.zelfred.com/plugins/digits-store",
   "list": "What I keep for you:
 
 *Weight*: 72.4 kg, today.
 
-And 3 more on the page: app.zelfred.com/plugins/digits",
+And 3 more on the page: app.zelfred.com/plugins/digits-store",
   "listing": {
     "description": "Send me a number with a word for what it is. I keep it with the ones before, and give it back when you ask.",
     "h1": "Send me a number once. Ask for it back whenever you like.",
@@ -47,7 +47,7 @@ And 3 more on the page: app.zelfred.com/plugins/digits",
   "notFound": "Nothing kept as "shoe size". Send _list_ to see what I keep.",
   "nothingToUndo": "Nothing to take out.",
   "nothingYet": "Nothing kept yet. Send a number with a word for what it is, like _weight 72.4_.",
-  "page": "Every number has a page too, with a graph of how it has moved: app.zelfred.com/plugins/digits",
+  "page": "Every number has a page too, with a graph of how it has moved: app.zelfred.com/plugins/digits-store",
   "photoAlone": "I keep a photo with its number. Send it again with the number written under it.",
   "photosFull": "That one already has four photos, so I left this one out.",
   "recall": "*Weight*: 72.4 kg, today. The first was 75, on 3 August. 6 kept.",
