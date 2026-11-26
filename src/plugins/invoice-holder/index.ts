@@ -79,7 +79,18 @@ export interface Book {
   at: number;
 }
 
-export type How = "reaction" | "reply" | "caption" | "poll" | "page" | "first" | "sender";
+export type How = "reaction" | "reply" | "caption" | "poll" | "page" | "first" | "sender" | "gstin" | "seller" | "guess";
+
+/** What Zelfred read inside a mailed PDF (SDK 1.35.0): "the bill says", never stated as true. Since 1.7.0. */
+export interface BillFacts {
+  amount?: number;
+  currency?: string;
+  date?: string;
+  due?: string;
+  number?: string;
+  gstins?: string[];
+  seller?: string;
+}
 
 export interface BillFile {
   id: string;
@@ -129,8 +140,10 @@ export interface Bill {
   /** The date on the bill, YYYY-MM-DD, when someone gave it. */
   billDate: string | null;
   note: string | null;
-  /** The amount's currency; null for the person's own (or rupees). Since 1.6.0. */
-  currency?: Currency | null;
+  /** The amount's currency; null for the person's own (or rupees). Since 1.6.0; any ISO code the reader found since 1.7.0. */
+  currency?: string | null;
+  /** What the PDF reader found in this bill, when it could read it. Since 1.7.0. */
+  facts?: BillFacts | null;
   /** The bill's short name, its title on the page; apart from the note since 1.5.0. */
   name?: string | null;
   /** Pictures sent together share this. */
@@ -335,20 +348,57 @@ async function takeNote(kit: Kit, ids: string[], text: string, how: "now" | "rep
   kit.react(KEPT);
 }
 
+/** The facts the reader found in one file, or null when it couldn't read it. */
+function factsOf(f: MailEvent["files"][number]): BillFacts | null {
+  const r = (f as { read?: { state?: string } & BillFacts }).read;
+  if (!r || r.state !== "read") return null;
+  const facts: BillFacts = {};
+  if (typeof r.amount === "number" && Number.isFinite(r.amount) && r.amount >= 0) facts.amount = r.amount;
+  if (typeof r.currency === "string" && /^[A-Z]{3}$/.test(r.currency)) facts.currency = r.currency;
+  for (const k of ["date", "due"] as const) if (typeof r[k] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r[k]!)) facts[k] = r[k];
+  if (typeof r.number === "string" && r.number.trim()) facts.number = r.number.trim().slice(0, 40);
+  if (Array.isArray(r.gstins)) facts.gstins = r.gstins.filter((g) => typeof g === "string" && /^\d{2}[A-Z0-9]{13}$/.test(g)).slice(0, 4);
+  if (typeof r.seller === "string" && r.seller.trim()) facts.seller = r.seller.replace(/\s+/g, " ").trim().slice(0, 80);
+  return facts;
+}
+
+/** The seller's name as jev may see it: letters and spaces only, 60 characters at most (z-research-bot). */
+const lettersOnly = (s: string) => s.replace(/[^\p{L}\s]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60);
+
+/**
+ * Where a mailed bill goes, first that fits (z-research-bot, 2026-11-27): a GST number on it that is exactly one
+ * folder's; the folder the last bill from this proven sender went to (never for a forward); the seller's name against
+ * folder names, in our own code. Null when none fits; jev is asked after, as a guess.
+ */
+function folderFor(books: { id: string; book: Book }[], all: { data: Bill }[], e: MailEvent, facts: BillFacts | null): { book: string; how: How } | null {
+  const gst = new Set(facts?.gstins ?? []);
+  const byGst = books.filter((b) => b.book.gst && gst.has(b.book.gst));
+  if (byGst.length === 1) return { book: byGst[0].id, how: "gstin" };
+  if (e.from.kind !== "mailbox") {
+    const earlier = all.filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book).sort((a, b) => b.data.at - a.data.at)[0];
+    if (earlier?.data.book && books.some((b) => b.id === earlier.data.book)) return { book: earlier.data.book, how: "sender" };
+  }
+  if (facts?.seller) {
+    const read = readWords(facts.seller, books.map((b) => ({ id: b.id, name: b.book.name })));
+    if (read.book) return { book: read.book, how: "seller" };
+  }
+  return null;
+}
+
 async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> {
   if (!e.files.length) return "not-for-me";
   const all = await kit.store.list<Bill>("bills");
   if (all.some((r) => r.data.mail?.id === e.id)) return "took";
-  // Filed where the last bill from this sender went, unless it is a forward: every forward comes from the person.
-  const own = e.from.kind === "mailbox";
-  const earlier = own ? undefined : all.filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book).sort((a, b) => b.data.at - a.data.at)[0];
-  const book = earlier?.data.book && (await kit.store.get<Book>("books", earlier.data.book)) ? earlier.data.book : null;
+  const books = await allBooks(kit);
   // Each PDF is its own bill, so each is filed on its own; "2 of 3" keeps them together on the page.
   const n = e.files.length;
   const ids: string[] = [];
+  const unfiled: { id: string; seller: string }[] = [];
   for (let i = 0; i < n; i++) {
     const f = e.files[i];
     const name = typeof (f as { name?: unknown }).name === "string" ? ((f as { name?: string }).name ?? "").slice(0, 120) || null : null;
+    const facts = factsOf(f);
+    const to = folderFor(books, all, e, facts);
     const bill: Bill = {
       v: 1,
       source: "mail",
@@ -356,19 +406,28 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
       mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id, kind: e.from.kind, part: i + 1, of: n, name },
       by: null,
       at: e.at,
-      state: book ? "filed" : "to-tag",
-      book,
-      tagged: book ? { how: "sender", by: null, at: kit.now } : null,
-      amount: null,
-      billDate: null,
+      state: to ? "filed" : "to-tag",
+      book: to?.book ?? null,
+      tagged: to ? { how: to.how, by: null, at: kit.now } : null,
+      // What the bill says, kept as the bill's own until the person changes it.
+      amount: facts?.amount ?? null,
+      currency: facts?.amount !== undefined ? (facts?.currency ?? null) : null,
+      billDate: facts?.date ?? null,
       note: null,
+      facts,
       batch: n > 1 ? `mail:${e.id}` : null,
-      history: [{ at: kit.now, what: "came" }, ...(book ? [{ at: kit.now, what: "filed" as const, how: "sender" as How, book, by: null }] : [])],
+      history: [{ at: kit.now, what: "came" }, ...(to ? [{ at: kit.now, what: "filed" as const, how: to.how, book: to.book, by: null }] : [])],
     };
     // Sorted by arrival, the mail's own order kept within it.
     const bid = kit.id();
     ids.push(bid);
     await kit.store.put("bills", bid, bill as unknown as Json, e.at + i);
+    if (!to && facts?.seller) unfiled.push({ id: bid, seller: facts.seller });
+  }
+  // Last, and only when nothing else fitted: jev picks a folder from the seller's name alone, as a guess.
+  if (unfiled.length && books.length > 1) {
+    const words = lettersOnly(unfiled[0].seller);
+    if (words) await kit.sort(words, Object.fromEntries(books.map((b) => [b.id, lettersOnly(b.book.name) || "folder"])), { kind: "guess", bills: unfiled.map((u) => u.id) } as unknown as Json, { after: 0 });
   }
   await noteQuestion(kit, e, ids);
   return "took";
@@ -488,6 +547,7 @@ function shown(id: string, b: Bill) {
     tagged: b.tagged,
     amount: b.amount,
     currency: b.currency ?? null,
+    facts: b.facts ?? null,
     billDate: b.billDate,
     note: b.note,
     name: b.name ?? null,
@@ -544,7 +604,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.6.0",
+  version: "1.7.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -555,7 +615,8 @@ export default definePlugin({
   price: 0,
   // Tier 2: it stores a photo for every bill.
   tier: 2,
-  permissions: ["photos", "mail"],
+  // "sort": jev picks a mailed bill's folder from its seller's name, only when nothing else fits (since 1.7.0).
+  permissions: ["photos", "mail", "sort"],
   // Being tried out first: only people Zelfred allows can add it.
   unlisted: true,
   listing: {
@@ -676,6 +737,18 @@ export default definePlugin({
       const sum = order.map((c) => money(Math.round(sums.get(c)! * 100) / 100, c)).join(" and ");
       const [y, m] = month.split("-").map(Number);
       return kit.send(copy.month({ month: `${MONTHS[m - 1]} ${y}`, count: bills.length, priced: priced.length, sum: priced.length ? sum : null }));
+    }
+  },
+
+  /** jev's pick for a mailed bill nothing else could place. Filed only if still unfiled, marked as a guess. */
+  async onSorted(event, kit) {
+    const ref = event.ref as { kind?: string; bills?: unknown } | null;
+    if (!ref || ref.kind !== "guess" || !Array.isArray(ref.bills) || !event.choice) return;
+    if (!(await kit.store.get("books", event.choice))) return;
+    for (const id of ref.bills) {
+      if (typeof id !== "string") continue;
+      const bill = await kit.store.get<Bill>("bills", id);
+      if (bill && !bill.book) await file(kit, id, event.choice, "guess", null);
     }
   },
 
