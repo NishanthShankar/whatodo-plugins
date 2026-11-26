@@ -547,6 +547,13 @@ export interface MailEvent {
   from: { address: string; domain: string; kind: "company" | "mailbox" };
   /** Its PDFs, up to 3. */
   files: MailFile[];
+  /**
+   * How many WhatsApp lines (sends and questions) the plugin may still send for this mail. 0 when the person's
+   * lines caused by mail are used up for the day (2 across all apps), when the mail is old (the plugin was just
+   * added), or at hours Zelfred keeps quiet. Zelfred drops anything past it; read it before starting something that
+   * waits for an answer. Since SDK 1.34.0.
+   */
+  lines?: number;
 }
 
 /** What a plugin says about a mail it was told of. Since SDK 1.33.0. */
