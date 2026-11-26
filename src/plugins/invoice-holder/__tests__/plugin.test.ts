@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import plugin, { type Bill, type Book, weekday } from "..";
-import { createTestKit, photo } from "../../../testing";
+import { createTestKit, mail, photo } from "../../../testing";
 import { readWords } from "../words";
 
 type T = ReturnType<typeof createTestKit>;
@@ -391,5 +391,34 @@ describe("invoice-holder: 1.1.0", () => {
     t.setToday("2027-01-01");
     await t.schedule(plugin, "month");
     expect(t.sent.length).toBe(before);
+  });
+});
+
+describe("invoice-holder: a bill by mail", () => {
+  it("keeps a mail's PDF as a bill waiting for a folder, with its sender, and says nothing", async () => {
+    const t = await settled();
+    const before = t.sent.length;
+    expect(await t.mail(plugin, mail({ id: "m1", label: "hdfc", files: [{ id: "f1", type: "application/pdf", size: 9000 }] }))).toBe("took");
+    expect(t.sent.length).toBe(before);
+    expect(billOf(t, "f1")).toMatchObject({ source: "mail", state: "to-tag", book: null, mail: { from: "billing@example.com", domain: "example.com", label: "hdfc", id: "m1" } });
+    const page = (await t.load(plugin)) as any;
+    expect(JSON.stringify(page)).toContain("billing@example.com");
+  });
+
+  it("files a bill from a sender whose last bill was filed into the same folder", async () => {
+    const t = await settled();
+    await t.mail(plugin, mail({ id: "m1", files: [{ id: "f1", type: "application/pdf", size: 9000 }] }));
+    const acme = books(t).find((b) => b.name === "Acme")!;
+    await t.act(plugin, "tag", { id: billOf(t, "f1").id, book: acme.id });
+    await t.mail(plugin, mail({ id: "m2", files: [{ id: "f2", type: "application/pdf", size: 9000 }] }));
+    expect(billOf(t, "f2")).toMatchObject({ state: "filed", book: acme.id, tagged: { how: "sender" } });
+  });
+
+  it("does not take a mail with no PDF, and keeps one mail once", async () => {
+    const t = await settled();
+    expect(await t.mail(plugin, mail({ id: "m1", files: [] }))).toBe("not-for-me");
+    expect(await t.mail(plugin, mail({ id: "m2" }))).toBe("took");
+    expect(await t.mail(plugin, mail({ id: "m2" }))).toBe("took");
+    expect(bills(t).filter((b) => b.source === "mail")).toHaveLength(1);
   });
 });

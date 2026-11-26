@@ -2,6 +2,12 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-11-27
+
+### Added
+
+- Bills by mail (needs the "mail" permission, SDK 1.33.0): a mail with a PDF that comes to the person's Zelfred mail address from a sender they accepted is kept as a bill waiting for a folder, with the sender shown. If an earlier bill from the same sender was filed, the new one goes in the same folder. A mail with no PDF is not taken. Nothing is sent in WhatsApp for it; the weekly count includes it.
+
 ## [1.1.0] - 2026-11-26
 
 ### Changed

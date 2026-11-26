@@ -1,4 +1,4 @@
-import { definePlugin, type Json, type Kit, type Photo, type Sender } from "../../sdk";
+import { definePlugin, type Json, type Kit, type MailEvent, type Photo, type Sender } from "../../sdk";
 import { BOOK_EMOJI, BOOKS, BOOKS_TOO, copy, KEPT, money, NEVER_A_BOOK, type BookLine } from "./copy";
 import { bare, cleanGst, cleanName, MAX_NOTE, oneEmoji, readWords } from "./words";
 
@@ -72,7 +72,7 @@ export interface Book {
   at: number;
 }
 
-export type How = "reaction" | "reply" | "caption" | "poll" | "page" | "first";
+export type How = "reaction" | "reply" | "caption" | "poll" | "page" | "first" | "sender";
 
 export interface BillFile {
   id: string;
@@ -91,10 +91,12 @@ export interface BillEvent {
 export interface Bill {
   /** Shape version, so the next steps add to it. */
   v: 1;
-  /** Where it came from. "mail" comes in step 2. */
-  source: "whatsapp" | "page";
-  /** Its pictures. One today; a bill of several pages or a PDF later. */
+  /** Where it came from. "mail": sent to the person's Zelfred mail address (since 1.2.0). */
+  source: "whatsapp" | "page" | "mail";
+  /** Its pictures, or its PDFs for a bill that came by mail. */
   files: BillFile[];
+  /** For a bill that came by mail: who sent it (as Zelfred proved it), the person's label and Zelfred's mail id. */
+  mail?: { from: string; domain: string; label: string; id: string } | null;
   /** Who sent it (`sender.id`), even though only one person can today. */
   by: string | null;
   at: number;
@@ -195,6 +197,37 @@ async function batchFor(kit: Kit): Promise<string> {
   const id = last && kit.now - last.at <= BATCH_MS ? last.id : kit.id();
   await kit.store.put("state", "batch", { id, at: kit.now });
   return id;
+}
+
+/**
+ * A mail to the person's Zelfred mail address with a PDF: a bill, waiting for a folder like a photo. If an earlier bill
+ * from the same sender was filed, this one goes in the same folder. Nothing is sent in WhatsApp: the weekly count
+ * names the bills waiting (the platform's cap on lines for mail is not built yet). A mail with no PDF is not a bill.
+ */
+async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> {
+  if (!e.files.length) return "not-for-me";
+  if ((await kit.store.list<Bill>("bills")).some((r) => r.data.mail?.id === e.id)) return "took";
+  const id = kit.id();
+  const earlier = (await kit.store.list<Bill>("bills")).filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book).sort((a, b) => b.data.at - a.data.at)[0];
+  const book = earlier?.data.book && (await kit.store.get<Book>("books", earlier.data.book)) ? earlier.data.book : null;
+  const bill: Bill = {
+    v: 1,
+    source: "mail",
+    files: e.files.map((f) => ({ id: f.id, type: f.type })),
+    mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id },
+    by: null,
+    at: e.at,
+    state: book ? "filed" : "to-tag",
+    book,
+    tagged: book ? { how: "sender", by: null, at: kit.now } : null,
+    amount: null,
+    billDate: null,
+    note: null,
+    batch: null,
+    history: [{ at: kit.now, what: "came" }, ...(book ? [{ at: kit.now, what: "filed" as const, how: "sender" as How, book, by: null }] : [])],
+  };
+  await kit.store.put("bills", id, bill as unknown as Json, e.at);
+  return "took";
 }
 
 /** A photo in the group: a bill. Its caption may say whose it is, how much, and a note. */
@@ -298,6 +331,7 @@ function shown(id: string, b: Bill) {
   return {
     id,
     source: b.source,
+    from: b.mail?.from ?? null,
     files: b.files,
     at: b.at,
     state: b.state,
@@ -350,7 +384,7 @@ const noteOf = (raw: unknown): string | null => (typeof raw === "string" ? raw.r
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.1.0",
+  version: "1.2.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -361,7 +395,7 @@ export default definePlugin({
   price: 0,
   // Tier 2: it stores a photo for every bill.
   tier: 2,
-  permissions: ["photos"],
+  permissions: ["photos", "mail"],
   // Being tried out first: only people Zelfred allows can add it.
   unlisted: true,
   listing: {
@@ -416,6 +450,11 @@ export default definePlugin({
   },
 
   /** Their bill's photo was deleted in WhatsApp: the bill stays on the page, and they are told so. */
+  /** A bill that came to the person's Zelfred mail address (SDK 1.33.0). */
+  async onMail(event, kit) {
+    return await keepMail(kit, event);
+  },
+
   async onDeleted(event, kit) {
     if (!isBillRef(event.ref)) return;
     if (!(await kit.store.get("bills", event.ref.id))) return;
