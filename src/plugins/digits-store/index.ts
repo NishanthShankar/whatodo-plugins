@@ -511,7 +511,7 @@ async function countUp(kit: Kit, label: Row<Label>): Promise<void> {
   const e = await kit.store.get<Entry>("entries", `${label.key}:${label.data.current!.id}`);
   const n = (isWhole(e?.num) ? e!.num! : 0) + 1;
   const key = await keep(kit, label, { text: String(n), num: n, num2: null, unit: null, shape: "number" }, kit.today, [], "whatsapp");
-  if (!key) return kit.send(copy.fullOne({ max: MAX_ENTRIES }));
+  if (!key) return kit.send(copy.fullOne({ max: MAX_ENTRIES.toLocaleString("en-IN") }));
   const ref: MessageRef = { k: "m", ids: [key] };
   kit.mark(j(ref));
   await kit.store.put("state", "last", j({ ids: [key], at: kit.now, ref } satisfies Last));
@@ -754,7 +754,7 @@ export default definePlugin({
         } else if (typeof a.name === "string" && tidyLabel(a.name)) label = await labelFor(kit, all, tidyLabel(a.name));
         if (!label) throw new Error(all.length >= MAX_LABELS ? `Sorry, I can keep up to ${MAX_LABELS} different things for now.` : "Give it a name.");
         const key = await keep(kit, label, v, day, [], "page");
-        if (!key) throw new Error("Sorry, that one is full for now.");
+        if (!key) throw new Error(`Sorry, ${label.data.name} is full for now. Remove some of its older values first.`);
         if (!(await kit.store.get("state", "firstDay"))) await kit.store.put("state", "firstDay", kit.today);
         return { label: label.key, entry: key.split(":")[1] };
       },

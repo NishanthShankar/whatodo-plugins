@@ -190,5 +190,5 @@ export const copy = {
   /** The most labels an install keeps. */
   full: msg<{ max: number }>([({ max }) => `Sorry, ${max} different things is as many as I can keep here for now. Remove one and send this again.`]),
   /** The most values one label keeps. */
-  fullOne: msg<{ max: number }>([({ max }) => `Sorry, ${max} is as many as I can keep under one name for now. Remove some on the page and send this again.`]),
+  fullOne: msg<{ max: string }>([({ max }) => `Sorry, ${max} is as many as I can keep under one name for now. Remove some on the page and send this again.`]),
 };
