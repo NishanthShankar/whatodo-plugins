@@ -11,7 +11,9 @@ import type { Secret } from "./read";
 
 // ── Words the parser in index.ts reads back, and the examples shown to people. ──
 
-export const EXAMPLE = fixed("weight 72.4");
+/** The first example a new person sees: not about the body (the owner, 2026-11-26: "weight as second thing atleast"). */
+export const EXAMPLE = fixed("Amma ring size 14");
+export const EXAMPLE_WEIGHT = fixed("weight 72.4");
 export const EXAMPLE_SEVERAL = fixed("waist 34 hips 39");
 export const EXAMPLE_ASK = fixed("weight?");
 export const LIST = fixed("list");
@@ -40,7 +42,7 @@ export const REMOVE_REACTIONS = [fixed("❌"), fixed("✖️"), fixed("🗑️")
 // ── The options of the one question, in order. index.ts matches a vote by its place. ──
 
 export const REMOVE_OPTIONS = [fixed("Remove"), fixed("Keep it")];
-export const SAME_OPTIONS = [fixed("Yes, the same"), fixed("No, two")];
+export const SAME_OPTIONS = [fixed("Yes"), fixed("No")];
 
 const SECRET: Record<Secret, string> = { pin: "a PIN", card: "a card number", aadhaar: "an Aadhaar number" };
 
@@ -75,6 +77,7 @@ export const copy = {
       "Send a number with a word for what it is, in your own words. A few ready-made ones:",
       "",
       `• _${EXAMPLE}_: kept`,
+      `• _${EXAMPLE_WEIGHT}_: kept, with the ones before it`,
       `• _${EXAMPLE_SEVERAL}_: two kept at once`,
       `• _${EXAMPLE_ASK}_: the latest, with the first`,
       `• _${HISTORY_EXAMPLE}_: every one, newest first`,
@@ -92,7 +95,7 @@ export const copy = {
   firstKept: msg<{ name: string; value: string }>([({ name, value }) => `Kept: ${name}, ${value}. Ask me "${name}?" whenever you want it back, with the ones before it. From now on a 👍 means kept.`]),
 
   /** A number kept with no word for it, and nothing to guess from. The next words name it. */
-  whatIsIt: msg<{ value: string }>([({ value }) => `${value} is what?`]),
+  whatIsIt: msg<{ value: string }>([({ value }) => `What is ${value}?`]),
 
   /** A new number far from the last one under the same label: kept, and both said, with no verdict. */
   jump: msg<{ name: string; value: string; before: string }>([({ name, value, before }) => `Kept: ${name}, ${value}. The one before was ${before}.`]),
@@ -118,8 +121,8 @@ export const copy = {
     ({ name, date, due }) => (due === "today" ? `Today: *${shown(name)}*, ${date}.` : `A week from today: *${shown(name)}*, ${date}.`),
   ]),
 
-  /** Asked once, when one name was asked for in place of another (the owner: "ask once and remember when in doubt"). og-copy-bot's pick of three, waiting for the owner's. */
-  samePerson: msg<{ asked: string; kept: string }>([({ asked, kept }) => `${shown(asked)} and ${shown(kept)}. One and the same, I take it?`]),
+  /** Asked once, when one name was asked for in place of another (the owner: "ask once and remember when in doubt"). The owner picked the plainest (2026-11-26): a question is always simple and never puzzling; any quirk goes in a line of its own. */
+  samePerson: msg<{ asked: string; kept: string }>([({ asked, kept }) => `Are ${shown(asked)} and ${shown(kept)} the same person?`]),
   sameKept: msg<{ asked: string; kept: string }>([({ asked, kept }) => `Noted. ${shown(asked)} and ${shown(kept)} are one and the same. I shan't ask again.`]),
   sameNot: msg([`Noted. Two, then. I'll keep them apart.`]),
 

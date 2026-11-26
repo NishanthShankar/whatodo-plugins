@@ -440,7 +440,7 @@ export default definePlugin({
   icon: "🔢",
   tagline: "Any number you want kept, with a word for what it is. Ask for it back any time.",
   description:
-    "Send a number with a word for what it is: \"weight 72.4\", \"Amma ring size 14\", \"car service 45,200 km\". Each one is kept with its day, and the one before is kept too, so you can ask for the latest, see every one, or look at a graph on the page. A photo sent with a number is kept with it. Nothing is asked for and nothing is judged.",
+    "Send a number with a word for what it is: \"Amma ring size 14\", \"weight 72.4\", \"car service 45,200 km\". Each one is kept with its day, and the one before is kept too, so you can ask for the latest, see every one, or look at a graph on the page. A photo sent with a number is kept with it. Nothing is asked for and nothing is judged.",
   groupName: copy.groupName(),
   price: 0,
   // Tier 1: a few rows per message, no schedules, and the sorting model only when our own matching finds nothing.

@@ -3,7 +3,7 @@
 exports[`digits copy 1`] = `
 {
   "askRemove": "Remove weight, all 6 kept?",
-  "description": "Send a number with a word for what it is: "weight 72.4", "Amma ring size 14", "car service 45,200 km". Each one is kept with its day, and the one before is kept too, so you can ask for the latest, see every one, or look at a graph on the page. A photo sent with a number is kept with it. Nothing is asked for and nothing is judged.",
+  "description": "Send a number with a word for what it is: "Amma ring size 14", "weight 72.4", "car service 45,200 km". Each one is kept with its day, and the one before is kept too, so you can ask for the latest, see every one, or look at a graph on the page. A photo sent with a number is kept with it. Nothing is asked for and nothing is judged.",
   "firstKept": "Kept: weight, 72.4. Ask me "weight?" whenever you want it back, with the ones before it. From now on a 👍 means kept.",
   "full": "I already keep 300 different things here, which is as many as I keep. Remove one to make room.",
   "groupName": "🔢 Digits",
@@ -11,7 +11,8 @@ exports[`digits copy 1`] = `
 
 Send a number with a word for what it is, in your own words. A few ready-made ones:
 
-• _weight 72.4_: kept
+• _Amma ring size 14_: kept
+• _weight 72.4_: kept, with the ones before it
 • _waist 34 hips 39_: two kept at once
 • _weight?_: the latest, with the first
 • _history weight_: every one, newest first
@@ -46,7 +47,7 @@ And 3 more on the page: app.zelfred.com/plugins/digits-store",
   "lockedPin": "Kept, and hidden: I'll only ever show it as dots, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
   "notFound": "Nothing kept as "shoe size". Send _list_ to see what I keep.",
   "nothingToUndo": "Nothing to take out.",
-  "nothingYet": "Nothing kept yet. Send a number with a word for what it is, like _weight 72.4_.",
+  "nothingYet": "Nothing kept yet. Send a number with a word for what it is, like _Amma ring size 14_.",
   "page": "Every number has a page too, with a graph of how it has moved: app.zelfred.com/plugins/digits-store",
   "photoAlone": "I keep a photo with its number. Send it again with the number written under it.",
   "photosFull": "That one already has four photos, so I left this one out.",
@@ -59,11 +60,11 @@ And 3 more on the page: app.zelfred.com/plugins/digits-store",
   "removedLabel": "Weight is gone, with everything kept under it.",
   "sameKept": "Noted. Mom and Amma are one and the same. I shan't ask again.",
   "sameNot": "Noted. Two, then. I'll keep them apart.",
-  "samePerson": "Mom and Amma. One and the same, I take it?",
+  "samePerson": "Are Mom and Amma the same person?",
   "secret": "Kept. That looks like an Aadhaar number, and it now sits in this chat. If you'd rather it didn't, delete your message for everyone and I'll forget it too.",
   "tagline": "Any number you want kept, with a word for what it is. Ask for it back any time.",
   "takenOut": "Taken out: weight, 79.",
-  "welcome": "Numbers live here. Send one with a word for what it is, like _weight 72.4_, and ask for it back whenever you like.",
-  "whatIsIt": "72.4 is what?",
+  "welcome": "Numbers live here. Send one with a word for what it is, like _Amma ring size 14_, and ask for it back whenever you like.",
+  "whatIsIt": "What is 72.4?",
 }
 `;

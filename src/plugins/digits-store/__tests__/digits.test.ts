@@ -31,7 +31,7 @@ const last = (t: T) => t.sent.at(-1)!.text;
 
 describe("the welcome and help", () => {
   it("asks for nothing and names one thing to send", () => {
-    expect(digits.welcome).toContain("weight 72.4");
+    expect(digits.welcome).toContain("Amma ring size 14");
     expect(digits.welcome).not.toContain("?");
   });
   it("is unlisted while it is tried", () => {
@@ -420,7 +420,7 @@ describe("two names for one person", () => {
     await t.message(digits, "ring Amma 14");
     await t.message(digits, "ring Mom");
     await t.sorted(digits, "ring Mom", label(t, "ring Amma").id);
-    expect(t.asked.at(-1)).toMatchObject({ question: copy.samePerson({ asked: "mom", kept: "amma" }), options: ["Yes, the same", "No, two"] });
+    expect(t.asked.at(-1)).toMatchObject({ question: copy.samePerson({ asked: "mom", kept: "amma" }), options: ["Yes", "No"] });
     await t.answer(digits, t.asked.at(-1)!.ref, 0);
     expect(last(t)).toBe(copy.sameKept({ asked: "mom", kept: "amma" }));
     await t.message(digits, "Mom's ring?");

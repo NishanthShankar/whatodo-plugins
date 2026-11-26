@@ -14,7 +14,7 @@ Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines are draf
 |---|---|
 | The promise | "Any number, kept with a word for what it is." |
 | The aside | "Ask for it back. I won't make you scroll." |
-| The first thing to send | `weight 72.4` |
+| The first thing to send | `Amma ring size 14` (weight second, the owner, 2026-11-26) |
 | The first time line | "Kept: weight, 72.4. Ask me "weight?" whenever you want it back, with the ones before it. From now on a 👍 means kept." |
 | The moment it clicks | Minutes in: they ask "weight?" and get it back with its day. A date gets its reminder the morning it is due. |
 | The setup steps | None beyond adding the app. |
@@ -40,7 +40,7 @@ Send these in the group. Your own words work too.
 | `height 5'6"`, `bp 120/80`, `salary 1.5 lakh`, `rent ₹25,000`, `steps 10k`, `car MH 12 AB 1234`, `flat 4B`, `mobile +91 98765 43210` | Kept as typed. The number in it (66 inches, 150000) is kept for the graph. |
 | `weight 71 yesterday` | Kept on yesterday. |
 | `Riya birthday 12/03`, `passport expires 3/3/2031` | A date, said back in words ("12 March"), day first, and reminded (see Schedules). No 👍: the words are the receipt. A short date like `bangle 2/4` is a date only with a date word next to it. |
-| `72.4` alone | Under the only label there is. With none or several: "72.4 is what?", and the next words (within the hour) name it. |
+| `72.4` alone | Under the only label there is. With none or several: "What is 72.4?", and the next words (within the hour) name it. |
 | a new value far from the last (`waist 340` after `waist 34`) | Kept, and both said: "The one before was 34." No verdict. |
 | `weight?`, `what's my weight`, `Amma ring` | The latest, with its day; with more than one kept, the first too and how many. Every label that fits the words is answered. The photo kept with the latest is sent with it. |
 | `history weight`, `weight history` | Every value, newest first, 30 at most; the rest on the page. |
@@ -72,7 +72,7 @@ When the sorting model answers a question with a label that differs from it by o
 
 | Question | Options | Closes | Confirm line |
 |---|---|---|---|
-| Mom and Amma. One and the same, I take it? | Yes, the same / No, two | On the first answer | Off. Yes: "Noted. Mom and Amma are one and the same. I shan't ask again."; No: "Noted. Two, then. I'll keep them apart." |
+| Are Mom and Amma the same person? | Yes / No | On the first answer | Off. Yes: "Noted. Mom and Amma are one and the same. I shan't ask again."; No: "Noted. Two, then. I'll keep them apart." |
 
 After a yes, our own matching tries the other name, so the model isn't asked again.
 
