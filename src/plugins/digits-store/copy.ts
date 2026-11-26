@@ -20,6 +20,7 @@ export const LIST = fixed("list");
 export const UNDO = fixed("undo");
 export const HISTORY_EXAMPLE = fixed("history weight");
 export const REMOVE_EXAMPLE = fixed("remove weight");
+export const REMOVE_ONE_EXAMPLE = fixed("remove weight 72.4");
 /** Where the page lives. The address is sent plain until a plugin can send a link that signs people in. */
 export const PAGE = fixed("app.zelfred.com/plugins/digits-store");
 
@@ -36,6 +37,8 @@ export const REMOVE_WORDS = [fixed("remove"), fixed("delete"), fixed("forget"), 
 
 /** On a message whose numbers were kept, when nothing is said in words. */
 export const SAVED = fixed("👍");
+/** On a message whose value is hidden (a card number, a PIN), every time, in place of the 👍. */
+export const HIDDEN = fixed("🔒");
 /** A reaction that takes a message's numbers out. */
 export const REMOVE_REACTIONS = [fixed("❌"), fixed("✖️"), fixed("🗑️"), fixed("🗑")];
 
@@ -84,6 +87,7 @@ export const copy = {
       `• _${HISTORY_EXAMPLE}_: every one, newest first`,
       `• _${LIST}_: everything I keep`,
       `• _${UNDO}_: takes the last one out`,
+      `• _${REMOVE_ONE_EXAMPLE}_: takes that one out`,
       `• _${REMOVE_EXAMPLE}_: takes weight out, with all of it`,
       "",
       "A photo sent with its number is kept with it. To change one, reply to your message with the right number, or react ❌ to take it out.",

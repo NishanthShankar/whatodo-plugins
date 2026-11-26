@@ -349,8 +349,12 @@ describe("numbers people may not want in a chat", () => {
     expect(last(t)).toContain(copy.firstKept({ name: "atm pin", value: "••••" }));
     expect(last(t)).toContain(copy.locked({ what: "pin" }));
     expect(last(t)).not.toContain("4821");
+    expect(t.reactions.at(-1)).toBe("🔒");
+    const said = t.sent.length;
     await t.message(digits, "card 4111 1111 1111 1111");
-    expect(last(t)).toBe(copy.locked({ what: "card" }));
+    // Explained once: the second hidden value gets the 🔒 alone.
+    expect(t.sent.length).toBe(said);
+    expect(t.reactions.at(-1)).toBe("🔒");
     await t.message(digits, "card?");
     expect(last(t)).toBe("*Card*: •••• 1111, kept today.");
     await t.message(digits, "list");
@@ -629,6 +633,21 @@ describe("the first answer", () => {
     expect(last(t)).toBe(`*Amma ring size*: 14, kept today.\n\n${copy.stillHere()}`);
     await t.message(digits, "Amma ring size?");
     expect(last(t)).toBe("*Amma ring size*: 14, kept today.");
+  });
+});
+
+describe("removing one value by its words", () => {
+  it("takes out the newest value that matches, and never keeps a label called remove", async () => {
+    const t = taught();
+    await t.message(digits, "weight 72.4");
+    await t.message(digits, "weight 71.8");
+    await t.message(digits, "weight 72.4");
+    await t.message(digits, "remove weight 72.4");
+    expect(last(t)).toBe(copy.takenOut({ what: "weight, 72.4" }));
+    expect(label(t, "weight")).toMatchObject({ count: 2, current: { text: "71.8" } });
+    await t.message(digits, "delete weight 99");
+    expect(last(t)).toBe(copy.notFound({ words: "weight 99" }));
+    expect(labelsOf(t).map((l) => l.name)).toEqual(["weight"]);
   });
 });
 

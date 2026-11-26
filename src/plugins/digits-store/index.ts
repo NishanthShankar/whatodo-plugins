@@ -1,5 +1,5 @@
 import { definePlugin, type Json, type Kit } from "../../sdk";
-import { copy, HISTORY_WORDS, LIST_WORDS, REMOVE_OPTIONS, SAME_OPTIONS, REMOVE_REACTIONS, REMOVE_WORDS, SAVED, UNDO_WORDS, type Line } from "./copy";
+import { copy, HIDDEN, HISTORY_WORDS, LIST_WORDS, REMOVE_OPTIONS, SAME_OPTIONS, REMOVE_REACTIONS, REMOVE_WORDS, SAVED, UNDO_WORDS, type Line } from "./copy";
 import { dateOf, saysDate, directMatch, LOCKED, masked, overlap, readNumbers, readValue, remindOf, sameLabel, sameWord, sayDate, secretOf, shapeWords, tidyLabel, wordsOf, type DateParts, type Secret, type Shape, type Value } from "./read";
 
 /**
@@ -23,6 +23,7 @@ import { dateOf, saysDate, directMatch, LOCKED, masked, overlap, readNumbers, re
  *   state    key: "firstDay"         data: the day the first number was kept
  *   state    key: "page"             data: 1 once the page was named
  *   state    key: "recalled"         data: 1 once the first answer was given
+ *   state    key: "hiddenTaught"     data: 1 once a hidden value was explained in words
  *   state    key: "pending"          data: Pending: a number sent with no word, waiting for one
  *   state    key: "last"             data: Last: what the last message kept, for undo and a photo after it
  *   state    key: "aliases"          data: { word: [words] }: names the person said are one ("amma" and "mom")
@@ -414,10 +415,17 @@ async function keepAll(kit: Kit, pieces: { label: string; value: Value }[], day:
     await kit.store.put("state", "page", 1);
     said.push(copy.keptWithPage({ name: grown.name, count: grown.count }));
   }
-  if (secret) said.push(LOCKED.includes(secret) ? copy.locked({ what: secret }) : copy.secret({ what: secret }));
-  // A reaction or a reply, never both (docs/plugin-ui-styleguide.md, section 10).
+  // A hidden value is marked 🔒 on the person's message, every time; the words come with the first one only
+  // (the owner, 2026-11-26). An Aadhaar number isn't hidden, so its offer is said each time.
+  const hidden = !!secret && LOCKED.includes(secret);
+  if (hidden && !(await kit.store.get("state", "hiddenTaught"))) {
+    await kit.store.put("state", "hiddenTaught", 1);
+    said.push(copy.locked({ what: secret! }));
+  } else if (secret && !hidden) said.push(copy.secret({ what: secret }));
+  if (hidden) kit.react(HIDDEN);
+  // Otherwise a reaction or a reply, never both (docs/plugin-ui-styleguide.md, section 10).
   if (said.length) kit.send(said.join("\n\n"));
-  else kit.react(SAVED);
+  else if (!hidden) kit.react(SAVED);
 }
 
 async function undo(kit: Kit, ids: string[] | null, ref: Json | null): Promise<void> {
@@ -493,7 +501,7 @@ async function countUp(kit: Kit, label: Row<Label>): Promise<void> {
 
 export default definePlugin({
   id: "digits-store",
-  version: "1.2.0",
+  version: "1.3.0",
   sdk: "1",
   name: "Digits",
   icon: "🔢",
@@ -583,6 +591,21 @@ export default definePlugin({
     const rm = removeOf(text);
     if (rm && !/\d/.test(rm)) {
       return recall(kit, rm, async (found) => (found.length === 1 ? askRemove(kit, found[0]) : answer(kit, found)));
+    }
+    // "remove weight 72.4": that one value, the newest kept with it. Never kept as a label called "remove weight".
+    if (rm) {
+      const r = readNumbers(rm);
+      const piece = r?.pieces.length === 1 ? r.pieces[0] : null;
+      if (piece?.label) {
+        const all = (await labels(kit)).filter((l) => l.data.current);
+        const found = directMatch(wordsOf(piece.label), all.map((l) => ({ ...l, id: l.key, words: l.data.words })));
+        if (found.length === 1) {
+          const rows = (await entriesOf(kit, found[0].key)).reverse();
+          const hit = rows.find((x) => x.data.text === piece.value.text) ?? rows.find((x) => x.data.num !== null && x.data.num === piece.value.num);
+          if (hit) return undo(kit, [hit.key], null);
+        }
+        return kit.send(copy.notFound({ words: rm }));
+      }
     }
 
     const reading = readNumbers(text);

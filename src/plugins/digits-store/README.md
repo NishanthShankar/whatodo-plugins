@@ -52,6 +52,7 @@ Send these in the group. Your own words work too.
 | `list` (also `all`, `everything`) | Every label's latest, the last added first. |
 | `undo` (also `remove`, `delete`, `wrong`) | Takes out what the last message kept. |
 | `remove weight` (also `delete`, `forget`, `clear`) | Asks first, then takes out the label and everything under it. |
+| `remove weight 72.4` | Takes out that one value, the newest kept with it. |
 | a photo with a number in its caption | Kept with that value. |
 | a photo with no number | With what was kept in the last 15 minutes, or with the label its caption names. Otherwise turned away. Four photos at most per value. |
 | `help` | The command list. |
@@ -91,7 +92,7 @@ After a yes, our own matching tries the other name, so the model isn't asked aga
 
 Never refused (the owner, 2026-11-26).
 
-- **A card number or a PIN** (also a CVV, an OTP, a password: a 3 to 6 digit value with one of those words) **is hidden**: kept whole (not encrypted), shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN. A card is found by its check digit, a PIN by its word; a postal PIN code is not a PIN. The answer says so and suggests deleting the message.
+- **A card number or a PIN** (also a CVV, an OTP, a password: a 3 to 6 digit value with one of those words) **is hidden**: kept whole (not encrypted), shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN. A card is found by its check digit, a PIN by its word; a postal PIN code is not a PIN. The person's message gets a 🔒 every time; the first one also gets a line saying so and suggesting deleting the message.
 - **An Aadhaar number** (12 digits with a valid check digit) is kept as typed, and the answer offers a way out: delete the message for everyone and Digits forgets it too. Whether Aadhaar, PAN, passport and bank numbers should lock as well is the owner's open question.
 
 ## Schedules
