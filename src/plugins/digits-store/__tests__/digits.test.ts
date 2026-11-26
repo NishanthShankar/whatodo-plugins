@@ -365,6 +365,8 @@ describe("numbers people may not want in a chat", () => {
     const one = (await t.load(digits, { label: pin.id })) as { entries: { id: string; text: string; locked: boolean }[] };
     expect(one.entries[0]).toMatchObject({ text: "••••", locked: true });
     expect(await t.act(digits, "reveal", { label: pin.id, entry: one.entries[0].id })).toEqual({ text: "4821" });
+    // Zelfred runs it only for a call signed by the person's lock.
+    expect(digits.web?.locked).toEqual(["reveal"]);
     await t.message(digits, "undo");
     expect(last(t)).toBe(copy.takenOut({ what: "card, •••• 1111" }));
   });

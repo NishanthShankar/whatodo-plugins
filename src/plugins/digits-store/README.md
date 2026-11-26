@@ -127,7 +127,7 @@ At most 300 labels and 2000 values under each.
 |---|---|---|
 | `add` | `{ label }` or `{ name }`, `value`, `day?` | Keeps a value on any day up to today. Returns `{ label, entry }`. |
 | `edit` | `label, entry, value?, day?` | Corrects a value, its day, or both. |
-| `reveal` | `label, entry` | A hidden value whole: `{ text }`. The page calls it only behind the same unlock as a vault, the person's passkey or passphrase (the owner, 2026-11-26), once Zelfred has one lock for every page. |
+| `reveal` | `label, entry` | A hidden value whole: `{ text }`. Locked (`web.locked`): Zelfred runs it only for a call signed by the person's lock, their passkey, passphrase or recovery key (the owner, 2026-11-26). |
 | `remove` | `label, entry` | Takes one value out, with its photos. |
 | `setCounter` | `label, on` | Turns counting up by name on or off. Off stays off. |
 | `rename` | `label, name` | Renames a label; refused when another has the same words. |
@@ -138,7 +138,7 @@ At most 300 labels and 2000 values under each.
 
 - Values are private to the person: the group has only them and Zelfred, and the plugin has no "members" permission.
 - No model ever sees a value. Our own matching reads every message. Only an unplaced question goes to the sorting model, with labels and each value's shape in words, after Zelfred takes every digit out.
-- Card numbers and PINs are shown masked everywhere; whole only behind the vault's unlock (passkey or passphrase), once that lock reaches every page.
+- Card numbers and PINs are shown masked everywhere; whole only behind the person's lock (passkey, passphrase or recovery key), which Zelfred checks before `reveal` runs.
 - Zelfred counts that the app was used (messages, answers), never a value or a label's text.
 - Deleting a message for everyone forgets what it kept, photos included. The page removes any value, any label, or everything.
 - Ordinary care, as for every app; no special handling of health numbers (the owner, 2026-11-26).
