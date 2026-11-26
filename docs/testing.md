@@ -47,6 +47,7 @@ it("logs a glass and reacts", async () => {
 | `await t.act(plugin, action, args?)` | the web page calls an action |
 | `await t.link(plugin, link)` | Zelfred read a link the plugin asked for with `kit.links.read` (`onLink`, with that request's `ref`). Throws when nobody asked for that address. |
 | `await t.parcel(plugin, what, found)` | Zelfred asked the carrier about a parcel the plugin asked for with `kit.parcels.read(what, ref)` (`onParcel`, with that request's `ref`). Build `found` with `parcel({ stage, status, place, ... })`, or `parcel({ found: false, reason })`. Throws when nobody asked about `what`. |
+| `await t.sorted(plugin, text, choice, confidence?)` | Zelfred sorted words the plugin gave to `kit.sort(text, choices, ref)` (`onSorted`, with that request's `ref`). `choice` is one of the ids given, or null. Throws when nobody asked to sort `text`. |
 | `await t.message(plugin, text, null, null, undefined, undefined, { photos, place })` | a message with a photo (`photo("p1")`, needs `"photos"`) or a shared position (needs `"location"`); `text` may be `""` |
 | `t.addFile(id)` | a picture was added on the plugin's page: `kit.files.get(id)` now finds it |
 | `await t.shared(plugin, key)` | someone opens the shared page for `key`: returns what `web.shared` gives. Throws when nothing is shared under that key. |
@@ -65,6 +66,7 @@ it("logs a glass and reacts", async () => {
 | `t.shares` | the shared pages that are open, by key (`kit.share.url`); a key is gone after `kit.share.remove` |
 | `t.reads` | `{ url, ref }[]`: links asked for with `kit.links.read` and not answered yet |
 | `t.parcelReads` | `{ what, ref }[]`: parcels asked about with `kit.parcels.read` and not answered yet |
+| `t.sorts` | `{ text, choices, ref, after }[]`: words given to `kit.sort` and not answered yet |
 | `t.dump()` | `{ "collection/key": data }` of everything stored |
 | `t.kit.settings` | current settings |
 | `t.setToday(day)`, `t.setHour(h)` | move the clock between events |

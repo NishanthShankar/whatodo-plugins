@@ -1,5 +1,13 @@
 # Changelog: TripExpenses
 
+## [1.10.0] - 2026-11-26
+
+### Added
+- Once people have made two emoji groups on a trip, an expense nobody reacts to within half a minute is put in the group it fits, by Zelfred's sorting model, going by what people put in each group. The emoji takes the place of my 👍 on its message. A reaction always wins, before or after, and only groups people made describe a group. Needs the new `sort` permission (SDK 1.32.0).
+
+### Data
+- An expense may carry `sorted: true` while its mark was put by sorting. A reaction or the page clears it.
+
 ## [1.9.0] - 2026-11-25
 
 ### Added

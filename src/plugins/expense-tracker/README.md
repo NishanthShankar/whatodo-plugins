@@ -47,6 +47,7 @@ On an expense you sent:
 | reply `mine` (also `me`, `I paid`) | It is yours. 👍 |
 | reply `#food` | The label is added. 👍. Works after the trip closed too. |
 | react with an emoji, like 🍕 | The expense joins that emoji's group. `total` and the page add up each group. Anyone in the group may, and the last reaction counts. Taking the reaction away clears it. 👍, ✅, 👌 and 🙏 are not groups. Works after the trip closed too. |
+| an expense nobody reacts to, once the trip has two emoji groups | Half a minute after it is kept, I put it in the group it fits, going by what people put in each group, and the emoji takes the place of my 👍 on the message. When none fits, it stays out. Reacting with another emoji moves it, at any time. A message with several lines shows an emoji only when they all went to the same group. |
 | reply `bill` | Its bill comes back, as a photo with the expense as its caption. |
 
 ### Currency
@@ -110,7 +111,9 @@ Refs: `{ kind: "expense", trip, ids }` on the person's own expense message (thro
 
 ## Privacy
 
-Permissions: `members`, so friends added to the group can send expenses, `groups`, so it can be given a group the person already had, and `photos`, so a photo of a bill can be kept with its expense.
+Permissions: `members`, so friends added to the group can send expenses, `groups`, so it can be given a group the person already had, `photos`, so a photo of a bill can be kept with its expense, and `sort`, so an expense can be put in an emoji's group.
+
+With `sort`, once a trip has two emoji groups, what each new expense was ("dinner", without its amount) and what was in each group go to Zelfred's sorting model, which is run outside Zelfred (jev, by TypeSafe). Zelfred takes out every number first. Nothing else about the trip or the people in it is sent.
 
 With `photos`, every photo sent in the group reaches the app. It keeps one only when the photo's caption is an expense or the photo is a reply to an expense. Any other photo is deleted at once, and nothing is said about it. A bill is deleted with its expense. Bills are kept on Zelfred's servers and shown only to the person who added the app, on the page, and to the group when someone asks for one.
 

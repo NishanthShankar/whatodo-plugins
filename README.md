@@ -33,7 +33,7 @@ The goal is a marketplace where developers publish plugins and **earn from them*
 | 🌸 [Period Tracker](src/plugins/lmp-tracker) | 3.1.2 | 1 | Period and pregnancy tracker: next period, fertile window, due date, weekly updates. |
 | 🎬 [MediaStore](src/plugins/mediastore) | 1.3.0 | 2 | Forward reels and videos; they are kept with title and caption and found again with a few words. Unlisted. |
 | 📍 [SafeButWhere](src/plugins/safebutwhere) | 1.1.0 | 2 | Remember where you put things: send a photo of the spot or a few words, ask for it later. Unlisted. |
-| 🧾 [TripExpenses](src/plugins/expense-tracker) | 1.4.0 | 1 | Trip expenses added up: send what you paid and the amount, say "end trip" for the total. Friends in the group can send theirs. A new group description starts a new trip. |
+| 🧾 [TripExpenses](src/plugins/expense-tracker) | 1.10.0 | 1 | Trip expenses added up: send what you paid and the amount, say "end trip" for the total. Friends in the group can send theirs. A new group description starts a new trip. Once a trip has emoji groups, an expense nobody reacts to is put in one. |
 | 🔁 [SubscriptionTracker](src/plugins/subscription-tracker) | 1.0.0 | 1 | What you pay for again and again, and what runs out: a list of what renews each week, a word the day before, and a question about whether you still use it. |
 | 🧹 [Chores](src/plugins/chores) | 1.1.0 | 1 | A shared home's jobs, taken in turns: the day's list each morning, credit to whoever ticks, the turn moves on, and a count of who did what when asked. Takes the group the home already has. Unlisted. |
 | 📦 [ShipmentTracker](src/plugins/shipment-tracker) | 1.0.0 | 2 | FedEx and UPS parcels, asked about every hour: a message when the status changes, and `updates` for where each one is. Unlisted. |

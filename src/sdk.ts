@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.31.0";
+export const SDK_VERSION = "1.32.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -71,10 +71,13 @@ export type Tier = 1 | 2 | 3;
  *   a tracking link or number (`kit.parcels.read`) and gets the latest status back in
  *   `onParcel`. Zelfred does the asking, with its own account at the carrier, and says so
  *   plainly when it has no way to track something. Since SDK 1.31.0.
+ * - "sort": have Zelfred put a few words (what an expense was, say) in one of the plugin's own
+ *   groups, a while later (`kit.sort`, answered in `onSorted`). Zelfred takes out numbers before
+ *   the words go to the sorting model, which is run outside Zelfred. Since SDK 1.32.0.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault" | "share" | "photos" | "location" | "parcels";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault", "share", "photos", "location", "parcels"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault" | "share" | "photos" | "location" | "parcels" | "sort";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault", "share", "photos", "location", "parcels", "sort"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -329,6 +332,17 @@ export interface Kit {
   parcels: {
     read(what: string, ref: Json): Promise<void>;
   };
+  /**
+   * Put a few words in one of the plugin's own groups: `choices` is id -> what belongs there
+   * ({ "🍔": "food: lunch, chai, dinner" }), 1 to 20 of them. After `opts.after` seconds (0 to
+   * 600, default 0) Zelfred takes the numbers out of `text`, asks its sorting model which choice
+   * fits, and calls `onSorted` with the answer and `ref`. Every call is answered: `choice` is
+   * null when none fits well enough, the model is off or it failed. The wait lets people do it
+   * themselves first; check that nobody did before acting on the answer. `text` up to 200
+   * characters. At most 30 calls while handling one event. Needs the "sort" permission. Not on
+   * page loads. Since SDK 1.32.0.
+   */
+  sort(text: string, choices: Record<string, string>, ref: Json, opts?: { after?: number }): Promise<void>;
   /**
    * Files that arrived through hooks, and photos (the "photos" permission). The plugin holds
    * their ids; Zelfred holds the bytes. Since SDK 1.5.0.
@@ -685,6 +699,16 @@ export interface IntentEvent {
   group?: string | null;
 }
 
+/** What Zelfred's sorting model made of words a plugin asked about with `kit.sort`. Since SDK 1.32.0. */
+export interface SortEvent {
+  /** The ref given to `kit.sort`. */
+  ref: Json;
+  /** One of the ids in the choices given, or null: none fitted well enough, or nothing could be asked. */
+  choice: string | null;
+  /** 0 to 1; 0 when `choice` is null because nothing was asked. */
+  confidence: number;
+}
+
 /** A person deleted, for everyone, a message of theirs that the plugin had marked. Since SDK 1.30.0. */
 export interface DeletedEvent {
   /** The ref the message was marked with (`kit.mark`). */
@@ -893,6 +917,8 @@ export interface PluginDef {
   onLink?(event: LinkEvent, kit: Kit): Promise<void>;
   /** A parcel asked about with `kit.parcels.read` was looked up. Needs the "parcels" permission. Since SDK 1.31.0. */
   onParcel?(event: ParcelEvent, kit: Kit): Promise<void>;
+  /** Words given to `kit.sort` were sorted. Needs the "sort" permission. Since SDK 1.32.0. */
+  onSorted?(event: SortEvent, kit: Kit): Promise<void>;
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
   /** Called with the intent Zelfred found for an unclear message. Required with `understand`. */
@@ -961,6 +987,9 @@ export function definePlugin(def: PluginDef): PluginDef {
   if ((def.onLink || def.links) && !def.permissions?.includes("links")) throw new Error(`${def.id}: onLink and links need the "links" permission`);
   if (def.onParcel && !def.permissions?.includes("parcels")) throw new Error(`${def.id}: onParcel needs the "parcels" permission`);
   if (def.permissions?.includes("parcels") && !def.onParcel) throw new Error(`${def.id}: the "parcels" permission needs onParcel (where the answer arrives)`);
+  if (def.onSorted && !def.permissions?.includes("sort")) throw new Error(`${def.id}: onSorted needs the "sort" permission`);
+  if (def.permissions?.includes("sort") && !def.onSorted) throw new Error(`${def.id}: the "sort" permission needs onSorted (where the answer arrives)`);
+  if (def.permissions?.includes("sort") && def.permissions.includes("vault")) throw new Error(`${def.id}: "sort" can't be combined with "vault" (nothing written there is read)`);
   if (def.onGroup && !def.permissions?.includes("groups")) throw new Error(`${def.id}: onGroup needs the "groups" permission`);
   if (def.api) {
     if (!def.permissions?.includes("api")) throw new Error(`${def.id}: api needs the "api" permission`);
