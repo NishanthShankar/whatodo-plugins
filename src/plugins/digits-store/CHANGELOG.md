@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0] - 2026-11-26
+
+### Changed
+
+- The first five minutes, in og-copy-bot's words as picked by the owner: a new welcome with a dry last line, "today or next year" in the first keep, "kept today" in every answer, the page named for everything kept, and "It will still be here next year." under the very first answer, once.
+
+### Data
+
+- `state/recalled`: 1 once the first answer was given.
+
 ## [1.1.0] - 2026-11-26
 
 ### Added

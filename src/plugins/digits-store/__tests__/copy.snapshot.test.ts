@@ -36,6 +36,7 @@ it("digits copy", () => {
     notFound: copy.notFound({ words: "shoe size" }),
     nothingYet: copy.nothingYet(),
     page: copy.page(),
+    stillHere: copy.stillHere(),
     takenOut: copy.takenOut({ what: "weight, 79" }),
     nothingToUndo: copy.nothingToUndo(),
     askRemove: copy.askRemove({ name: "weight", count: 6 }),

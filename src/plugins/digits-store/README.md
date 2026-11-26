@@ -8,17 +8,18 @@ Its id is `digits-store` (the owner, 2026-11-26). It lives in its own WhatsApp g
 
 ## First five minutes
 
-Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines are drafts and wait for og-copy-bot's read and the owner's pick.
+Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines are og-copy-bot's, picked by the owner on 2026-11-26.
 
 | Field | For Digits |
 |---|---|
-| The promise | "Any number, kept with a word for what it is." |
-| The aside | "Ask for it back. I won't make you scroll." |
+| The promise | "The numbers you only need now and then." (the welcome card's headline) |
+| The aside | "Send one once. I won't make you scroll for it." |
 | The first thing to send | `Amma ring size 14` (weight second, the owner, 2026-11-26) |
-| The first time line | "Kept: weight, 72.4. Ask me "weight?" whenever you want it back, with the ones before it. From now on a 👍 means kept." |
-| The moment it clicks | Minutes in: they ask "weight?" and get it back with its day. A date gets its reminder the morning it is due. |
+| The welcome | "Send me a number with a word for what it is, like _Amma ring size 14_. I keep it, and hand it back when you ask." and, as its own line, "You may stop scrolling up for it." |
+| The first time line | "Kept: Amma ring size, 14. Ask me "Amma ring size?" today or next year, and you have it back. From now on a 👍 means kept." |
+| The moment it clicks | Minutes in: they ask "Amma ring size?" and get "*Amma ring size*: 14, kept today.", the first time with "It will still be here next year." under it. A date gets its message the morning it is due. |
 | The setup steps | None beyond adding the app. |
-| What to learn | Nothing up front. When one name is asked for in place of another ("Mom" for "Amma"), asked once whether they are the same, and remembered. |
+| What to learn | Nothing up front. When one name is asked for in place of another ("Mom" for "Amma"), asked once whether they are the same person, and remembered. |
 
 What a new person meets, in order. Each is said once and never again.
 
@@ -27,7 +28,9 @@ What a new person meets, in order. Each is said once and never again.
 3. **Asking for it back** gives the latest with its day, and the first when there are more.
 4. **The page**, named once, the first time they come back on a later day: in the answer to their question, or in place of the 👍 when a label gets its second value ("they make a graph now").
 
-Owed, because a plugin can't do them yet: a link that signs the person in to the page (the address is sent plain), a welcome card, and counting each step with `track`. Today the steps show only as the usual app events, which hold no values and no label text.
+**The welcome card.** Zelfred sends the welcome as the caption of a picture card (drawn in the `whatodo` repo, `scripts/onboarding-cards.mjs`): the promise as its headline, the aside under it, and the first thing to send. The caption works alone when the picture can't go.
+
+Owed, because a plugin can't do them yet: a link that signs the person in to the page (the address is sent plain), and counting each step with `track`. Today the steps show only as the usual app events, which hold no values and no label text.
 
 ## Commands
 
