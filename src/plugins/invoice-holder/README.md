@@ -49,7 +49,7 @@ The welcome asks for nothing. Each first-time line is said once per install.
 
 | Id | When | What |
 |---|---|---|
-| `waiting` | Sundays at 10am | "6 bills are waiting for a folder…", only when bills wait, once a week. |
+| `waiting` | Sundays at 10am | "6 bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.", only when bills wait, once a week. |
 | `month` | The 1st at 9am | The month before: how many bills, how many have an amount, and their sum. Only when the month had bills. |
 
 ## Data

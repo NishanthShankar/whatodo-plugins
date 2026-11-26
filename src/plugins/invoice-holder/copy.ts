@@ -5,7 +5,7 @@
  * A message is a list of wordings (see src/copy.ts) and one is picked each time. A message
  * takes its data and returns the whole text.
  *
- * Read by og-copy-bot on 2026-11-26. "Folder" is its pick for what people see (the code says
+ * Read by og-copy-bot on 2026-11-26, the 1.1.0 lines too. "Folder" is its pick for what people see (the code says
  * "book"); the owner has not picked the word yet.
  */
 import { fixed, msg } from "../../sdk";
@@ -90,13 +90,13 @@ export const copy = {
   /** A reply to a bill that is gone. */
   gone: msg(["That bill isn't here any more."]),
   /** The person deleted a bill's photo in WhatsApp: it stays on the page (the owner, 2026-11-26). */
-  keptAfterDelete: msg(["That bill is still on your page. For safety, bills aren't removed from WhatsApp; remove it on the page if you're sure."]),
+  keptAfterDelete: msg(["Your message is gone, but the bill is still kept on your page. I don't remove a bill because its message was deleted, so one is never lost by a slip. To remove it, do it on your page."]),
   /** Once a week, when bills wait for a folder (the owner, 2026-11-26). */
-  waiting: msg<{ count: number }>([({ count }) => `${count === 1 ? "1 bill is" : `${count} bills are`} waiting for a folder. React with an emoji on each, or file them on your page.`]),
+  waiting: msg<{ count: number }>([({ count }) => (count === 1 ? "1 bill is waiting for a folder. React to it with a folder's emoji, or file it on your page." : `${count} bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.`)]),
   /** On the first of the month, the month before (the owner, 2026-11-26). */
   month: msg<{ month: string; count: number; priced: number; sum: string | null }>([
     ({ month, count, priced, sum }) =>
-      `${month}: ${count === 1 ? "1 bill" : `${count} bills`}. ${priced === 0 ? "None has an amount yet." : priced === count ? `Together ${sum}.` : `${priced} ${priced === 1 ? "has" : "have"} an amount: ${sum}. The rest are on your page.`}`,
+      `${month}: ${count === 1 ? "1 bill" : `${count} bills`}. ${priced === 0 ? "None has an amount yet." : priced === count ? `Together ${sum}.` : `${priced} ${priced === 1 ? "has" : "have"} an amount: ${sum}. All ${count} are on your page.`}`,
   ]),
   /** Anything else typed. */
   unsure: msg(["I keep photos of bills here. Send one, or _help_ to see what else I can do."]),

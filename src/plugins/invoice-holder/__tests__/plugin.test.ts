@@ -339,7 +339,7 @@ describe("invoice-holder: 1.1.0", () => {
     await send(t, "p1");
     await t.deleted(plugin, refOf(t, "p1"));
     expect(billOf(t, "p1")).toBeTruthy();
-    expect(t.sent.at(-1)!.text).toContain("still on your page");
+    expect(t.sent.at(-1)!.text).toContain("still kept on your page");
   });
 
   it("a deleted message whose bill was already removed says nothing", async () => {
@@ -362,7 +362,7 @@ describe("invoice-holder: 1.1.0", () => {
     expect(t.sent.length).toBe(before);
     t.setToday("2026-11-29");
     await t.schedule(plugin, "waiting");
-    expect(t.sent.at(-1)!.text).toBe("2 bills are waiting for a folder. React with an emoji on each, or file them on your page.");
+    expect(t.sent.at(-1)!.text).toBe("2 bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.");
     before = t.sent.length;
     await t.schedule(plugin, "waiting");
     expect(t.sent.length).toBe(before);
@@ -384,7 +384,7 @@ describe("invoice-holder: 1.1.0", () => {
     expect(t.sent.length).toBe(before);
     t.setToday("2026-12-01");
     await t.schedule(plugin, "month");
-    expect(t.sent.at(-1)!.text).toBe("November 2026: 3 bills. 2 have an amount: ₹1,650. The rest are on your page.");
+    expect(t.sent.at(-1)!.text).toBe("November 2026: 3 bills. 2 have an amount: ₹1,650. All 3 are on your page.");
     before = t.sent.length;
     await t.schedule(plugin, "month");
     expect(t.sent.length).toBe(before);
