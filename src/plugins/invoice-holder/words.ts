@@ -22,6 +22,8 @@ export interface Read {
   /** Every book named equally well, when more than one is. */
   books: string[];
   amount: number | null;
+  /** The amount's currency when it was written ("$52.50", "usd 52", "₹450"); null when only a number was. */
+  currency: Currency | null;
   /** What is left once the book and the amount are taken out. */
   note: string | null;
 }
@@ -35,17 +37,30 @@ export const MAX_NAME = 60;
 
 const words = (s: string) => s.toLowerCase().normalize("NFKC").split(/[^\p{L}\p{N}&']+/u).filter(Boolean);
 
+/** The currencies an amount can be in (the owner, 2026-11-27: "it can be USD or Rs"). */
+export type Currency = "INR" | "USD";
+export const CURRENCIES: Currency[] = ["INR", "USD"];
+
 interface Num {
   start: number;
   end: number;
   value: number;
   money: boolean;
+  currency: Currency | null;
+}
+
+/** The currency a word before or after a number stands for. */
+function currencyOf(mark: string | undefined): Currency | null {
+  if (!mark) return null;
+  const m = mark.toLowerCase().replace(/\.$/, "");
+  if (m === "$" || m === "usd" || m === "us$" || m === "dollars" || m === "dollar") return "USD";
+  return "INR";
 }
 
 /** Every number in the text, and whether it is written as money. */
 function numbers(text: string): Num[] {
   const out: Num[] = [];
-  const re = /(?<![\p{L}\p{N}.,])(?:(₹|rs\.?|inr)\s?)?(\d{1,3}(?:,\d{2,3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?:\s?(\/-|rs\b|rupees\b|inr\b))?/giu;
+  const re = /(?<![\p{L}\p{N}.,])(?:(₹|rs\.?|inr|us\$|\$|usd)\s?)?(\d{1,3}(?:,\d{2,3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?:\s?(\/-|rs\b|rupees\b|inr\b|usd\b|dollars?\b))?/giu;
   for (const m of text.matchAll(re)) {
     const raw = m[2];
     // A number glued to letters ("inv4471", "2x") is part of a word, not an amount.
@@ -54,7 +69,8 @@ function numbers(text: string): Num[] {
     if (/[\p{L}\d]/u.test(after) && !m[3]) continue;
     const value = Number(raw.replace(/,/g, ""));
     if (!Number.isFinite(value) || value <= 0 || value >= 1e10) continue;
-    out.push({ start: m.index!, end: afterAt, value, money: !!m[1] || !!m[3] || raw.includes(",") || raw.includes(".") });
+    const mark = m[1] ?? (m[3] && m[3] !== "/-" ? m[3] : undefined);
+    out.push({ start: m.index!, end: afterAt, value, money: !!m[1] || !!m[3] || raw.includes(",") || raw.includes("."), currency: m[3] === "/-" && !m[1] ? "INR" : currencyOf(mark) });
   }
   return out;
 }
@@ -101,7 +117,7 @@ export function readWords(text: string, books: BookName[]): Read {
     for (const w of found.used) note = note.replace(new RegExp(`(^|[^\\p{L}\\p{N}])${escape(w)}(?=$|[^\\p{L}\\p{N}])`, "iu"), "$1");
   }
   note = note.replace(/\s+/g, " ").replace(/^[\s,.;:\-]+|[\s,.;:\-]+$/g, "").trim();
-  return { book, books: found.ids.length > 1 ? found.ids : [], amount: amount ? amount.value : null, note: note ? note.slice(0, MAX_NOTE) : null };
+  return { book, books: found.ids.length > 1 ? found.ids : [], amount: amount ? amount.value : null, currency: amount ? amount.currency : null, note: note ? note.slice(0, MAX_NOTE) : null };
 }
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

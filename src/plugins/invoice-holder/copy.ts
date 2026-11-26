@@ -104,10 +104,10 @@ export const copy = {
       `${month}: ${count === 1 ? "1 bill" : `${count} bills`}. ${priced === 0 ? "None has an amount yet." : priced === count ? `Together ${sum}.` : `${priced} ${priced === 1 ? "has" : "have"} an amount: ${sum}. All ${count} are on your page.`}`,
   ]),
   // ── Asking for a note when a bill comes by mail (docs/invoice-holder-note-ask-brief.md). Read by og-copy-bot, 2026-11-27. ──
-  /** The first time ever: the question on its own line, then once what happens to the answer and that it can come later. */
+  /** The first time ever: the apology for not reading the bill, said once (voice 10), the question, and that answering is optional. */
   noteAskFirst: msg<{ who: string | null; count: number }>([
     ({ who, count }) =>
-      `${who ? `${count > 1 ? `${count} bills` : "A bill"} from ${who} came by mail and ${count > 1 ? "are" : "is"} kept.` : `The ${count > 1 ? "bills" : "bill"} you forwarded ${count > 1 ? "are" : "is"} kept.`}\n\n${count > 1 ? "What are they for?" : "What is it for?"} I keep your answer with the bill as its note. Reply to this message whenever you like.`,
+      `${who ? `${count > 1 ? `${count} bills` : "A bill"} from ${who} came by mail and ${count > 1 ? "are" : "is"} kept.` : `The ${count > 1 ? "bills" : "bill"} you forwarded ${count > 1 ? "are" : "is"} kept.`} Sorry, I can't read a bill yet, which a butler ought to. ${count > 1 ? "What are they for?" : "What is it for?"}\n\nI keep your answer with the bill as its note. Reply whenever you like, or not at all.`,
   ]),
   /** After the first time: one short plain line. One answer goes on every bill of the mail. */
   noteAsk: msg<{ who: string | null; count: number }>([
@@ -124,7 +124,7 @@ export const copy = {
 
 /** An amount the way it is said back: ₹1,200 or ₹450.50. */
 export function money(n: number, currency: string | null): string {
-  const sign = !currency || currency === "INR" ? "₹" : `${currency} `;
+  const sign = !currency || currency === "INR" ? "₹" : currency === "USD" ? "$" : `${currency} `;
   const whole = Number.isInteger(n);
   return `${sign}${n.toLocaleString("en-IN", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 })}`;
 }

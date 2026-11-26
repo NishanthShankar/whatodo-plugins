@@ -1,6 +1,6 @@
 import { definePlugin, type Json, type Kit, type MailEvent, type Photo, type Sender } from "../../sdk";
 import { BOOK_EMOJI, BOOKS, BOOKS_TOO, MAIL_SUMMARY_MANY, MAIL_SUMMARY_ONE, NO_NOTE, copy, KEPT, money, NEVER_A_BOOK, type BookLine } from "./copy";
-import { bare, cleanGst, cleanName, MAX_NAME, MAX_NOTE, oneEmoji, readWords } from "./words";
+import { bare, cleanGst, cleanName, CURRENCIES, MAX_NAME, MAX_NOTE, oneEmoji, readWords, type Currency } from "./words";
 
 /**
  * BillKeeper (id "invoice-holder"; called InvoiceHolder until 1.1.0)
@@ -129,6 +129,8 @@ export interface Bill {
   /** The date on the bill, YYYY-MM-DD, when someone gave it. */
   billDate: string | null;
   note: string | null;
+  /** The amount's currency; null for the person's own (or rupees). Since 1.6.0. */
+  currency?: Currency | null;
   /** The bill's short name, its title on the page; apart from the note since 1.5.0. */
   name?: string | null;
   /** Pictures sent together share this. */
@@ -388,6 +390,7 @@ async function keepPhoto(kit: Kit, photo: Photo, text: string, sender: Sender | 
     book: null,
     tagged: null,
     amount: read?.amount ?? null,
+    currency: read?.amount != null ? read.currency : null,
     billDate: null,
     ...wordsOf(read?.note ?? null),
     batch: await batchFor(kit),
@@ -415,7 +418,7 @@ async function keepPhoto(kit: Kit, photo: Photo, text: string, sender: Sender | 
   if ((filed || read.amount !== null) && !(await kit.store.get("state", "understood"))) {
     await kit.store.put("state", "understood", 1);
     const book = filed?.book ? (books.find((b) => b.id === filed.book)?.book ?? null) : null;
-    kit.send(copy.understood({ emoji: book?.emoji ?? null, book: book?.name ?? null, amount: read.amount !== null ? money(read.amount, kit.person.currency ?? null) : null }));
+    kit.send(copy.understood({ emoji: book?.emoji ?? null, book: book?.name ?? null, amount: read.amount !== null ? money(read.amount, read.currency ?? kit.person.currency ?? null) : null }));
   }
 }
 
@@ -449,7 +452,7 @@ async function onReply(kit: Kit, id: string, text: string, sender: Sender | unde
   let next = bill;
   if (read.amount !== null || read.note) {
     const words = wordsOf(read.note);
-    next = withEvent({ ...bill, amount: read.amount ?? bill.amount, name: words.name ?? bill.name ?? null, note: words.note ?? bill.note }, { at: kit.now, what: "changed", how: "reply", by });
+    next = withEvent({ ...bill, amount: read.amount ?? bill.amount, currency: read.amount !== null ? read.currency : (bill.currency ?? null), name: words.name ?? bill.name ?? null, note: words.note ?? bill.note }, { at: kit.now, what: "changed", how: "reply", by });
     await kit.store.put("bills", id, next as unknown as Json);
   }
   if (read.book) await file(kit, id, read.book, "reply", by);
@@ -484,6 +487,7 @@ function shown(id: string, b: Bill) {
     book: b.book,
     tagged: b.tagged,
     amount: b.amount,
+    currency: b.currency ?? null,
     billDate: b.billDate,
     note: b.note,
     name: b.name ?? null,
@@ -540,7 +544,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.5.0",
+  version: "1.6.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -661,9 +665,17 @@ export default definePlugin({
       if (!bills.length) return;
       await kit.store.put("state", "month", month);
       const priced = bills.filter((b) => b.data.amount !== null);
-      const sum = priced.reduce((t, b) => t + (b.data.amount ?? 0), 0);
+      // Rupees and dollars are never added into one sum: one figure per currency, the person's own first.
+      const own = (kit.person.currency ?? "INR") as string;
+      const sums = new Map<string, number>();
+      for (const b of priced) {
+        const c = b.data.currency ?? own;
+        sums.set(c, (sums.get(c) ?? 0) + (b.data.amount ?? 0));
+      }
+      const order = [...sums.keys()].sort((a, b) => (a === own ? -1 : b === own ? 1 : a < b ? -1 : 1));
+      const sum = order.map((c) => money(Math.round(sums.get(c)! * 100) / 100, c)).join(" and ");
       const [y, m] = month.split("-").map(Number);
-      return kit.send(copy.month({ month: `${MONTHS[m - 1]} ${y}`, count: bills.length, priced: priced.length, sum: priced.length ? money(Math.round(sum * 100) / 100, kit.person.currency ?? null) : null }));
+      return kit.send(copy.month({ month: `${MONTHS[m - 1]} ${y}`, count: bills.length, priced: priced.length, sum: priced.length ? sum : null }));
     }
   },
 
@@ -710,6 +722,7 @@ export default definePlugin({
         if (!bill) throw new Error("That bill isn't here any more.");
         const next: Bill = { ...bill };
         if ("amount" in args) next.amount = amountOf(args.amount);
+        if ("currency" in args) next.currency = CURRENCIES.includes(args.currency as Currency) ? (args.currency as Currency) : null;
         if ("billDate" in args) next.billDate = dateOf(args.billDate);
         if ("note" in args) next.note = noteOf(args.note);
         if ("name" in args) next.name = nameOf(args.name);
@@ -726,6 +739,7 @@ export default definePlugin({
         if (!found.length) throw new Error("Add a picture of the bill first.");
         const book = typeof args.book === "string" && args.book && (await kit.store.get("books", args.book)) ? args.book : null;
         const amount = found.length === 1 ? amountOf(args.amount) : null;
+        const currency = amount !== null && CURRENCIES.includes(args.currency as Currency) ? (args.currency as Currency) : null;
         const billDate = dateOf(args.billDate);
         const note = noteOf(args.note);
         const name = nameOf(args.name);
@@ -746,6 +760,7 @@ export default definePlugin({
             book,
             tagged: book ? { how: "page", by, at: kit.now } : null,
             amount,
+            currency,
             billDate,
             note,
             name,
