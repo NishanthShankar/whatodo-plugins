@@ -1,0 +1,135 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`invoice-holder copy > a first book whose name is already taken 1`] = `
+{
+  "asked": [],
+  "reactTos": [
+    "🏢",
+  ],
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    "Kept. A 👍 from me means a bill is safe here, and an emoji from you files it.
+
+Whose bill is this? Send me the name: your business, your home, or a person.",
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`invoice-holder copy > books, a poll, a gone bill, and a message it can't read 1`] = `
+{
+  "asked": [
+    [
+      "Which book is this bill for?",
+      [
+        "🏢 Acme",
+        "🏠 Home",
+        "🛒 Extra 0",
+        "🚗 Extra 1",
+        "🩺 Extra 2",
+        "🎓 Extra 3",
+        "🌱 Extra 4",
+        "Extra 5",
+        "Extra 6",
+      ],
+    ],
+  ],
+  "reactTos": [],
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    "No books yet. Send a photo of a bill and tell me whose it is, or make one on your page.",
+    "Your books:
+
+🏢 Acme
+🏠 Home
+🛒 Extra 0
+🚗 Extra 1
+🩺 Extra 2
+🎓 Extra 3
+🌱 Extra 4
+
+2 more on your page, without an emoji.",
+    "Kept. A 👍 from me means a bill is safe here. React with a book's emoji to file it:
+
+🏢 Acme
+🏠 Home
+🛒 Extra 0
+🚗 Extra 1
+🩺 Extra 2
+🎓 Extra 3
+🌱 Extra 4",
+    "That bill isn't here any more.",
+  ],
+  "unsures": [
+    "I keep photos of bills here. Send one, or _help_ to see what else I can do.",
+  ],
+}
+`;
+
+exports[`invoice-holder copy > the first bill when books were made on the page 1`] = `
+{
+  "asked": [],
+  "reactTos": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    "Kept. A 👍 from me means a bill is safe here. React with a book's emoji to file it:
+
+🏢 Acme
+🏠 Home",
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`invoice-holder copy > the first five minutes 1`] = `
+{
+  "asked": [],
+  "reactTos": [
+    "🏢",
+  ],
+  "reactions": [
+    "👍",
+    "👍",
+    "🏢",
+    "👍",
+  ],
+  "sent": [
+    "Kept. A 👍 from me means a bill is safe here, and an emoji from you files it.
+
+Whose bill is this? Send me the name: your business, your home, or a person.",
+    "🏢 is *Acme Traders* now. That bill is filed there, and any bill you react to with 🏢 goes there too.
+
+More books, and other emoji, on your page.",
+    "Read from your caption: filed under 🏢 Acme Traders, for ₹450. If I read it wrong, change it on your page.",
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`invoice-holder copy > welcome, help and group name 1`] = `
+{
+  "groupName": "📑 InvoiceHolder",
+  "help": "*InvoiceHolder*
+
+Send a photo of a bill and I keep it.
+React to it with a book's emoji to file it there. Change the reaction to move it; take it off to unfile it.
+Or reply to it with the book's name. A caption can say whose it is and how much.
+
+_books_ shows your books and their emoji
+
+Every bill, by month and by book, is on your page, where you can also make and change books.",
+  "welcome": "📑 You've added *InvoiceHolder*.
+
+Send me a photo of a bill. I keep every bill here, sorted by whose it is: your business, your home, anyone you pay for.
+
+Send _help_ for more.",
+}
+`;
