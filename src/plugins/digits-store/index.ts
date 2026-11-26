@@ -38,7 +38,7 @@ import { dateOf, saysDate, directMatch, LOCKED, masked, overlap, readNumbers, re
  * Dates are said back in words ("12 March"), so a day written 12/03 is never read the wrong way
  * round, and reminded (the owner, 2026-11-26: "only nudges are birthdays and future dates"): a
  * birthday or an anniversary on the day every year; any other date still to come a week before and
- * on the day. How early is my default, not the owner's.
+ * on the day. The owner kept these as the default on 2026-11-26.
  */
 
 /** The most labels one install keeps. */

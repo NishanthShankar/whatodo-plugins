@@ -93,7 +93,7 @@ Never refused (the owner, 2026-11-26).
 
 | Id | When | What it sends |
 |---|---|---|
-| `dates` | 9am daily | For each label whose latest value is a date: a birthday or an anniversary on its day every year ("Today: *Riya birthday*, 12 March."); any other date still to come a week before and on the day. A date gone (a date of joining) is never reminded. Each is sent once; nothing when nothing is due. How early is my default, not the owner's. |
+| `dates` | 9am daily | For each label whose latest value is a date: a birthday or an anniversary on its day every year ("Today: *Riya birthday*, 12 March."); any other date still to come a week before and on the day. A date gone (a date of joining) is never reminded. Each is sent once; nothing when nothing is due. Confirmed by the owner, 2026-11-26 ("reminder time is default"). |
 
 ## Data
 
