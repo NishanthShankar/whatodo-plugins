@@ -97,17 +97,22 @@ export const copy = {
   /** The person deleted a bill's photo in WhatsApp: it stays on the page (the owner, 2026-11-26). */
   keptAfterDelete: msg(["Your message is gone, but the bill is still kept on your page. I don't remove a bill because its message was deleted, so one is never lost by a slip. To remove it, do it on your page."]),
   /** Once a week, when bills wait for a folder (the owner, 2026-11-26). */
-  waiting: msg<{ count: number }>([({ count }) => (count === 1 ? "1 bill is waiting for a folder. React to it with a folder's emoji, or file it on your page." : `${count} bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.`)]),
+  waiting: msg<{ count: number }>([
+    ({ count }) =>
+      count === 1
+        ? "1 bill has no folder yet. It is kept either way.\n\nTo file it, react to it with a folder's emoji, or use your page."
+        : `${count} bills have no folder yet. They are kept either way.\n\nTo file one, react to it with a folder's emoji, or use your page.`,
+  ]),
   /** On the first of the month, the month before (the owner, 2026-11-26). */
   month: msg<{ month: string; count: number; priced: number; sum: string | null }>([
     ({ month, count, priced, sum }) =>
       `${month}: ${count === 1 ? "1 bill" : `${count} bills`}. ${priced === 0 ? "None has an amount yet." : priced === count ? `Together ${sum}.` : `${priced} ${priced === 1 ? "has" : "have"} an amount: ${sum}. All ${count} are on your page.`}`,
   ]),
   // ── Asking for a note when a bill comes by mail (docs/invoice-holder-note-ask-brief.md). Read by og-copy-bot, 2026-11-27. ──
-  /** The first time ever: the question on its own line, then once what happens to the answer and that it can come later. */
+  /** The first time ever: the apology for not reading the bill, said once (voice 10), the question, and that answering is optional. */
   noteAskFirst: msg<{ who: string | null; count: number }>([
     ({ who, count }) =>
-      `${who ? `${count > 1 ? `${count} bills` : "A bill"} from ${who} came by mail and ${count > 1 ? "are" : "is"} kept.` : `The ${count > 1 ? "bills" : "bill"} you forwarded ${count > 1 ? "are" : "is"} kept.`}\n\n${count > 1 ? "What are they for?" : "What is it for?"} I keep your answer with the bill as its note. Reply to this message whenever you like.`,
+      `${who ? `${count > 1 ? `${count} bills` : "A bill"} from ${who} came by mail and ${count > 1 ? "are" : "is"} kept.` : `The ${count > 1 ? "bills" : "bill"} you forwarded ${count > 1 ? "are" : "is"} kept.`} Sorry, I can't read a bill yet. Embarrassing, for a butler.\n\n${count > 1 ? "What are they for?" : "What is it for?"}\n\nI keep your answer with the bill as its note.`,
   ]),
   /** After the first time: one short plain line. One answer goes on every bill of the mail. */
   noteAsk: msg<{ who: string | null; count: number }>([
@@ -124,7 +129,7 @@ export const copy = {
 
 /** An amount the way it is said back: ₹1,200 or ₹450.50. */
 export function money(n: number, currency: string | null): string {
-  const sign = !currency || currency === "INR" ? "₹" : `${currency} `;
+  const sign = !currency || currency === "INR" ? "₹" : currency === "USD" ? "$" : `${currency} `;
   const whole = Number.isInteger(n);
   return `${sign}${n.toLocaleString("en-IN", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 })}`;
 }
