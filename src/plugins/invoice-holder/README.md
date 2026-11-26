@@ -6,14 +6,14 @@ Step 1 of three (`docs/invoice-holder-brief.md` in the `whatodo` repo): pictures
 
 ## First five minutes
 
-Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines are drafts until og-copy-bot has read them.
+Written to `docs/plugin-onboarding.md` in the `whatodo` repo. The lines were read by og-copy-bot on 2026-11-26. People see "folder" where the code says "book" (og-copy-bot's pick; the owner has not picked the word yet).
 
 | Field | For InvoiceHolder |
 |---|---|
 | The promise | Every bill in one place, sorted by whose it is. |
 | The aside | None yet. |
 | The first thing to send | A photo of any bill within reach. |
-| The first time line | When the first photo is kept: "Kept. A 👍 from me means a bill is safe here, and an emoji from you files it. Whose bill is this? Send me the name: your business, your home, or a person." |
+| The first time line | When the first photo is kept: "Kept. From now on a 👍 from me means a bill is kept. Whose bill is this? Your business, your home, or a person." |
 | The moment it clicks | Inside the first minutes: they name the first book, my 👍 on the photo turns into its emoji, and the bill is on the page under that book. The next bill they react to with that emoji does the same. |
 | The setup steps | None beyond adding the app. |
 | What to learn | The first book's name, from their answer. Nothing goes to `kit.learn`. |
@@ -36,8 +36,8 @@ The welcome asks for nothing. Each first-time line is said once per install.
 | 👍 ✅ 👌 🙏 ❌ on a bill | Nothing. These never stand for a book. |
 | A reply to a bill with a book's name | Filed there. 👍 on the reply. |
 | A reply with an amount (`1200`, `₹1,250.50`) | Its amount. 👍. |
-| A reply that names two books, or none | One poll: "Which book is this bill for?" with the books. The words are kept as its note. |
-| `books` | The books and their emoji. |
+| A reply that names two books, or none | One poll: "Which folder is this bill for?" with the folders. The words are kept as its note. |
+| `folders` (or `books`) | The folders and their emoji. |
 | The first book's name, after the first bill | The first book, and that bill filed there. |
 | `help` | The command list. |
 | Anything else | Zelfred's intent model gets it; otherwise "I keep photos of bills here…". |
@@ -74,10 +74,10 @@ The page is lockable.
 
 ## Privacy
 
-It reads only its own group: photos of bills and what is typed there. The pictures are kept by Zelfred, not by the plugin, and removing a bill removes its pictures. A caption or a reply is read by the plugin's own code; only a typed message it can't read at all goes to Zelfred's intent model. It stores books (names, emoji, a GST number if given) and bills (their picture ids, amount, date, note and history). Nothing is sent to anyone, and nothing from a bill is passed to what Zelfred knows about the person.
+It reads only its own group: photos of bills and what is typed there. Nothing is read from a photo itself: not the seller, the GST number or anything else printed on the bill. The pictures are kept by Zelfred, not by the plugin, and removing a bill removes its pictures. A caption or a reply is read by the plugin's own code; only a typed message it can't read at all goes to Zelfred's intent model. It stores books (names, emoji, a GST number if given) and bills (their picture ids, amount, date, note and history). Nothing is sent to anyone, and nothing from a bill is passed to what Zelfred knows about the person.
 
 ## Not built yet
 
 - Bills by mail, and PDFs: a PDF sent in the group never reaches a plugin, so nothing can be said about it yet.
-- The books in the group's description: a plugin can't write its group's description today, so `books` lists them.
+- The folders in the group's description: a plugin can't write its group's description today, so `folders` lists them.
 - Several pictures joined into one bill, duplicates, suggested books, exports, reminders, sending to an accountant.

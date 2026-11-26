@@ -11,9 +11,9 @@ exports[`invoice-holder copy > a first book whose name is already taken 1`] = `
     "👍",
   ],
   "sent": [
-    "Kept. A 👍 from me means a bill is safe here, and an emoji from you files it.
+    "Kept. From now on a 👍 from me means a bill is kept.
 
-Whose bill is this? Send me the name: your business, your home, or a person.",
+Whose bill is this? Your business, your home, or a person.",
   ],
   "unsures": [],
 }
@@ -23,7 +23,7 @@ exports[`invoice-holder copy > books, a poll, a gone bill, and a message it can'
 {
   "asked": [
     [
-      "Which book is this bill for?",
+      "Which folder is this bill for?",
       [
         "🏢 Acme",
         "🏠 Home",
@@ -43,8 +43,8 @@ exports[`invoice-holder copy > books, a poll, a gone bill, and a message it can'
     "👍",
   ],
   "sent": [
-    "No books yet. Send a photo of a bill and tell me whose it is, or make one on your page.",
-    "Your books:
+    "No folders yet. Send a photo of a bill and tell me whose it is, or make one on your page.",
+    "Your folders:
 
 🏢 Acme
 🏠 Home
@@ -55,7 +55,7 @@ exports[`invoice-holder copy > books, a poll, a gone bill, and a message it can'
 🌱 Extra 4
 
 2 more on your page, without an emoji.",
-    "Kept. A 👍 from me means a bill is safe here. React with a book's emoji to file it:
+    "Kept. From now on a 👍 from me means a bill is kept. React with a folder's emoji to file it:
 
 🏢 Acme
 🏠 Home
@@ -80,7 +80,7 @@ exports[`invoice-holder copy > the first bill when books were made on the page 1
     "👍",
   ],
   "sent": [
-    "Kept. A 👍 from me means a bill is safe here. React with a book's emoji to file it:
+    "Kept. From now on a 👍 from me means a bill is kept. React with a folder's emoji to file it:
 
 🏢 Acme
 🏠 Home",
@@ -102,12 +102,12 @@ exports[`invoice-holder copy > the first five minutes 1`] = `
     "👍",
   ],
   "sent": [
-    "Kept. A 👍 from me means a bill is safe here, and an emoji from you files it.
+    "Kept. From now on a 👍 from me means a bill is kept.
 
-Whose bill is this? Send me the name: your business, your home, or a person.",
-    "🏢 is *Acme Traders* now. That bill is filed there, and any bill you react to with 🏢 goes there too.
+Whose bill is this? Your business, your home, or a person.",
+    "*Acme Traders* is 🏢 from now on. That bill is filed there, and any bill you react to with 🏢 goes there too.
 
-More books, and other emoji, on your page.",
+More folders, and other emoji, on your page.",
     "Read from your caption: filed under 🏢 Acme Traders, for ₹450. If I read it wrong, change it on your page.",
   ],
   "unsures": [],
@@ -120,15 +120,15 @@ exports[`invoice-holder copy > welcome, help and group name 1`] = `
   "help": "*InvoiceHolder*
 
 Send a photo of a bill and I keep it.
-React to it with a book's emoji to file it there. Change the reaction to move it; take it off to unfile it.
-Or reply to it with the book's name. A caption can say whose it is and how much.
+React to it with a folder's emoji to file it there. Change the reaction to move it. Take the reaction off and the bill is in no folder.
+Or reply to it with the folder's name. A caption can say whose it is and how much.
 
-_books_ shows your books and their emoji
+_folders_ shows your folders and their emoji
 
-Every bill, by month and by book, is on your page, where you can also make and change books.",
+Every bill, by month and by folder, is on your page, where you can also make and change folders.",
   "welcome": "📑 You've added *InvoiceHolder*.
 
-Send me a photo of a bill. I keep every bill here, sorted by whose it is: your business, your home, anyone you pay for.
+Send me a photo of a bill and it is kept, sorted by whose it is: your business, your home, anyone you pay for.
 
 Send _help_ for more.",
 }

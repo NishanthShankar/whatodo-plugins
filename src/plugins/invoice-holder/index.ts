@@ -1,5 +1,5 @@
 import { definePlugin, type Json, type Kit, type Photo, type Sender } from "../../sdk";
-import { BOOK_EMOJI, BOOKS, copy, KEPT, money, NEVER_A_BOOK, type BookLine } from "./copy";
+import { BOOK_EMOJI, BOOKS, BOOKS_TOO, copy, KEPT, money, NEVER_A_BOOK, type BookLine } from "./copy";
 import { bare, cleanGst, cleanName, MAX_NOTE, oneEmoji, readWords } from "./words";
 
 /**
@@ -293,12 +293,12 @@ async function removeBill(kit: Kit, id: string) {
 function checkEmoji(raw: unknown, books: { id: string; book: Book }[], self: string | null): string | null {
   if (raw === null || raw === "") return null;
   const e = typeof raw === "string" ? oneEmoji(raw) : null;
-  if (!e) throw new Error("A book's mark is one emoji.");
-  if (NEVER_A_BOOK.some((n) => bare(n) === e)) throw new Error(`${e} means done in Zelfred, so it can't be a book's mark. Pick another.`);
+  if (!e) throw new Error("A folder's mark is one emoji.");
+  if (NEVER_A_BOOK.some((n) => bare(n) === e)) throw new Error(`${e} means done in Zelfred, so it can't be a folder's mark. Pick another.`);
   const other = books.find((b) => b.id !== self && b.book.emoji && bare(b.book.emoji) === e);
   if (other) throw new Error(`${e} is already ${other.book.name}'s.`);
   const others = books.filter((b) => b.id !== self && b.book.emoji).length;
-  if (others >= EMOJI_BOOKS) throw new Error("Seven books have an emoji already. Take one off first.");
+  if (others >= EMOJI_BOOKS) throw new Error("Seven folders have an emoji already. Take one off first.");
   return (raw as string).trim();
 }
 
@@ -351,7 +351,7 @@ export default definePlugin({
     }
     if (!text) return;
     if (isBillRef(event.quotedRef)) return onReply(kit, event.quotedRef.id, text, event.sender);
-    if (text.toLowerCase() === BOOKS) return listBooks(kit);
+    if (text.toLowerCase() === BOOKS || text.toLowerCase() === BOOKS_TOO) return listBooks(kit);
 
     // The first book's name, asked for after the first bill.
     const asking = await kit.store.get<{ bill: string }>("state", "asking");
@@ -413,7 +413,7 @@ export default definePlugin({
       async tag(kit, args) {
         const ids = Array.isArray(args.ids) ? args.ids.filter((x): x is string => typeof x === "string") : [String(args.id ?? "")];
         const book = typeof args.book === "string" && args.book ? args.book : null;
-        if (book && !(await kit.store.get("books", book))) throw new Error("That book isn't here any more.");
+        if (book && !(await kit.store.get("books", book))) throw new Error("That folder isn't here any more.");
         for (const id of ids) await file(kit, id, book, "page", kit.person.id ?? null);
       },
       /** Change a bill's amount, date or note. Leave a field out to keep it. */
@@ -473,9 +473,9 @@ export default definePlugin({
       },
       async addBook(kit, args) {
         const name = typeof args.name === "string" ? cleanName(args.name) : null;
-        if (!name) throw new Error("A book needs a name.");
+        if (!name) throw new Error("A folder needs a name.");
         const books = await allBooks(kit);
-        if (books.some((b) => b.book.name.toLowerCase() === name.toLowerCase())) throw new Error(`There is a book called ${name} already.`);
+        if (books.some((b) => b.book.name.toLowerCase() === name.toLowerCase())) throw new Error(`There is a folder called ${name} already.`);
         const emoji = "emoji" in args ? checkEmoji(args.emoji, books, null) : undefined;
         if (args.gst && !cleanGst(args.gst)) throw new Error("A GST number has 15 letters and digits.");
         const made = await makeBook(kit, name, kindOf(args.kind), cleanGst(args.gst), emoji);
@@ -485,13 +485,13 @@ export default definePlugin({
       async editBook(kit, args) {
         const id = String(args.id ?? "");
         const book = await kit.store.get<Book>("books", id);
-        if (!book) throw new Error("That book isn't here any more.");
+        if (!book) throw new Error("That folder isn't here any more.");
         const books = await allBooks(kit);
         const next: Book = { ...book };
         if (typeof args.name === "string") {
           const name = cleanName(args.name);
-          if (!name) throw new Error("A book needs a name.");
-          if (books.some((b) => b.id !== id && b.book.name.toLowerCase() === name.toLowerCase())) throw new Error(`There is a book called ${name} already.`);
+          if (!name) throw new Error("A folder needs a name.");
+          if (books.some((b) => b.id !== id && b.book.name.toLowerCase() === name.toLowerCase())) throw new Error(`There is a folder called ${name} already.`);
           next.name = name;
         }
         if ("kind" in args) next.kind = kindOf(args.kind);
