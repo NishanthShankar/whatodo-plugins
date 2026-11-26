@@ -2,7 +2,9 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
-## SDK 1.33.0
+## [1.33.0] - 2026-11-27
+
+### Added
 
 - New permission `"mail"` with `onMail(event, kit)`: a plugin is told of each mail that comes to the person's Zelfred mail address (name@zelfred.com) from a sender they accepted, with the sender (address, domain, company or the person's own mailbox), the person's label and the mail's PDFs as file ids. It answers `"took"`, `"not-for-me"` or `"could-not-read"`. The mail's text and subject are not passed on. Not with `"vault"`; Zelfred never gives it to health apps.
 - Testing: `t.mail(plugin, mail({ ... }))`.
