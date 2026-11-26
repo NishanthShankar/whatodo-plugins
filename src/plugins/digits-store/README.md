@@ -43,6 +43,8 @@ Send these in the group. Your own words work too.
 | `72.4` alone | Under the only label there is. With none or several: "What is 72.4?", and the next words (within the hour) name it. |
 | a new value far from the last (`waist 340` after `waist 34`) | Kept, and both said: "The one before was 34." No verdict. |
 | `weight?`, `what's my weight`, `Amma ring` | The latest, with its day; with more than one kept, the first too and how many. Every label that fits the words is answered. The photo kept with the latest is sent with it. |
+| `gym`, `gym today` (a label that counts) | Adds one and says the new count: "*Gym*: 14 now." Undo or ❌ takes it back and says where it stands: "Taken out. Gym: 13." A label counts once it was seen added to one at a time twice in a row ("gym 12", "gym 13", "gym 14"; one step is not enough, as a waist can go from 30 to 31), and that is said once. Any other label's name alone gives its number back (the owner, 2026-11-26: "it'll mostly be a get"). |
+| `gym?`, `gym count`, `get gym`, `show gym` | The count, nothing added. |
 | `history weight`, `weight history` | Every value, newest first, 30 at most; the rest on the page. |
 | `list` (also `all`, `everything`) | Every label's latest, the last added first. |
 | `undo` (also `remove`, `delete`, `wrong`) | Takes out what the last message kept. |
@@ -99,7 +101,7 @@ Never refused (the owner, 2026-11-26).
 
 | Collection | Key | Data | Sort |
 |---|---|---|---|
-| `labels` | id | `{ name, words, count, current, first, touched }`: current and first are the latest and the first entry as they may be shown | the label's words |
+| `labels` | id | `{ name, words, count, current, first, touched, counter? }`: current and first are the latest and the first entry as they may be shown | the label's words |
 | `entries` | `<label>:<entry>` | `{ text, num, num2, unit, shape, day, at, photos, from, locked?, date? }` | `"<day>\|<at>"` |
 | `state` | `taught`, `firstDay`, `page` | said once | |
 | `state` | `pending` | a number waiting for its word, with its photos | |
@@ -113,7 +115,7 @@ At most 300 labels and 2000 values under each.
 
 `lockable`. The page is built in the Zelfred repo (`apps/web/src/pages/Digits.tsx`).
 
-`load()` returns `{ labels: [{ id, name, count, current, first, touched, unit, series: [{ day, num, num2 }] }], max }`, the last added first. `series` is the last 60 values that have a number, oldest first; locked values are left out.
+`load()` returns `{ labels: [{ id, name, count, current, first, touched, counter, unit, series: [{ day, num, num2 }] }], max }`, the last added first. `series` is the last 60 values that have a number, oldest first; locked values are left out.
 
 `load({ label })` returns `{ label: { id, name, count }, entries: [{ id, text, locked, num, num2, unit, shape, day, at, photos }] }`, newest first. A locked value's `text` is masked and its `num` null.
 
@@ -123,6 +125,7 @@ At most 300 labels and 2000 values under each.
 | `edit` | `label, entry, value?, day?` | Corrects a value, its day, or both. |
 | `reveal` | `label, entry` | A hidden value whole: `{ text }`. The page calls it only behind the same unlock as a vault, the person's passkey or passphrase (the owner, 2026-11-26), once Zelfred has one lock for every page. |
 | `remove` | `label, entry` | Takes one value out, with its photos. |
+| `setCounter` | `label, on` | Turns counting up by name on or off. Off stays off. |
 | `rename` | `label, name` | Renames a label; refused when another has the same words. |
 | `removeLabel` | `label` | A label and everything under it. The page asks first. |
 | `removeAll` | | Everything. The page asks first. |

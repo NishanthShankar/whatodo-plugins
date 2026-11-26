@@ -72,6 +72,12 @@ export interface Label {
   first: Brief | null;
   /** When it was last added to (ms), for putting the likeliest first. */
   touched: number;
+  /**
+   * It counts up: its name alone ("gym", "gym today") adds one. Set when the person was seen adding
+   * to it one at a time (the owner, 2026-11-26: "it'll mostly be a get. unless you see the user
+   * updating it incrementally"). False: the person turned it off on the page, so it is never set again.
+   */
+  counter?: boolean;
 }
 
 export interface Brief {
@@ -344,6 +350,7 @@ async function keepAll(kit: Kit, pieces: { label: string; value: Value }[], day:
   let jump: { name: string; value: string; before: string } | null = null;
   let full = false;
   let grown: Label | null = null;
+  let counting: string | null = null;
   for (const [i, p] of pieces.slice(0, MAX_PIECES).entries()) {
     const label = await labelFor(kit, all, p.label);
     if (!label) {
@@ -365,6 +372,13 @@ async function keepAll(kit: Kit, pieces: { label: string; value: Value }[], day:
       jump ??= { name: label.data.name, value: p.value.text, before: faceOf(before) };
     }
     if (label.data.count === 2) grown ??= label.data;
+    // Added to one at a time, twice in a row (12, 13, 14): from now on its name alone counts it up.
+    // One step is not enough: a waist can go from 30 to 31.
+    if (label.data.counter === undefined && label.data.count >= 3 && p.value.shape === "number" && !p.value.unit && (await countsUp(kit, label.key))) {
+      label.data = { ...label.data, counter: true };
+      await kit.store.put("labels", label.key, j(label.data));
+      counting ??= label.data.name;
+    }
   }
   if (!ids.length) {
     if (full) kit.send(copy.full({ max: MAX_LABELS }));
@@ -388,7 +402,8 @@ async function keepAll(kit: Kit, pieces: { label: string; value: Value }[], day:
   } else if (dates.length) {
     // A date is always said back in words, so 12/03 is never taken the wrong way round.
     for (const d of dates) said.push(copy.keptDate({ name: d.name, date: d.date, remind: d.remind?.kind ?? null }));
-  } else if (jump) said.push(copy.jump(jump));
+  } else if (counting) said.push(copy.nowCounting({ name: counting }));
+  else if (jump) said.push(copy.jump(jump));
   else if (grown && firstDay < kit.today && !(await kit.store.get("state", "page"))) {
     await kit.store.put("state", "page", 1);
     said.push(copy.keptWithPage({ name: grown.name, count: grown.count }));
@@ -406,6 +421,11 @@ async function undo(kit: Kit, ids: string[] | null, ref: Json | null): Promise<v
   const last = await kit.store.get<Last>("state", "last");
   if (last && last.ids.some((i) => ids.includes(i))) await kit.store.delete("state", "last");
   if (ref) kit.reactTo(ref, "");
+  // One count taken back: say where it stands now.
+  if (ids.length === 1) {
+    const label = await kit.store.get<Label>("labels", ids[0].split(":")[0]);
+    if (label?.counter && label.current) return kit.send(copy.takenOutCount({ name: label.name, count: label.current.text }));
+  }
   kit.send(copy.takenOut({ what: gone.join("; ") }));
 }
 
@@ -432,9 +452,42 @@ async function photoOnly(kit: Kit, text: string, photos: string[]): Promise<void
   kit.react(SAVED);
 }
 
+/** The label's last three values are whole numbers with no unit, each one more than the one before. */
+async function countsUp(kit: Kit, id: string): Promise<boolean> {
+  const last = (await entriesOf(kit, id)).slice(-3).map((r) => r.data);
+  return last.length === 3 && last.every((e) => isWhole(e.num) && !e.unit && e.shape === "number") && last[1].num === last[0].num! + 1 && last[2].num === last[1].num! + 1;
+}
+
+const isWhole = (n: number | null | undefined): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0;
+
+/** Words that ask for a count rather than add to it: "gym?", "gym count", "get gym", "show gym". */
+const ASKING = /\?|^(get|show|what|whats|what's|how|tell|see|check)\b|\b(count|total|now|so far)$/i;
+
+/** "gym", "gym today": a counting label's name alone, with nothing asked. The label, or null. */
+async function countOf(kit: Kit, text: string): Promise<Row<Label> | null> {
+  if (ASKING.test(text)) return null;
+  const words = wordsOf(text.replace(/\btoday\b/gi, " "));
+  if (!words.length) return null;
+  const all = (await labels(kit)).filter((l) => l.data.counter && l.data.current);
+  const found = all.filter((l) => sameLabel(words, l.data.words));
+  return found.length === 1 ? found[0] : null;
+}
+
+/** Add one to a counting label, and say the new count. */
+async function countUp(kit: Kit, label: Row<Label>): Promise<void> {
+  const e = await kit.store.get<Entry>("entries", `${label.key}:${label.data.current!.id}`);
+  const n = (isWhole(e?.num) ? e!.num! : 0) + 1;
+  const key = await keep(kit, label, { text: String(n), num: n, num2: null, unit: null, shape: "number" }, kit.today, [], "whatsapp");
+  if (!key) return kit.send(copy.full({ max: MAX_ENTRIES }));
+  const ref: MessageRef = { k: "m", ids: [key] };
+  kit.mark(j(ref));
+  await kit.store.put("state", "last", j({ ids: [key], at: kit.now, ref } satisfies Last));
+  kit.send(copy.counted({ name: label.data.name, count: n }));
+}
+
 export default definePlugin({
   id: "digits-store",
-  version: "1.0.0",
+  version: "1.1.0",
   sdk: "1",
   name: "Digits",
   icon: "🔢",
@@ -549,6 +602,9 @@ export default definePlugin({
       for (const p of pending.photos) await kit.files.remove(p);
     }
     if (photos.length) return photoOnly(kit, text, photos);
+    // A counting label's name alone adds one. Anything asked about it gives the count.
+    const counter = await countOf(kit, text);
+    if (counter) return countUp(kit, counter);
     // Otherwise it is a question: what is kept under these words?
     const words = text.replace(/\?+$/, "").trim();
     return recall(kit, words, (found) => answer(kit, found));
@@ -626,7 +682,7 @@ export default definePlugin({
         if (!l.data.current) continue;
         const rows = await entriesOf(kit, l.key);
         const points = rows.filter((r) => r.data.num !== null && !r.data.locked).slice(-SERIES).map((r) => ({ day: r.data.day, num: r.data.num, num2: r.data.num2 }));
-        out.push({ id: l.key, name: l.data.name, count: l.data.count, current: l.data.current, first: l.data.first, touched: l.data.touched, unit: rows.at(-1)?.data.unit ?? null, series: points });
+        out.push({ id: l.key, name: l.data.name, count: l.data.count, current: l.data.current, first: l.data.first, touched: l.data.touched, counter: !!l.data.counter, unit: rows.at(-1)?.data.unit ?? null, series: points });
       }
       out.sort((a, b) => b.touched - a.touched);
       return j({ labels: out, max: MAX_LABELS });
@@ -698,6 +754,13 @@ export default definePlugin({
         const clash = (await labels(kit)).find((l) => l.key !== a.label && sameLabel(words, l.data.words));
         if (clash) throw new Error(`There is already ${clash.data.name}.`);
         await kit.store.put("labels", String(a.label), j({ ...label, name, words }), words.join(" ") || name.toLowerCase());
+      },
+      /** Turn counting up by name on or off for a label. Off stays off: it is not set again by itself. */
+      async setCounter(kit, args) {
+        const a = (args ?? {}) as { label?: unknown; on?: unknown };
+        const label = await kit.store.get<Label>("labels", String(a.label));
+        if (!label) throw new Error("That one is gone.");
+        await kit.store.put("labels", String(a.label), j({ ...label, counter: a.on === true }));
       },
       async removeLabel(kit, args) {
         const a = (args ?? {}) as { label?: unknown };

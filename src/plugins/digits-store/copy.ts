@@ -126,6 +126,13 @@ export const copy = {
   sameKept: msg<{ asked: string; kept: string }>([({ asked, kept }) => `Noted. ${shown(asked)} and ${shown(kept)} are one and the same. I shan't ask again.`]),
   sameNot: msg([`Noted. Two, then. I'll keep them apart.`]),
 
+  /** A label was added to one at a time, so it counts up from now on. Said once per label, in place of the 👍. */
+  nowCounting: msg<{ name: string }>([({ name }) => `Kept. ${shown(name)} goes up one at a time, so from now on send "${name}" and I'll add one. To see it without adding, send "${name}?".`]),
+  /** A counting label's name alone: one added, and the new count said. */
+  counted: msg<{ name: string; count: number }>([({ name, count }) => `*${shown(name)}*: ${count} now.`]),
+  /** A count taken back by undo or ❌, with where it stands after. */
+  takenOutCount: msg<{ name: string; count: string }>([({ name, count }) => `Taken out. ${shown(name)}: ${count}.`]),
+
   /** A later day, a second value under a label: kept, and the page named once, in place of the 👍. */
   keptWithPage: msg<{ name: string; count: number }>([({ name, count }) => `Kept. That's ${count} for ${name}, and they make a graph now: ${PAGE}`]),
 
