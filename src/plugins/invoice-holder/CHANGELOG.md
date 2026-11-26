@@ -2,6 +2,19 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-11-26
+
+### Changed
+- The name people see is BillKeeper (the owner, 2026-11-26). The id stays `invoice-holder`. Groups made from now on are called "📑 BillKeeper".
+
+### Added
+- Deleting a bill's photo in WhatsApp keeps the bill, and one line says it is still on the page and can be removed there.
+- On Sundays, when bills wait for a folder, one line says how many.
+- On the 1st, one line about the month before: how many bills, how many have an amount, and their sum.
+
+### Data
+- `state`: `weekly` (a day) and `month` (a month), so each goes once.
+
 ## [1.0.0] - 2026-11-26
 
 ### Added

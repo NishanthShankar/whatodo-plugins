@@ -1,5 +1,32 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`invoice-holder copy > 1.1.0: a deleted photo, the weekly reminder, the month's line 1`] = `
+{
+  "asked": [],
+  "reactTos": [
+    "🏢",
+  ],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    "Kept. From now on a 👍 from me means a bill is kept.
+
+Whose bill is this? Your business, your home, or a person.",
+    "*Acme* is 🏢 from now on. That bill is filed there, and any bill you react to with 🏢 goes there too.
+
+More folders, and other emoji, on your page.",
+    "Read from your caption: for ₹1,200. If I read it wrong, change it on your page.",
+    "Your message is gone, but the bill is still kept on your page. I don't remove a bill because its message was deleted, so one is never lost by a slip. To remove it, do it on your page.",
+    "2 bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.",
+    "November 2026: 3 bills. 1 has an amount: ₹1,200. All 3 are on your page.",
+  ],
+  "unsures": [],
+}
+`;
+
 exports[`invoice-holder copy > a first book whose name is already taken 1`] = `
 {
   "asked": [],
@@ -116,8 +143,8 @@ More folders, and other emoji, on your page.",
 
 exports[`invoice-holder copy > welcome, help and group name 1`] = `
 {
-  "groupName": "📑 InvoiceHolder",
-  "help": "*InvoiceHolder*
+  "groupName": "📑 BillKeeper",
+  "help": "*BillKeeper*
 
 Send a photo of a bill and I keep it.
 React to it with a folder's emoji to file it there. Change the reaction to move it. Take the reaction off and the bill is in no folder.
@@ -126,7 +153,7 @@ Or reply to it with the folder's name. A caption can say whose it is and how muc
 _folders_ shows your folders and their emoji
 
 Every bill, by month and by folder, is on your page, where you can also make and change folders.",
-  "welcome": "📑 You've added *InvoiceHolder*.
+  "welcome": "📑 You've added *BillKeeper*.
 
 Send me a photo of a bill and it is kept, sorted by whose it is: your business, your home, anyone you pay for.
 

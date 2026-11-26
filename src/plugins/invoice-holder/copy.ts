@@ -5,7 +5,7 @@
  * A message is a list of wordings (see src/copy.ts) and one is picked each time. A message
  * takes its data and returns the whole text.
  *
- * Read by og-copy-bot on 2026-11-26. "Folder" is its pick for what people see (the code says
+ * Read by og-copy-bot on 2026-11-26, the 1.1.0 lines too. "Folder" is its pick for what people see (the code says
  * "book"); the owner has not picked the word yet.
  */
 import { fixed, msg } from "../../sdk";
@@ -44,15 +44,15 @@ export interface BookLine {
 const bookList = (books: BookLine[]) => books.map((b) => `${b.emoji ?? "·"} ${b.name}`).join("\n");
 
 export const copy = {
-  groupName: msg(["📑 InvoiceHolder"]),
+  groupName: msg(["📑 BillKeeper"]),
 
   // ── What the plugin says about itself ──
   welcome: msg([
-    "📑 You've added *InvoiceHolder*.\n\nSend me a photo of a bill and it is kept, sorted by whose it is: your business, your home, anyone you pay for.\n\nSend _help_ for more.",
+    "📑 You've added *BillKeeper*.\n\nSend me a photo of a bill and it is kept, sorted by whose it is: your business, your home, anyone you pay for.\n\nSend _help_ for more.",
   ]),
   help: msg([
     [
-      "*InvoiceHolder*",
+      "*BillKeeper*",
       "",
       "Send a photo of a bill and I keep it.",
       "React to it with a folder's emoji to file it there. Change the reaction to move it. Take the reaction off and the bill is in no folder.",
@@ -89,6 +89,15 @@ export const copy = {
   noBooks: msg(["No folders yet. Send a photo of a bill and tell me whose it is, or make one on your page."]),
   /** A reply to a bill that is gone. */
   gone: msg(["That bill isn't here any more."]),
+  /** The person deleted a bill's photo in WhatsApp: it stays on the page (the owner, 2026-11-26). */
+  keptAfterDelete: msg(["Your message is gone, but the bill is still kept on your page. I don't remove a bill because its message was deleted, so one is never lost by a slip. To remove it, do it on your page."]),
+  /** Once a week, when bills wait for a folder (the owner, 2026-11-26). */
+  waiting: msg<{ count: number }>([({ count }) => (count === 1 ? "1 bill is waiting for a folder. React to it with a folder's emoji, or file it on your page." : `${count} bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.`)]),
+  /** On the first of the month, the month before (the owner, 2026-11-26). */
+  month: msg<{ month: string; count: number; priced: number; sum: string | null }>([
+    ({ month, count, priced, sum }) =>
+      `${month}: ${count === 1 ? "1 bill" : `${count} bills`}. ${priced === 0 ? "None has an amount yet." : priced === count ? `Together ${sum}.` : `${priced} ${priced === 1 ? "has" : "have"} an amount: ${sum}. All ${count} are on your page.`}`,
+  ]),
   /** Anything else typed. */
   unsure: msg(["I keep photos of bills here. Send one, or _help_ to see what else I can do."]),
   /** The name they gave is already a book's. */

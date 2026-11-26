@@ -3,7 +3,7 @@ import { BOOK_EMOJI, BOOKS, BOOKS_TOO, copy, KEPT, money, NEVER_A_BOOK, type Boo
 import { bare, cleanGst, cleanName, MAX_NOTE, oneEmoji, readWords } from "./words";
 
 /**
- * InvoiceHolder
+ * BillKeeper (id "invoice-holder"; called InvoiceHolder until 1.1.0)
  *
  * Bills, sorted by whose they are. A photo sent in the group is a bill; so is a picture put on
  * the page. A bill is filed under a book (a business or a person) by a reaction with the
@@ -19,7 +19,36 @@ import { bare, cleanGst, cleanName, MAX_NOTE, oneEmoji, readWords } from "./word
  *          key: "understood"  1 once a caption's reading was said back
  *          key: "asking"      { bill } while the first book's name is asked for
  *          key: "batch"       { id, at }: the pictures sent together a moment ago
+ *          key: "weekly"      the day the last "waiting" reminder went
+ *          key: "month"       the month (YYYY-MM) the last monthly line was about
  */
+
+/** The weekly reminder goes on this day (0 Sunday) at REMIND_HOUR, when bills wait for a folder. */
+export const REMIND_DAY = 0;
+export const REMIND_HOUR = 10;
+/** The month's line goes on the 1st at this hour, about the month before. */
+export const MONTH_HOUR = 9;
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** Day of the week of a YYYY-MM-DD, 0 for Sunday, without a Date. */
+export function weekday(day: string): number {
+  let [y, m, d] = day.split("-").map(Number);
+  if (m < 3) {
+    m += 12;
+    y -= 1;
+  }
+  const k = y % 100;
+  const j = Math.floor(y / 100);
+  const h = (d + Math.floor((13 * (m + 1)) / 5) + k + Math.floor(k / 4) + Math.floor(j / 4) + 5 * j) % 7;
+  return (h + 6) % 7;
+}
+
+/** The month before a YYYY-MM-DD, as YYYY-MM. */
+function monthBefore(day: string): string {
+  const [y, m] = day.split("-").map(Number);
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
+}
 
 /** Books with an emoji, the ones that can be filed to from WhatsApp. More can exist on the page. */
 export const EMOJI_BOOKS = 7;
@@ -321,13 +350,13 @@ const noteOf = (raw: unknown): string | null => (typeof raw === "string" ? raw.r
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.0.0",
+  version: "1.1.0",
   sdk: "1",
-  name: "InvoiceHolder",
+  name: "BillKeeper",
   icon: "📑",
   tagline: "Every bill in one place, sorted by whose it is.",
   description:
-    "Send a photo of any bill to its WhatsApp group and it is kept. React with an emoji to file it under one of your businesses or a person, or reply with the name. Every bill, by month and by business, is on your page.",
+    "Send a photo of any bill to its WhatsApp group and it is kept. React with an emoji to file it under one of your businesses or a person, or reply with the name. Every bill, by month and by business, is on your page. Once a week you hear how many wait for a folder, and on the 1st how the month went.",
   groupName: copy.groupName(),
   price: 0,
   // Tier 2: it stores a photo for every bill.
@@ -340,6 +369,10 @@ export default definePlugin({
     description: "Photograph a bill, send it to a WhatsApp chat, and tap an emoji to file it under the right business. Every invoice sorted by month and by business.",
     h1: "Keep every bill, sorted by business",
   },
+  schedules: [
+    { id: "waiting", hour: REMIND_HOUR },
+    { id: "month", hour: MONTH_HOUR },
+  ],
   welcome: copy.welcome(),
   help: copy.help(),
 
@@ -380,6 +413,36 @@ export default definePlugin({
     const book = (await allBooks(kit)).find((b) => b.book.emoji && bare(b.book.emoji) === e);
     if (!book || bill.book === book.id) return;
     await file(kit, event.ref.id, book.id, "reaction", by);
+  },
+
+  /** Their bill's photo was deleted in WhatsApp: the bill stays on the page, and they are told so. */
+  async onDeleted(event, kit) {
+    if (!isBillRef(event.ref)) return;
+    if (!(await kit.store.get("bills", event.ref.id))) return;
+    kit.send(copy.keptAfterDelete());
+  },
+
+  async onSchedule(event, kit) {
+    if (event.id === "waiting") {
+      if (weekday(kit.today) !== REMIND_DAY) return;
+      if ((await kit.store.get<string>("state", "weekly")) === kit.today) return;
+      const count = (await kit.store.list<Bill>("bills")).filter((b) => b.data.state === "to-tag").length;
+      if (!count) return;
+      await kit.store.put("state", "weekly", kit.today);
+      return kit.send(copy.waiting({ count }));
+    }
+    if (event.id === "month") {
+      if (!kit.today.endsWith("-01")) return;
+      const month = monthBefore(kit.today);
+      if ((await kit.store.get<string>("state", "month")) === month) return;
+      const bills = (await kit.store.list<Bill>("bills")).filter((b) => kit.time.day(b.data.at).startsWith(month));
+      if (!bills.length) return;
+      await kit.store.put("state", "month", month);
+      const priced = bills.filter((b) => b.data.amount !== null);
+      const sum = priced.reduce((t, b) => t + (b.data.amount ?? 0), 0);
+      const [y, m] = month.split("-").map(Number);
+      return kit.send(copy.month({ month: `${MONTHS[m - 1]} ${y}`, count: bills.length, priced: priced.length, sum: priced.length ? money(Math.round(sum * 100) / 100, kit.person.currency ?? null) : null }));
+    }
   },
 
   async onAnswer(event, kit) {
