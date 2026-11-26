@@ -363,7 +363,7 @@ describe("invoice-holder: 1.1.0", () => {
     expect(t.sent.length).toBe(before);
     t.setToday("2026-11-29");
     await t.schedule(plugin, "waiting");
-    expect(t.sent.at(-1)!.text).toBe("2 bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.");
+    expect(t.sent.at(-1)!.text).toBe("2 bills have no folder yet. They are kept either way.\n\nTo file one, react to it with a folder's emoji, or use your page.");
     before = t.sent.length;
     await t.schedule(plugin, "waiting");
     expect(t.sent.length).toBe(before);
@@ -484,7 +484,7 @@ describe("invoice-holder: 1.4.0, a note asked for when a bill comes by mail", ()
     expect(t.sent[0].text).toContain("Monid");
     expect(t.sent[0].text).not.toContain("monid.com");
     expect(t.sent[0].text).toContain("Sorry, I can't read a bill yet");
-    expect(t.sent[0].text).toContain("or not at all");
+    expect(t.sent[0].text).toContain("Embarrassing, for a butler.");
     t.setHour(11);
     await fresh(t, "m2");
     expect(t.sent[1].text).toBe("A bill from Monid came by mail. What is it for?");

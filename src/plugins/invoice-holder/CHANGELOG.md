@@ -8,7 +8,7 @@ All notable changes to this plugin. The format follows [Keep a Changelog](https:
 - An amount can be in rupees or dollars (the owner, 2026-11-27: "it can be USD or Rs"). A caption or reply with $, usd or dollars is in dollars; ₹, rs or /- in rupees; a bare number in the person's own currency. The page can change it. The month's line gives one sum per currency and never adds them together.
 
 ### Changed
-- The first note question says sorry, once, that BillKeeper can't read a bill yet, and that answering is optional (voice 10, the owner's rule that Zelfred apologises for what it can't do and never overburdens).
+- The first note question says sorry, once and lightly, that BillKeeper can't read a bill yet (voice 10, the owner's picks: "apologetic but not sad"). The Sunday line says the bills are kept either way.
 
 ### Data
 - `bills`: `currency` ("INR" or "USD"; null for the person's own).

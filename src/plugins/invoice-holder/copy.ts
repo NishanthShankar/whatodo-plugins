@@ -97,7 +97,12 @@ export const copy = {
   /** The person deleted a bill's photo in WhatsApp: it stays on the page (the owner, 2026-11-26). */
   keptAfterDelete: msg(["Your message is gone, but the bill is still kept on your page. I don't remove a bill because its message was deleted, so one is never lost by a slip. To remove it, do it on your page."]),
   /** Once a week, when bills wait for a folder (the owner, 2026-11-26). */
-  waiting: msg<{ count: number }>([({ count }) => (count === 1 ? "1 bill is waiting for a folder. React to it with a folder's emoji, or file it on your page." : `${count} bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.`)]),
+  waiting: msg<{ count: number }>([
+    ({ count }) =>
+      count === 1
+        ? "1 bill has no folder yet. It is kept either way.\n\nTo file it, react to it with a folder's emoji, or use your page."
+        : `${count} bills have no folder yet. They are kept either way.\n\nTo file one, react to it with a folder's emoji, or use your page.`,
+  ]),
   /** On the first of the month, the month before (the owner, 2026-11-26). */
   month: msg<{ month: string; count: number; priced: number; sum: string | null }>([
     ({ month, count, priced, sum }) =>
@@ -107,7 +112,7 @@ export const copy = {
   /** The first time ever: the apology for not reading the bill, said once (voice 10), the question, and that answering is optional. */
   noteAskFirst: msg<{ who: string | null; count: number }>([
     ({ who, count }) =>
-      `${who ? `${count > 1 ? `${count} bills` : "A bill"} from ${who} came by mail and ${count > 1 ? "are" : "is"} kept.` : `The ${count > 1 ? "bills" : "bill"} you forwarded ${count > 1 ? "are" : "is"} kept.`} Sorry, I can't read a bill yet, which a butler ought to. ${count > 1 ? "What are they for?" : "What is it for?"}\n\nI keep your answer with the bill as its note. Reply whenever you like, or not at all.`,
+      `${who ? `${count > 1 ? `${count} bills` : "A bill"} from ${who} came by mail and ${count > 1 ? "are" : "is"} kept.` : `The ${count > 1 ? "bills" : "bill"} you forwarded ${count > 1 ? "are" : "is"} kept.`} Sorry, I can't read a bill yet. Embarrassing, for a butler.\n\n${count > 1 ? "What are they for?" : "What is it for?"}\n\nI keep your answer with the bill as its note.`,
   ]),
   /** After the first time: one short plain line. One answer goes on every bill of the mail. */
   noteAsk: msg<{ who: string | null; count: number }>([

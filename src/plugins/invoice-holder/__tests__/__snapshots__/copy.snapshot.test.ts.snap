@@ -20,7 +20,9 @@ Whose bill is this? Your business, your home, or a person.",
 More folders, and other emoji, on your page.",
     "Read from your caption: for ₹1,200. If I read it wrong, change it on your page.",
     "Your message is gone, but the bill is still kept on your page. I don't remove a bill because its message was deleted, so one is never lost by a slip. To remove it, do it on your page.",
-    "2 bills are waiting for a folder. React to each with a folder's emoji, or file them on your page.",
+    "2 bills have no folder yet. They are kept either way.
+
+To file one, react to it with a folder's emoji, or use your page.",
     "November 2026: 3 bills. 1 has an amount: ₹1,200. All 3 are on your page.",
   ],
   "unsures": [],
@@ -33,9 +35,11 @@ exports[`invoice-holder copy > 1.4.0: the note question, first and after, for a 
   "reactTos": [],
   "reactions": [],
   "sent": [
-    "A bill from Monid came by mail and is kept. Sorry, I can't read a bill yet, which a butler ought to. What is it for?
+    "A bill from Monid came by mail and is kept. Sorry, I can't read a bill yet. Embarrassing, for a butler.
 
-I keep your answer with the bill as its note. Reply whenever you like, or not at all.",
+What is it for?
+
+I keep your answer with the bill as its note.",
     "Noted on the bill. Reply to my question again to change it.",
     "2 bills from Monid came by mail. What are they for?",
     "The bill you forwarded is kept. What is it for?",
