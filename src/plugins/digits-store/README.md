@@ -43,7 +43,7 @@ Send these in the group. Your own words work too.
 | `72.4` alone | Under the only label there is. With none or several: "What is 72.4?", and the next words (within the hour) name it. |
 | a new value far from the last (`waist 340` after `waist 34`) | Kept, and both said: "The one before was 34." No verdict. |
 | `weight?`, `what's my weight`, `Amma ring` | The latest, with its day; with more than one kept, the first too and how many. Every label that fits the words is answered. The photo kept with the latest is sent with it. |
-| `gym`, `gym today` (a label that counts) | Adds one and says the new count: "*Gym*: 14." A label counts once it was seen added to one at a time twice in a row ("gym 12", "gym 13", "gym 14"; one step is not enough, as a waist can go from 30 to 31), and that is said once. Any other label's name alone gives its number back (the owner, 2026-11-26: "it'll mostly be a get"). |
+| `gym`, `gym today` (a label that counts) | Adds one and says the new count: "*Gym*: 14 now." Undo or ❌ takes it back and says where it stands: "Taken out. Gym: 13." A label counts once it was seen added to one at a time twice in a row ("gym 12", "gym 13", "gym 14"; one step is not enough, as a waist can go from 30 to 31), and that is said once. Any other label's name alone gives its number back (the owner, 2026-11-26: "it'll mostly be a get"). |
 | `gym?`, `gym count`, `get gym`, `show gym` | The count, nothing added. |
 | `history weight`, `weight history` | Every value, newest first, 30 at most; the rest on the page. |
 | `list` (also `all`, `everything`) | Every label's latest, the last added first. |

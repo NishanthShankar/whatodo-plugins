@@ -46,6 +46,7 @@ it("digits copy", () => {
     sameNot: copy.sameNot(),
     nowCounting: copy.nowCounting({ name: "gym" }),
     counted: copy.counted({ name: "gym", count: 14 }),
+    takenOutCount: copy.takenOutCount({ name: "gym", count: "13" }),
     photoAlone: copy.photoAlone(),
     photosFull: copy.photosFull(),
     full: copy.full({ max: 300 }),

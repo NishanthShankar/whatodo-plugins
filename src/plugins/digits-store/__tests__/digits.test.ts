@@ -589,6 +589,10 @@ describe("counting up by name", () => {
     await t.message(digits, "gym");
     await t.message(digits, "undo");
     expect(label(t, "gym").current?.text).toBe("13");
+    expect(last(t)).toBe(copy.takenOutCount({ name: "gym", count: "13" }));
+    await t.message(digits, "gym");
+    await t.react(digits, "❌", t.marks.at(-1)!);
+    expect(last(t)).toBe(copy.takenOutCount({ name: "gym", count: "13" }));
   });
 
   it("never counts a decimal, a unit or a jump", async () => {

@@ -421,6 +421,11 @@ async function undo(kit: Kit, ids: string[] | null, ref: Json | null): Promise<v
   const last = await kit.store.get<Last>("state", "last");
   if (last && last.ids.some((i) => ids.includes(i))) await kit.store.delete("state", "last");
   if (ref) kit.reactTo(ref, "");
+  // One count taken back: say where it stands now.
+  if (ids.length === 1) {
+    const label = await kit.store.get<Label>("labels", ids[0].split(":")[0]);
+    if (label?.counter && label.current) return kit.send(copy.takenOutCount({ name: label.name, count: label.current.text }));
+  }
   kit.send(copy.takenOut({ what: gone.join("; ") }));
 }
 
