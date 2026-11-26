@@ -62,13 +62,14 @@ export interface Line {
   first: { value: string; when: string } | null;
 }
 
-const latest = (l: Line) => `*${shown(l.name)}*: ${l.value}, ${l.when}.`;
+const latest = (l: Line) => `*${shown(l.name)}*: ${l.value}, kept ${l.when}.`;
 
 export const copy = {
   groupName: msg(["🔢 Digits"]),
 
   // A welcome that asks for nothing (docs/plugin-onboarding.md), and names one thing to send.
-  welcome: msg([`Numbers live here. Send one with a word for what it is, like _${EXAMPLE}_, and ask for it back whenever you like.`]),
+  // Picked by the owner, 2026-11-26, from og-copy-bot's two, with its aside as a line of its own.
+  welcome: msg([`Send me a number with a word for what it is, like _${EXAMPLE}_. I keep it, and hand it back when you ask.\n\nYou may stop scrolling up for them.`]),
 
   help: msg([
     [
@@ -92,7 +93,7 @@ export const copy = {
   ]),
 
   /** The first thing ever kept: said in words once, then the 👍 (docs/plugin-ui-styleguide.md, section 10). */
-  firstKept: msg<{ name: string; value: string }>([({ name, value }) => `Kept: ${name}, ${value}. Ask me "${name}?" whenever you want it back, with the ones before it. From now on a 👍 means kept.`]),
+  firstKept: msg<{ name: string; value: string }>([({ name, value }) => `Kept: ${name}, ${value}. Ask me "${name}?" today or next year, and you have it back. From now on a 👍 means kept.`]),
 
   /** A number kept with no word for it, and nothing to guess from. The next words name it. */
   whatIsIt: msg<{ value: string }>([({ value }) => `What is ${value}?`]),
@@ -161,7 +162,9 @@ export const copy = {
   nothingYet: msg([`Nothing kept yet. Send a number with a word for what it is, like _${EXAMPLE}_.`]),
 
   /** Once, the first time the person comes back on a later day: the page, after the first real day. */
-  page: msg([`Every number has a page too, with a graph of how it has moved: ${PAGE}`]),
+  page: msg([`Everything I keep for you is on one page too, and a number that changes gets its graph: ${PAGE}`]),
+  /** Under the very first answer anyone gets, once (the owner's pick, 2026-11-26). */
+  stillHere: msg(["It will still be here next year."]),
 
   // ── Taking out ──
 

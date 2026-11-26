@@ -22,6 +22,7 @@ import { dateOf, saysDate, directMatch, LOCKED, masked, overlap, readNumbers, re
  *   state    key: "taught"           data: 1 once the first keep was said in words
  *   state    key: "firstDay"         data: the day the first number was kept
  *   state    key: "page"             data: 1 once the page was named
+ *   state    key: "recalled"         data: 1 once the first answer was given
  *   state    key: "pending"          data: Pending: a number sent with no word, waiting for one
  *   state    key: "last"             data: Last: what the last message kept, for undo and a photo after it
  *   state    key: "aliases"          data: { word: [words] }: names the person said are one ("amma" and "mom")
@@ -263,7 +264,12 @@ async function pageLine(kit: Kit): Promise<string> {
 async function answer(kit: Kit, found: Row<Label>[]): Promise<void> {
   const live = found.filter((l) => l.data.current);
   if (!live.length) return;
-  const extra = await pageLine(kit);
+  let extra = await pageLine(kit);
+  // The first answer ever gets one more line, once.
+  if (!(await kit.store.get("state", "recalled"))) {
+    await kit.store.put("state", "recalled", 1);
+    extra = `\n\n${copy.stillHere()}${extra}`;
+  }
   if (live.length === 1) {
     const l = live[0];
     const text = copy.recall({ line: lineOf(kit, l.data) }) + extra;
@@ -487,7 +493,7 @@ async function countUp(kit: Kit, label: Row<Label>): Promise<void> {
 
 export default definePlugin({
   id: "digits-store",
-  version: "1.1.0",
+  version: "1.2.0",
   sdk: "1",
   name: "Digits",
   icon: "🔢",

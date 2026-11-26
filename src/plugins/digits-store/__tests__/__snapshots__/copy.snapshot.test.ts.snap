@@ -5,7 +5,7 @@ exports[`digits copy 1`] = `
   "askRemove": "Remove weight, all 6 kept?",
   "counted": "*Gym*: 14 now.",
   "description": "Send a number with a word for what it is: "Amma ring size 14", "weight 72.4", "car service 45,200 km". Each one is kept with its day, and the one before is kept too, so you can ask for the latest, see every one, or look at a graph on the page. A photo sent with a number is kept with it. Nothing is asked for and nothing is judged.",
-  "firstKept": "Kept: weight, 72.4. Ask me "weight?" whenever you want it back, with the ones before it. From now on a 👍 means kept.",
+  "firstKept": "Kept: weight, 72.4. Ask me "weight?" today or next year, and you have it back. From now on a 👍 means kept.",
   "full": "I already keep 300 different things here, which is as many as I keep. Remove one to make room.",
   "groupName": "🔢 Digits",
   "help": "*Digits*
@@ -36,7 +36,7 @@ Every number has a page with its graph: app.zelfred.com/plugins/digits-store",
   "keptWithPage": "Kept. That's 2 for weight, and they make a graph now: app.zelfred.com/plugins/digits-store",
   "list": "What I keep for you:
 
-*Weight*: 72.4 kg, today.
+*Weight*: 72.4 kg, kept today.
 
 And 3 more on the page: app.zelfred.com/plugins/digits-store",
   "listing": {
@@ -50,13 +50,13 @@ And 3 more on the page: app.zelfred.com/plugins/digits-store",
   "nothingToUndo": "Nothing to take out.",
   "nothingYet": "Nothing kept yet. Send a number with a word for what it is, like _Amma ring size 14_.",
   "nowCounting": "Kept. Gym goes up one at a time, so from now on send "gym" and I'll add one. To see it without adding, send "gym?".",
-  "page": "Every number has a page too, with a graph of how it has moved: app.zelfred.com/plugins/digits-store",
+  "page": "Everything I keep for you is on one page too, and a number that changes gets its graph: app.zelfred.com/plugins/digits-store",
   "photoAlone": "I keep a photo with its number. Send it again with the number written under it.",
   "photosFull": "That one already has four photos, so I left this one out.",
-  "recall": "*Weight*: 72.4 kg, today. The first was 75, on 3 August. 6 kept.",
-  "recallMany": "*Weight*: 72.4 kg, today.
-*Waist*: 34, today.",
-  "recallOne": "*Weight*: 72.4 kg, today.",
+  "recall": "*Weight*: 72.4 kg, kept today. The first was 75, on 3 August. 6 kept.",
+  "recallMany": "*Weight*: 72.4 kg, kept today.
+*Waist*: 34, kept today.",
+  "recallOne": "*Weight*: 72.4 kg, kept today.",
   "remindSoon": "A week from today: *Passport*, 3 March 2031.",
   "remindToday": "Today: *Riya birthday*, 12 March.",
   "removedLabel": "Weight is gone, with everything kept under it.",
@@ -64,10 +64,13 @@ And 3 more on the page: app.zelfred.com/plugins/digits-store",
   "sameNot": "Noted. Two, then. I'll keep them apart.",
   "samePerson": "Are Mom and Amma the same person?",
   "secret": "Kept. That looks like an Aadhaar number, and it now sits in this chat. If you'd rather it didn't, delete your message for everyone and I'll forget it too.",
+  "stillHere": "It will still be here next year.",
   "tagline": "Any number you want kept, with a word for what it is. Ask for it back any time.",
   "takenOut": "Taken out: weight, 79.",
   "takenOutCount": "Taken out. Gym: 13.",
-  "welcome": "Numbers live here. Send one with a word for what it is, like _Amma ring size 14_, and ask for it back whenever you like.",
+  "welcome": "Send me a number with a word for what it is, like _Amma ring size 14_. I keep it, and hand it back when you ask.
+
+You may stop scrolling up for them.",
   "whatIsIt": "What is 72.4?",
 }
 `;

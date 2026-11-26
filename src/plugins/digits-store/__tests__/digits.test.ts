@@ -15,6 +15,7 @@ const taught = (today = SUN) => {
   void t.kit.store.put("state", "taught", 1);
   void t.kit.store.put("state", "firstDay", today);
   void t.kit.store.put("state", "page", 1);
+  void t.kit.store.put("state", "recalled", 1);
   return t;
 };
 
@@ -147,11 +148,11 @@ describe("asking for a number back", () => {
   it("gives the latest, and the first when there are more", async () => {
     const t = taught();
     await t.message(digits, "weight 80");
-    expect((await recall(t, "weight?")).text).toBe("*Weight*: 80, today.");
+    expect((await recall(t, "weight?")).text).toBe("*Weight*: 80, kept today.");
     t.setToday(MON);
     await t.message(digits, "weight 79");
     const r = await recall(t, "what's my weight");
-    expect(r.text).toBe("*Weight*: 79, today. The first was 80, yesterday. 2 kept.");
+    expect(r.text).toBe("*Weight*: 79, kept today. The first was 80, yesterday. 2 kept.");
     expect(r.ref).toMatchObject({ k: "l" });
   });
 
@@ -211,7 +212,7 @@ describe("asking for a number back", () => {
     t.setHour(10);
     await t.message(digits, "waist 30");
     await t.message(digits, "list");
-    expect(last(t)).toBe(["What I keep for you:", "", "*Waist*: 30, today.", "*Weight*: 70, today."].join("\n"));
+    expect(last(t)).toBe(["What I keep for you:", "", "*Waist*: 30, kept today.", "*Weight*: 70, kept today."].join("\n"));
   });
 
   it("shows a label's whole history, newest first", async () => {
@@ -343,6 +344,7 @@ describe("numbers people may not want in a chat", () => {
 
   it("locks a PIN or a card: kept whole, shown masked everywhere, whole only through reveal", async () => {
     const t = fresh();
+    await t.kit.store.put("state", "recalled", 1);
     await t.message(digits, "atm pin 4821");
     expect(last(t)).toContain(copy.firstKept({ name: "atm pin", value: "••••" }));
     expect(last(t)).toContain(copy.locked({ what: "pin" }));
@@ -350,7 +352,7 @@ describe("numbers people may not want in a chat", () => {
     await t.message(digits, "card 4111 1111 1111 1111");
     expect(last(t)).toBe(copy.locked({ what: "card" }));
     await t.message(digits, "card?");
-    expect(last(t)).toBe("*Card*: •••• 1111, today.");
+    expect(last(t)).toBe("*Card*: •••• 1111, kept today.");
     await t.message(digits, "list");
     expect(last(t)).not.toMatch(/4821|4111/);
     const page = JSON.stringify(await t.load(digits));
@@ -376,7 +378,7 @@ describe("dates", () => {
     await t.message(digits, "joined office 1/6/2019");
     expect(last(t)).toBe(copy.keptDate({ name: "joined office", date: "1 June 2019", remind: null }));
     await t.message(digits, "Riya birthday?");
-    expect(last(t)).toBe("*Riya birthday*: 12 March 2015, today. The first was 12 March, today. 2 kept.");
+    expect(last(t)).toBe("*Riya birthday*: 12 March 2015, kept today. The first was 12 March, today. 2 kept.");
     await t.message(digits, "bangle 2/4");
     expect(label(t, "bangle").current?.text).toBe("2/4");
   });
@@ -539,7 +541,7 @@ describe("counting up by name", () => {
     const t = taught();
     await t.message(digits, "Amma ring size 14");
     await t.message(digits, "Amma ring size");
-    expect(last(t)).toBe("*Amma ring size*: 14, today.");
+    expect(last(t)).toBe("*Amma ring size*: 14, kept today.");
     expect(label(t, "Amma ring size").count).toBe(1);
   });
 
@@ -616,6 +618,17 @@ describe("counting up by name", () => {
     await t.message(digits, "gym");
     expect(last(t)).toContain("*Gym*: 14");
     expect(label(t, "gym").count).toBe(4);
+  });
+});
+
+describe("the first answer", () => {
+  it("says once that it will still be here next year", async () => {
+    const t = fresh();
+    await t.message(digits, "Amma ring size 14");
+    await t.message(digits, "Amma ring size?");
+    expect(last(t)).toBe(`*Amma ring size*: 14, kept today.\n\n${copy.stillHere()}`);
+    await t.message(digits, "Amma ring size?");
+    expect(last(t)).toBe("*Amma ring size*: 14, kept today.");
   });
 });
 
