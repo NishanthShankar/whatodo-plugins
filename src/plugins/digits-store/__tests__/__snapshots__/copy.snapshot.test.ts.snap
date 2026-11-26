@@ -19,6 +19,7 @@ Send a number with a word for what it is, in your own words. A few ready-made on
 • _history weight_: every one, newest first
 • _list_: everything I keep
 • _undo_: takes the last one out
+• _remove weight 72.4_: takes that one out
 • _remove weight_: takes weight out, with all of it
 
 A photo sent with its number is kept with it. To change one, reply to your message with the right number, or react ❌ to take it out.

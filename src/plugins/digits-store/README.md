@@ -52,6 +52,7 @@ Send these in the group. Your own words work too.
 | `list` (also `all`, `everything`) | Every label's latest, the last added first. |
 | `undo` (also `remove`, `delete`, `wrong`) | Takes out what the last message kept. |
 | `remove weight` (also `delete`, `forget`, `clear`) | Asks first, then takes out the label and everything under it. |
+| `remove weight 72.4` | Takes out that one value, the newest kept with it. |
 | a photo with a number in its caption | Kept with that value. |
 | a photo with no number | With what was kept in the last 15 minutes, or with the label its caption names. Otherwise turned away. Four photos at most per value. |
 | `help` | The command list. |

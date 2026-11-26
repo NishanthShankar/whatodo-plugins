@@ -4,6 +4,7 @@
 
 ### Changed
 
+- "remove weight 72.4" takes out that one value. Before, it was kept as a new label called "remove weight".
 - A hidden value (a card number, a PIN) is marked 🔒 on the person's message every time. The words explaining it come with the first one only (the owner, 2026-11-26).
 
 ### Data

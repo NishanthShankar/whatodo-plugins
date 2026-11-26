@@ -592,6 +592,21 @@ export default definePlugin({
     if (rm && !/\d/.test(rm)) {
       return recall(kit, rm, async (found) => (found.length === 1 ? askRemove(kit, found[0]) : answer(kit, found)));
     }
+    // "remove weight 72.4": that one value, the newest kept with it. Never kept as a label called "remove weight".
+    if (rm) {
+      const r = readNumbers(rm);
+      const piece = r?.pieces.length === 1 ? r.pieces[0] : null;
+      if (piece?.label) {
+        const all = (await labels(kit)).filter((l) => l.data.current);
+        const found = directMatch(wordsOf(piece.label), all.map((l) => ({ ...l, id: l.key, words: l.data.words })));
+        if (found.length === 1) {
+          const rows = (await entriesOf(kit, found[0].key)).reverse();
+          const hit = rows.find((x) => x.data.text === piece.value.text) ?? rows.find((x) => x.data.num !== null && x.data.num === piece.value.num);
+          if (hit) return undo(kit, [hit.key], null);
+        }
+        return kit.send(copy.notFound({ words: rm }));
+      }
+    }
 
     const reading = readNumbers(text);
     if (reading) {

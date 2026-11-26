@@ -636,3 +636,18 @@ describe("the first answer", () => {
   });
 });
 
+describe("removing one value by its words", () => {
+  it("takes out the newest value that matches, and never keeps a label called remove", async () => {
+    const t = taught();
+    await t.message(digits, "weight 72.4");
+    await t.message(digits, "weight 71.8");
+    await t.message(digits, "weight 72.4");
+    await t.message(digits, "remove weight 72.4");
+    expect(last(t)).toBe(copy.takenOut({ what: "weight, 72.4" }));
+    expect(label(t, "weight")).toMatchObject({ count: 2, current: { text: "71.8" } });
+    await t.message(digits, "delete weight 99");
+    expect(last(t)).toBe(copy.notFound({ words: "weight 99" }));
+    expect(labelsOf(t).map((l) => l.name)).toEqual(["weight"]);
+  });
+});
+
