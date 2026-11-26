@@ -18,6 +18,9 @@ export const HELP = fixed("help");
 export const BOOKS = fixed("folders");
 /** The same, in the brief's first word for it. */
 export const BOOKS_TOO = fixed("books");
+/** Zelfred's 8pm summary for mail lines held back past the cap: no sender, only the count and where to look (og-copy-bot). */
+export const MAIL_SUMMARY_ONE = "1 more bill came by mail today. It is on your page, where you can add a note.";
+export const MAIL_SUMMARY_MANY = "{n} more bills came by mail today. They are on your page, where you can add a note to each.";
 /** Answers that mean "no note", understood without being taught. Compared after lower-casing and trimming end marks. */
 export const NO_NOTE = ["no", "nope", "none", "nothing", "no note", "no notes", "skip", "-", "nah", "no thanks", "not now", "na"];
 

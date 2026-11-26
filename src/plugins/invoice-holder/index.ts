@@ -1,5 +1,5 @@
 import { definePlugin, type Json, type Kit, type MailEvent, type Photo, type Sender } from "../../sdk";
-import { BOOK_EMOJI, BOOKS, BOOKS_TOO, NO_NOTE, copy, KEPT, money, NEVER_A_BOOK, type BookLine } from "./copy";
+import { BOOK_EMOJI, BOOKS, BOOKS_TOO, MAIL_SUMMARY_MANY, MAIL_SUMMARY_ONE, NO_NOTE, copy, KEPT, money, NEVER_A_BOOK, type BookLine } from "./copy";
 import { bare, cleanGst, cleanName, MAX_NOTE, oneEmoji, readWords } from "./words";
 
 /**
@@ -302,10 +302,9 @@ async function noteQuestion(kit: Kit, e: MailEvent, ids: string[]) {
       if (routine(all, e.from.address)) return;
     }
   }
-  // The platform caps lines caused by mail; when it says none are left for this mail, ask nothing and open no window,
-  // or a plain line would become a note on a bill the person was never asked about. Read when the SDK carries it.
-  const left = (e as { lines?: number }).lines;
-  if (left !== undefined && left <= 0) return;
+  // The platform caps lines caused by mail (SDK 1.34.0); when none are left for this mail, ask nothing and open no
+  // window, or a plain line would become a note on a bill the person was never asked about.
+  if (e.lines !== undefined && e.lines <= 0) return;
   if (night(kit)) return;
   await askNote(kit, ids, own ? null : brandOf(e.from.domain));
 }
@@ -551,6 +550,8 @@ export default definePlugin({
     { id: "waiting", hour: REMIND_HOUR },
     { id: "month", hour: MONTH_HOUR },
   ],
+  // Zelfred's 8pm line when the day's mail lines were held back past the cap (og-copy-bot's words, SDK 1.34.0).
+  mailSummary: { one: MAIL_SUMMARY_ONE, many: MAIL_SUMMARY_MANY },
   welcome: copy.welcome(),
   help: copy.help(),
 
