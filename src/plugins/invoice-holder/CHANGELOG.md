@@ -2,6 +2,16 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] - 2026-11-27
+
+### Added
+- What Zelfred read inside a mailed PDF (SDK 1.35.0) is kept on the bill as "the bill says": its amount and currency and the date on it fill those fields until the person changes them; its number, due date, GST numbers and seller are kept as facts. A due date never becomes a reminder.
+- A mailed bill's folder, first that fits: a GST number on it that is exactly one folder's; the folder the last bill from that sender went to; the seller's name against folder names, in our own code; only then jev, given the seller's name in letters alone, never an amount, date or number. jev's pick is marked as a guess, is undone in one tap on the page, and never moves a bill the person filed meanwhile.
+- The "sort" permission, for that last step.
+
+### Data
+- `bills`: `facts` (amount, currency, date, due, number, gstins, seller as found); `currency` may be any ISO code the reader found; `tagged.how` may be "gstin", "seller" or "guess".
+
 ## [1.6.0] - 2026-11-27
 
 ### Added

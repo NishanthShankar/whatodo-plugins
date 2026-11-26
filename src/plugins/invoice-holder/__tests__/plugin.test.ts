@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import plugin, { type Bill, type Book, weekday } from "..";
+import type { MailRead } from "../../../sdk";
 import { createTestKit, mail, photo } from "../../../testing";
 import { readWords } from "../words";
 
@@ -672,5 +673,73 @@ describe("invoice-holder: 1.6.0, an amount in rupees or dollars", () => {
     t.setToday("2026-12-01");
     await t.schedule(plugin, "month");
     expect(t.sent.at(-1)!.text).toBe("November 2026: 3 bills. 2 have an amount: ₹450 and $52.50. All 3 are on your page.");
+  });
+});
+
+describe("invoice-holder: 1.7.0, what the bill says", () => {
+  const monid = { address: "billing@monid.com", domain: "monid.com", kind: "company" as const };
+  const pdf = (id: string, read?: Partial<MailRead>) => ({ id, type: "application/pdf" as const, size: 9000, ...(read ? { read: { state: "read", ...read } as MailRead } : {}) });
+  const kit = () => createTestKit({ today: "2026-11-27", hour: 10 });
+  const bill = (t: T, mailId: string) => bills(t).find((b) => b.mail?.id === mailId)!;
+
+  it("keeps what the reader found as the bill's amount, currency and date, and the rest as facts", async () => {
+    const t = kit();
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: monid, files: [pdf("f1", { state: "read", amount: 52.5, currency: "USD", date: "2026-11-26", due: "2026-12-10", number: "MON-1184", gstins: ["29ABCDE1234F1Z5"], seller: "Monid Technologies Pvt Ltd" })] }));
+    expect(bill(t, "m1")).toMatchObject({ amount: 52.5, currency: "USD", billDate: "2026-11-26", facts: { number: "MON-1184", due: "2026-12-10", seller: "Monid Technologies Pvt Ltd" } });
+    await t.mail(plugin, mail({ id: "m2", at: t.kit.now, from: monid, files: [pdf("f2", { state: "locked" })] }));
+    expect(bill(t, "m2")).toMatchObject({ amount: null, facts: null });
+  });
+
+  it("files by a GST number that is exactly one folder's, before anything else", async () => {
+    const t = kit();
+    await t.act(plugin, "addBook", { name: "NVerse", gst: "29ABCDE1234F1Z5" });
+    await t.act(plugin, "addBook", { name: "Home", kind: "person" });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: monid, files: [pdf("f1", { state: "read", gstins: ["29abcde1234f1z5".toUpperCase()] })] }));
+    expect(bill(t, "m1")).toMatchObject({ state: "filed", tagged: { how: "gstin" } });
+    expect(t.sorts).toHaveLength(0);
+  });
+
+  it("then by the seller's name against folder names, in our own code", async () => {
+    const t = kit();
+    await t.act(plugin, "addBook", { name: "Monid" });
+    await t.act(plugin, "addBook", { name: "Home" });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: monid, files: [pdf("f1", { state: "read", seller: "Monid Technologies Pvt Ltd" })] }));
+    expect(bill(t, "m1")).toMatchObject({ state: "filed", tagged: { how: "seller" } });
+    expect(t.sorts).toHaveLength(0);
+  });
+
+  it("only then asks jev, with the seller's letters alone, and files it as a guess if still unfiled", async () => {
+    const t = kit();
+    await t.act(plugin, "addBook", { name: "NVerse" });
+    await t.act(plugin, "addBook", { name: "Uyir Healthcare" });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: monid, files: [pdf("f1", { state: "read", amount: 900, seller: "Apollo Pharmacy 24x7 GSTIN 29XYZ" })] }));
+    expect(bill(t, "m1").state).toBe("to-tag");
+    expect(t.sorts).toHaveLength(1);
+    expect(t.sorts[0].text).toBe("Apollo Pharmacy x GSTIN XYZ");
+    expect(t.sorts[0].text).not.toMatch(/\d/);
+    expect(Object.values(t.sorts[0].choices)).toEqual(["NVerse", "Uyir Healthcare"]);
+    const uyir = books(t).find((b) => b.name === "Uyir Healthcare")!.id;
+    await t.sorted(plugin, "Apollo Pharmacy x GSTIN XYZ", uyir);
+    expect(bill(t, "m1")).toMatchObject({ state: "filed", book: uyir, tagged: { how: "guess" } });
+  });
+
+  it("a guess never moves a bill the person filed meanwhile, and no answer changes nothing", async () => {
+    const t = kit();
+    await t.act(plugin, "addBook", { name: "NVerse" });
+    await t.act(plugin, "addBook", { name: "Home" });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: monid, files: [pdf("f1", { state: "read", seller: "Apollo Pharmacy" })] }));
+    const [nverse, home] = books(t);
+    await t.act(plugin, "tag", { ids: [bill(t, "m1").id], book: home.id });
+    await t.sorted(plugin, "Apollo Pharmacy", nverse.id);
+    expect(bill(t, "m1")).toMatchObject({ book: home.id, tagged: { how: "page" } });
+  });
+
+  it("no jev without a seller, or with fewer than two folders", async () => {
+    const t = kit();
+    await t.act(plugin, "addBook", { name: "NVerse" });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: monid, files: [pdf("f1", { state: "read", seller: "Apollo Pharmacy" })] }));
+    await t.act(plugin, "addBook", { name: "Home" });
+    await t.mail(plugin, mail({ id: "m2", at: t.kit.now, from: { ...monid, address: "x@y.com" }, files: [pdf("f2", { state: "read", amount: 5 })] }));
+    expect(t.sorts).toHaveLength(0);
   });
 });
