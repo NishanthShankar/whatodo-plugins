@@ -890,3 +890,40 @@ describe("invoice-holder: 1.10.1, the catch-up waits for the new reader", () => 
     expect(t.fileReads).toHaveLength(0);
   });
 });
+
+describe("invoice-holder: 1.11.0, filed by the address it came through", () => {
+  const me = { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" as const };
+  const pdf = (id: string) => ({ id, type: "application/pdf" as const, size: 9000 });
+  const kit = () => createTestKit({ today: "2026-11-27", hour: 10 });
+  const byMail = (t: T, id: string) => bills(t).find((b) => b.mail?.id === id)!;
+
+  it("a +label's bill filed by hand ties the label; the next goes there unasked, and Stop undoes it", async () => {
+    const t = kit();
+    await t.act(plugin, "addBook", { name: "NVerse" });
+    await t.act(plugin, "addBook", { name: "Home" });
+    const [nverse] = books(t);
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: me, label: "nverse", files: [pdf("f1")] }));
+    expect(byMail(t, "m1").state).toBe("to-tag");
+    await t.act(plugin, "tag", { ids: [byMail(t, "m1").id], book: nverse.id });
+    await t.mail(plugin, mail({ id: "m2", at: t.kit.now, from: me, label: "NVerse", files: [pdf("f2")] }));
+    expect(byMail(t, "m2")).toMatchObject({ book: nverse.id, tagged: { how: "label" } });
+    await t.act(plugin, "unlinkLabel", { label: "nverse" });
+    // No longer by its label (the Gmail account it came through may still place it).
+    await t.mail(plugin, mail({ id: "m3", at: t.kit.now, from: { ...me, address: "other@gmail.com" }, label: "nverse", files: [pdf("f3")] }));
+    expect(byMail(t, "m3").book).toBeNull();
+  });
+
+  it("a Gmail account whose filed bills all went to one folder files the next there", async () => {
+    const t = kit();
+    await t.act(plugin, "addBook", { name: "Uyir" });
+    await t.act(plugin, "addBook", { name: "Home" });
+    const [uyir] = books(t);
+    const work = { ...me, address: "work@uyir.in", domain: "uyir.in" };
+    for (const id of ["m1", "m2"]) {
+      await t.mail(plugin, mail({ id, at: t.kit.now, from: work, files: [pdf(`f${id}`)] }));
+      await t.act(plugin, "tag", { ids: [byMail(t, id).id], book: uyir.id });
+    }
+    await t.mail(plugin, mail({ id: "m3", at: t.kit.now, from: work, files: [pdf("f3")] }));
+    expect(byMail(t, "m3")).toMatchObject({ book: uyir.id, tagged: { how: "mailbox" } });
+  });
+});
