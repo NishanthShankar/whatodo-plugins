@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.40.0] - 2026-11-27
+
+### Added
+
+- `FileReadEvent.read` may be `{ state: "limit" }`: the file was not read because the person's readings for the day are used up, so an app can say so and keep what it had, instead of treating it as a failed reading.
+
 ## [1.39.0] - 2026-11-27
 
 ### Added
