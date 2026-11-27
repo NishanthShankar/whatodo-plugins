@@ -2,11 +2,46 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
-## [1.33.0] - 2026-11-26
+## [1.38.0] - 2026-11-27
 
 ### Added
 - `web.locked`: the names of web actions that need the person's lock (their passkey, passphrase or recovery key, one lock across Zelfred). Zelfred runs such an action only when the call is signed by that lock for this plugin, this action and these arguments, within ten minutes and never twice. A plugin only lists the names; the check is Zelfred's. `definePlugin` refuses a name that is not in `web.actions`, and a name listed twice.
 - Test kit: `t.act` runs a locked action like any other, as if the person had unlocked. Whether Zelfred lets a call through is tested in Zelfred.
+
+## [1.37.0] - 2026-11-27
+
+### Added
+
+- `MailRead.kind` ("bill", "not-bill", "unsure") and `MailRead.sort` (ticket, statement, insurance, papers, quote, proforma, pay, other): whether a mailed PDF is a bill at all, from words Zelfred found and its file's name. "not-bill" only when the signs are clear; treat "unsure" as a bill.
+- `MailEvent.forwarded: { domain }`: for a forward from the person's own mailbox, the domain of the original sender in its forwarded header block. A domain only; not checked, so for naming and sorting, never trust.
+
+## [1.36.0] - 2026-11-27
+
+### Added
+
+- `kit.files.read(id, ref)` and `onFileRead({ fileId, ref, read })`: read one of the install's PDFs again with Zelfred's bill reader, for a page button such as "Read again"; `read` is a `MailRead`. At most 20 a day for a person. Needs "mail". Test kit: `t.fileRead(plugin, id, read)` and `t.fileReads`.
+- `MailEvent.messageId`: the mail's own Message-ID, cleaned and capped at 200 characters, to link back to it in the person's Gmail (`#search/rfc822msgid:`, URL-encoded). Works only in Gmail and only in the mailbox it came through. Never shown as text, sent, logged or counted.
+
+## [1.35.0] - 2026-11-27
+
+### Added
+
+- `MailFile.read` (`MailRead`): what Zelfred read inside a mailed PDF, with its own code in a closed place that keeps nothing: `state` (read, locked, picture, failed) and, when read, `amount`, `currency`, `date`, `due`, `number`, `gstins` (at most 4) and `seller`. Missing when not read in time. Every fact is "the bill says": show it as editable, never as true in Zelfred's voice; a due date never becomes a reminder without the person's yes for that sender.
+
+## [1.34.0] - 2026-11-27
+
+### Added
+
+- `MailEvent.lines`: how many WhatsApp lines the plugin may still send for this mail (0 past the day's cap, for old mail, or at quiet hours). Read it before starting something that waits for an answer; Zelfred drops anything past it.
+- `mailSummary: { one, many }` on a plugin with "mail": the one line Zelfred posts in its group at 8pm when its lines caused by mail were held back past the owner's cap (2 a day across all apps). Without it Zelfred uses plain words of its own.
+- `MailFile.name`: the attachment's name as its sender wrote it, made safe to show (no control or direction-changing characters, no slashes, at most 100 characters). Optional: missing when the mail gave none. Sender-written text, to show and never to trust.
+
+## [1.33.0] - 2026-11-27
+
+### Added
+
+- New permission `"mail"` with `onMail(event, kit)`: a plugin is told of each mail that comes to the person's Zelfred mail address (name@zelfred.com) from a sender they accepted, with the sender (address, domain, company or the person's own mailbox), the person's label and the mail's PDFs as file ids. It answers `"took"`, `"not-for-me"` or `"could-not-read"`. The mail's text and subject are not passed on. Not with `"vault"`; Zelfred never gives it to health apps.
+- Testing: `t.mail(plugin, mail({ ... }))`.
 
 ## [1.32.0] - 2026-11-26
 

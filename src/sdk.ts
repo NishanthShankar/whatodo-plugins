@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.33.0";
+export const SDK_VERSION = "1.38.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -74,10 +74,17 @@ export type Tier = 1 | 2 | 3;
  * - "sort": have Zelfred put a few words (what an expense was, say) in one of the plugin's own
  *   groups, a while later (`kit.sort`, answered in `onSorted`). Zelfred takes out numbers before
  *   the words go to the sorting model, which is run outside Zelfred. Since SDK 1.32.0.
+ * - "mail": be told of mail that comes to the person's Zelfred mail address (name@zelfred.com)
+ *   from a sender they accepted (`onMail`). Zelfred keeps the mail's PDFs and hands over their ids,
+ *   type and size, as with photos; the plugin never holds a file. Every plugin with "mail" is told
+ *   of every such mail and must answer: "took" (the files stay with it until it removes them),
+ *   "not-for-me", or "could-not-read". Misses are counted per plugin and sender's domain, never
+ *   per person. The mail's text and subject are not passed on. Can't be combined with "vault";
+ *   health apps never get it. Since SDK 1.33.0.
  * Since SDK 1.6.0.
  */
-export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault" | "share" | "photos" | "location" | "parcels" | "sort";
-export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault", "share", "photos", "location", "parcels", "sort"];
+export type Permission = "hooks" | "groups" | "replies" | "lock-members" | "members" | "links" | "api" | "vault" | "share" | "photos" | "location" | "parcels" | "sort" | "mail";
+export const PERMISSIONS: Permission[] = ["hooks", "groups", "replies", "lock-members", "members", "links", "api", "vault", "share", "photos", "location", "parcels", "sort", "mail"];
 
 /** Anything JSON can hold. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -355,6 +362,13 @@ export interface Kit {
      * the page before storing it. Since SDK 1.25.0.
      */
     get(id: string): Promise<{ id: string; type: string; size: number } | null>;
+    /**
+     * Read one of this install's PDFs again with Zelfred's bill reader (as a mailed bill is read before `onMail`):
+     * a moment later `onFileRead` gets what the bill says and the `ref` given here. Every call is answered, with
+     * `read.state` "failed" when it could not be read. For a page button such as "Read again". At most 20 a day for a
+     * person. Needs the "mail" permission. Since SDK 1.36.0.
+     */
+    read(id: string, ref: Json): Promise<void>;
   };
   /** Wall-clock helpers in the person's zone. */
   time: {
@@ -510,6 +524,96 @@ export interface Photo {
   /** Bytes. */
   size: number;
 }
+
+/** A PDF that came with a mail, for plugins with the "mail" permission. Like a photo: the plugin keeps the id. Since SDK 1.33.0. */
+export interface MailFile {
+  id: string;
+  type: "application/pdf";
+  /** Bytes. */
+  size: number;
+  /**
+   * The attachment's name as its sender wrote it ("Airtel_Nov_2026.pdf"), made safe to show: no control or
+   * direction-changing characters, no slashes, at most 100 characters. Sender-written text: show it, never trust it.
+   * Missing when the mail gave none. Since SDK 1.34.0.
+   */
+  name?: string;
+  /**
+   * What Zelfred read inside the PDF, with its own code in a closed place that keeps nothing. Since SDK 1.35.0.
+   * Missing when it was not read in time. `state` says whether it could be read: "locked" (a password), "picture" (a
+   * scan with no text) or "failed". Every fact is "the bill says": show it as something the person can change, never
+   * state it as true in Zelfred's voice, and never turn `due` into a reminder unless the person agreed once for that
+   * sender. A fact Zelfred was not sure of is left out, never guessed. `seller` is the sender's own words, like `name`.
+   */
+  read?: MailRead;
+}
+
+/** What Zelfred read in a mailed PDF (MailFile.read). Since SDK 1.35.0. */
+export interface MailRead {
+  state: "read" | "locked" | "picture" | "failed";
+  /** The bill's total, with at most 2 decimals. */
+  amount?: number;
+  /** ISO 4217: INR, USD, EUR, GBP, AED or SGD. */
+  currency?: string;
+  /** The bill's date, YYYY-MM-DD. */
+  date?: string;
+  /** When it is due, YYYY-MM-DD. */
+  due?: string;
+  /** The bill's own number (invoice, bill, receipt or order), never an account or card number. At most 40 characters. */
+  number?: string;
+  /** GST numbers found, the seller's and the buyer's alike, at most 4, each with a valid check character. */
+  gstins?: string[];
+  /** The seller's name as printed, at most 80 characters. */
+  seller?: string;
+  /**
+   * Whether it is a bill at all, from words Zelfred found in it and its file's name (since SDK 1.37.0): "not-bill" only
+   * when the signs are clear, "unsure" when they are mixed or thin. Treat "unsure" as a bill: nothing should be set
+   * aside on a guess. Locked or unreadable PDFs are "unsure" unless their name alone says otherwise.
+   */
+  kind?: "bill" | "not-bill" | "unsure";
+  /** For what is not a bill (or may not be): what it seems to be. Since SDK 1.37.0. */
+  sort?: "ticket" | "statement" | "insurance" | "papers" | "quote" | "proforma" | "pay" | "other";
+}
+
+/**
+ * A mail came to the person's Zelfred mail address from a sender they accepted. Since SDK 1.33.0.
+ * What the plugin gets is who sent it and its PDFs, never the mail's text or subject.
+ */
+export interface MailEvent {
+  /** Zelfred's id for this mail; the same for every plugin told of it. */
+  id: string;
+  /** When it arrived (ms). */
+  at: number;
+  /** The person's own label from after the plus (name+hdfc@zelfred.com gives "hdfc"), or "". Never a plugin's name. */
+  label: string;
+  /** Who sent it, as proven: the From address, its domain, and whether it is a company or the person's own mailbox. */
+  from: { address: string; domain: string; kind: "company" | "mailbox" };
+  /** Its PDFs, up to 3. */
+  files: MailFile[];
+  /**
+   * How many WhatsApp lines (sends and questions) the plugin may still send for this mail. 0 when the person's
+   * lines caused by mail are used up for the day (2 across all apps), when the mail is old (the plugin was just
+   * added), or at hours Zelfred keeps quiet. Zelfred drops anything past it; read it before starting something that
+   * waits for an answer. Since SDK 1.34.0.
+   */
+  lines?: number;
+  /**
+   * The mail's own Message-ID, cleaned (angle brackets off, no control or format characters, at most 200 characters),
+   * to build a link back to the mail in the person's Gmail:
+   * `https://mail.google.com/mail/u/0/#search/rfc822msgid:${encodeURIComponent(messageId)}`. It works only in Gmail,
+   * and only in the mailbox the mail came through (a forward from their own Gmail); say so beside the link. Never
+   * show it as text, never put it in a message, a log or a count. Missing when the mail had none. Since SDK 1.36.0.
+   */
+  messageId?: string;
+  /**
+   * For a mail the person forwarded from their own mailbox: the domain of the original sender, read from the one
+   * forwarded header block in the mail ("airtel.com"). A domain only, never a name or an address; the original sender
+   * was not checked, so use it to name or sort, never to trust. Missing otherwise. Since SDK 1.37.0.
+   */
+  forwarded?: { domain: string };
+}
+
+/** What a plugin says about a mail it was told of. Since SDK 1.33.0. */
+export type MailAnswer = "took" | "not-for-me" | "could-not-read";
 
 /** A position someone shared, for plugins with the "location" permission. Since SDK 1.25.0. */
 export interface Place {
@@ -709,6 +813,16 @@ export interface SortEvent {
   confidence: number;
 }
 
+/** A PDF given to `kit.files.read` was read. Since SDK 1.36.0. */
+export interface FileReadEvent {
+  /** The file's id, as given. */
+  fileId: string;
+  /** The ref given to `kit.files.read`. */
+  ref: Json;
+  /** What the bill says, as `MailFile.read`; state "failed" when it could not be read or the day's limit was reached. */
+  read: MailRead;
+}
+
 /** A person deleted, for everyone, a message of theirs that the plugin had marked. Since SDK 1.30.0. */
 export interface DeletedEvent {
   /** The ref the message was marked with (`kit.mark`). */
@@ -813,7 +927,7 @@ export interface WebDef {
    * most and never twice. Without that the action does not run, so what it returns never leaves
    * the server. The plugin does nothing else: no check of its own, and no way to switch it off.
    * Use it for an action that hands back something kept hidden (a card number whole). Not for
-   * `load`, which runs with a login alone: keep what is hidden out of it. Since SDK 1.33.0.
+   * `load`, which runs with a login alone: keep what is hidden out of it. Since SDK 1.38.0.
    */
   locked?: string[];
   /**
@@ -927,8 +1041,23 @@ export interface PluginDef {
   onLink?(event: LinkEvent, kit: Kit): Promise<void>;
   /** A parcel asked about with `kit.parcels.read` was looked up. Needs the "parcels" permission. Since SDK 1.31.0. */
   onParcel?(event: ParcelEvent, kit: Kit): Promise<void>;
+  /** A PDF given to `kit.files.read` was read. Needs the "mail" permission. Since SDK 1.36.0. */
+  onFileRead?(event: FileReadEvent, kit: Kit): Promise<void>;
   /** Words given to `kit.sort` were sorted. Needs the "sort" permission. Since SDK 1.32.0. */
   onSorted?(event: SortEvent, kit: Kit): Promise<void>;
+  /**
+   * A mail came to the person's Zelfred mail address from a sender they accepted. Answer "took" to keep its files
+   * (as with photos: `kit.files.get`, `kit.files.remove`), "not-for-me", or "could-not-read" (a miss, counted).
+   * Needs the "mail" permission. Since SDK 1.33.0.
+   */
+  onMail?(event: MailEvent, kit: Kit): Promise<MailAnswer>;
+  /**
+   * The one line Zelfred posts in the app's group at 8pm when the app's lines caused by mail were held back past the
+   * owner's cap (2 a day across all apps). `one` for a single held line, `many` with "{n}" for more. Name no sender
+   * and nothing from a mail: only the count and where to look. Without it Zelfred says it in plain words of its own.
+   * Needs the "mail" permission. Since SDK 1.34.0.
+   */
+  mailSummary?: { one: string; many: string };
   /** Opt in to intent understanding for messages onMessage marks with kit.unsure(). Since SDK 1.4.0. */
   understand?: UnderstandDef;
   /** Called with the intent Zelfred found for an unclear message. Required with `understand`. */
@@ -1004,6 +1133,14 @@ export function definePlugin(def: PluginDef): PluginDef {
   if (def.onSorted && !def.permissions?.includes("sort")) throw new Error(`${def.id}: onSorted needs the "sort" permission`);
   if (def.permissions?.includes("sort") && !def.onSorted) throw new Error(`${def.id}: the "sort" permission needs onSorted (where the answer arrives)`);
   if (def.permissions?.includes("sort") && def.permissions.includes("vault")) throw new Error(`${def.id}: "sort" can't be combined with "vault" (nothing written there is read)`);
+  if (def.onMail && !def.permissions?.includes("mail")) throw new Error(`${def.id}: onMail needs the "mail" permission`);
+  if (def.permissions?.includes("mail") && !def.onMail) throw new Error(`${def.id}: the "mail" permission needs onMail (where mail arrives)`);
+  if (def.permissions?.includes("mail") && def.permissions.includes("vault")) throw new Error(`${def.id}: "mail" can't be combined with "vault"`);
+  if (def.mailSummary) {
+    if (!def.permissions?.includes("mail")) throw new Error(`${def.id}: mailSummary needs the "mail" permission`);
+    const { one, many } = def.mailSummary;
+    if (!one?.trim() || !many?.includes("{n}") || one.length > 200 || many.length > 200) throw new Error(`${def.id}: mailSummary needs one and many (with "{n}"), each at most 200 characters`);
+  }
   if (def.onGroup && !def.permissions?.includes("groups")) throw new Error(`${def.id}: onGroup needs the "groups" permission`);
   if (def.api) {
     if (!def.permissions?.includes("api")) throw new Error(`${def.id}: api needs the "api" permission`);

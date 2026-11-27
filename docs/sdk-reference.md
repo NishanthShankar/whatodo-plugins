@@ -37,6 +37,9 @@ Validates and returns the definition. Throws on a bad `id`, a `version` that isn
 | `onGroup` | `(event: GroupEvent, kit) => Promise<void>` | no | The person handed the plugin a WhatsApp group they already had, or took it back. Having it is what makes the plugin a choice for existing groups. Needs `"groups"`. Since SDK 1.17.0. |
 | `onGroupInfo` | `(event: GroupInfoEvent, kit) => Promise<void>` | no | Someone gave one of the plugin's groups a new name or description. Zelfred finds out when the next message arrives there and tells the plugin before that message's `onMessage`. Zelfred's own changes never arrive. Not for `"vault"`. Since SDK 1.28.0. |
 | `onParcel` | `(event: ParcelEvent, kit) => Promise<void>` | no | A parcel asked about with `kit.parcels.read` was looked up. Needs `"parcels"`. See [Parcels](#parcels). Since SDK 1.31.0. |
+| `onMail` | `(event: MailEvent, kit) => Promise<MailAnswer>` | no | A mail came to the person's Zelfred mail address from a sender they accepted: `{ id, at, label, from: { address, domain, kind }, files }`; each file has `id`, `type`, `size`, since SDK 1.34.0 an optional cleaned `name`, and since SDK 1.35.0 an optional `read`: `{ state, amount?, currency?, date?, due?, number?, gstins?, seller? }`, what Zelfred read inside the PDF ("the bill says": editable, never stated as true; a due date is never a reminder without the person's yes). Answer `"took"` (its PDFs stay with the plugin, as photos do), `"not-for-me"` or `"could-not-read"`. Never the mail's text or subject. Needs `"mail"`. Since SDK 1.33.0. |
+| `onFileRead` | `(event: FileReadEvent, kit) => Promise<void>` | no | A PDF given to `kit.files.read(id, ref)` was read: `{ fileId, ref, read }`, `read` as `MailFile.read`. Needs `"mail"`. Since SDK 1.36.0. |
+| `mailSummary` | `{ one: string; many: string }` | no | With `"mail"`: the 8pm line when the app's lines caused by mail were held back past the cap of 2 a day; `many` has `{n}`. Names no sender. Since SDK 1.34.0. |
 | `onSorted` | `(event: SortEvent, kit) => Promise<void>` | no | Words given to `kit.sort` were sorted: `{ ref, choice, confidence }`, `choice` null when none fitted. Needs `"sort"`. See [Sorting](#sorting). Since SDK 1.32.0. |
 | `onLink` | `(event: LinkEvent, kit) => Promise<void>` | no | A link asked for with `kit.links.read` was read. Needs `"links"`. See [Links](#links). Since SDK 1.24.0. |
 | `links` | `{ price?: boolean }` | no | What more to look for on the links read for this plugin. `price`: what the thing costs. Needs `"links"`. Since SDK 1.24.0. |
@@ -62,7 +65,7 @@ Slots run at most once per install: a daily schedule once per local day, an hour
 | `lockable` | boolean | The person may lock the page behind their Zelfred PIN. Use it for anything personal. |
 | `load` | `(kit, args) => Promise<Json>` | Data for the page. Runs **read-only**: `store.put`, `store.delete`, `setSettings` and `send` throw. |
 | `actions` | `Record<string, (kit, args) => Promise<Json \| void>>` | Changes the page can ask for. Throw `Error("Plain sentence")` to show the person a message. |
-| `locked` | `string[]` | Names of `actions` that need the person's lock. See [Locked actions](#locked-actions). Since SDK 1.33.0. |
+| `locked` | `string[]` | Names of `actions` that need the person's lock. See [Locked actions](#locked-actions). Since SDK 1.38.0. |
 | `shared` | `(kit, key) => Promise<SharedPage \| null>` | What the shared page for `key` shows to anyone holding its address. Read-only. Needs `"share"`. See [Shared pages](#shared-pages-a-page-anyone-can-open). Since SDK 1.24.0. |
 
 ### Locked actions
@@ -193,6 +196,7 @@ By default a plugin can only hear its own group, post there, and keep its own da
 | `"location"` | Get a position shared in its groups: `event.place`. See [A position](#a-position). | Built (SDK 1.25.0) |
 | `"parcels"` | Have Zelfred ask a carrier where a parcel is: `kit.parcels.read`, `onParcel`. See [Parcels](#parcels). | Built (SDK 1.31.0): FedEx and UPS |
 | `"sort"` | Have Zelfred put a few words in one of the plugin's groups: `kit.sort`, `onSorted`. See [Sorting](#sorting). | Built (SDK 1.32.0) |
+| `"mail"` | Be told of mail to the person's Zelfred mail address from senders they accepted, with its PDFs as file ids: `onMail`. Every such plugin answers for every mail. Not with `"vault"`; health apps never get it. | Built (SDK 1.33.0) |
 | `"vault"` | Nothing: it takes reading away. What is written in the plugin's group is locked on arrival with a key only the person's browser holds. The plugin gets `onEntry` and never a message. See [A vault](#a-vault-entries-nobody-else-can-read). | Built (SDK 1.21.0), unlisted plugins only until the locking is reviewed |
 
 Ask for the fewest that the feature needs. For a listed plugin, adding a permission is a MAJOR bump: people agreed to the old list. An unlisted plugin can add one in a MINOR.

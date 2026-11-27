@@ -1,10 +1,24 @@
 # Changelog
 
-## [1.5.0] - 2026-11-27
+## [1.6.0] - 2026-11-27
 
 ### Security
 
-- Showing a hidden value whole (a card number, a PIN) now takes the person's lock: their passkey, passphrase or recovery key, the same one across Zelfred. The page's `reveal` action is named in `web.locked`, so Zelfred refuses it without a fresh signature from that lock. Needs SDK 1.33.0.
+- Showing a hidden value whole (a card number, a PIN) now takes the person's lock: their passkey, passphrase or recovery key, the same one across Zelfred. The page's `reveal` action is named in `web.locked`, so Zelfred refuses it without a fresh signature from that lock. Needs SDK 1.38.0.
+
+## [1.5.0] - 2026-11-27
+
+### Changed
+
+- When NumberKeeper can't do something it says sorry, lightly, and never hands the work back (voice 10, the owner, 2026-11-26).
+- A photo sent with no number and nothing kept just now is kept, and NumberKeeper asks "What number is it?". The photo goes with the next number sent within the hour, so it is never sent twice. After an hour it is let go.
+- One name holding 2,000 values has its own line. Before, it got the line for 300 different things.
+- On the page, a full name is named, with what to do.
+- Counts are written in digits: "2 kept at once", "by its last 4 digits", "4 photos" (voice 11).
+
+### Data
+
+- New `state` row "photos": photos waiting for their number. Removed with everything else.
 
 ## [1.4.0] - 2026-11-27
 

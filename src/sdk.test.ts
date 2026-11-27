@@ -1,7 +1,7 @@
 /** The SDK's own rules and the test kit's, for the parts no plugin exercises yet. */
 import { describe, expect, it } from "vitest";
 import { definePlugin, type PluginDef, type Sender } from "./sdk";
-import { createTestKit, link } from "./testing";
+import { createTestKit, link, mail } from "./testing";
 
 const base: PluginDef = {
   id: "probe",
@@ -360,5 +360,53 @@ describe("an api for the person's other systems", () => {
     expect(() => definePlugin({ ...base, permissions: ["api"], api: { ...api, events: { added: "", } } })).toThrow(/saying when/);
     const plugin = definePlugin({ ...base, permissions: ["api"], api, onMessage: async (_e, kit) => kit.emit("thing.exploded", {}) });
     await expect(createTestKit().message(plugin, "x")).rejects.toThrow(/isn't in api.events/);
+  });
+});
+
+describe("the mail permission", () => {
+  it("pairs onMail with \"mail\", and never with \"vault\"", () => {
+    expect(() => definePlugin({ ...base, onMail: async () => "took" })).toThrow(/onMail needs the "mail" permission/);
+    expect(() => definePlugin({ ...base, permissions: ["mail"] })).toThrow(/needs onMail/);
+    expect(() => definePlugin({ ...base, permissions: ["mail", "vault"], onMail: async () => "took" })).toThrow(/can't be combined with "vault"/);
+    expect(() => definePlugin({ ...base, mailSummary: { one: "a", many: "{n} b" } })).toThrow(/needs the "mail" permission/);
+    expect(() => definePlugin({ ...base, permissions: ["mail"], onMail: async () => "took", mailSummary: { one: "a", many: "no count" } })).toThrow(/with "\{n\}"/);
+    expect(() => definePlugin({ ...base, permissions: ["mail"], onMail: async () => "took", mailSummary: { one: "1 more came.", many: "{n} more came." } })).not.toThrow();
+  });
+
+  it("reads a file again when asked, answered through onFileRead (sdk 1.36.0)", async () => {
+    const got: unknown[] = [];
+    const plugin = definePlugin({
+      ...base,
+      permissions: ["mail"],
+      onMail: async () => "took",
+      onFileRead: async (e) => void got.push(e),
+      web: { load: async () => null, actions: { again: async (kit, a) => kit.files.read(String(a.id), { why: "again" }) } },
+    });
+    const t = createTestKit();
+    await t.act(plugin, "again", { id: "f1" });
+    expect(t.fileReads).toEqual([{ id: "f1", ref: { why: "again" } }]);
+    await t.fileRead(plugin, "f1", { state: "read", amount: 10 });
+    expect(got).toEqual([{ fileId: "f1", ref: { why: "again" }, read: { state: "read", amount: 10 } }]);
+    const without = definePlugin({ ...base, web: { load: async () => null, actions: { again: async (kit) => kit.files.read("f1", null) } } });
+    await expect(t.act(without, "again")).rejects.toThrow(/needs the "mail" permission/);
+  });
+
+  it("hands over a mail's sender and files, keeps the files only when the plugin took them", async () => {
+    const seen: string[] = [];
+    const plugin = definePlugin({
+      ...base,
+      permissions: ["mail"],
+      onMail: async (e, kit) => {
+        seen.push(`${e.from.domain}:${e.files.length}`);
+        if (e.from.domain !== "example.com") return "not-for-me";
+        return (await kit.files.get(e.files[0].id)) ? "took" : "could-not-read";
+      },
+    });
+    const t = createTestKit();
+    expect(await t.mail(plugin)).toBe("took");
+    expect(await t.mail(plugin, mail({ id: "m2", from: { address: "x@other.com", domain: "other.com", kind: "company" }, files: [{ id: "f2", type: "application/pdf", size: 10 }] }))).toBe("not-for-me");
+    expect(seen).toEqual(["example.com:1", "other.com:1"]);
+    const keep = definePlugin({ ...base, permissions: ["mail"], onMail: async (e, kit) => ((await kit.files.get("f2")) ? "took" : "not-for-me") });
+    expect(await t.mail(keep, mail({ id: "m3", files: [] }))).toBe("not-for-me");
   });
 });

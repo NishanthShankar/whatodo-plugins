@@ -6,7 +6,8 @@ exports[`digits copy 1`] = `
   "counted": "*Gym*: 14 now.",
   "description": "Send a number with a word for what it is: "Amma ring size 14", "weight 72.4", "car service 45,200 km". Each one is kept with its day, and the one before is kept too, so you can ask for the latest, see every one, or look at a graph on the page. A photo sent with a number is kept with it. Nothing is asked for and nothing is judged.",
   "firstKept": "Kept: weight, 72.4. Ask me "weight?" today or next year, and you have it back. From now on a 👍 means kept.",
-  "full": "I already keep 300 different things here, which is as many as I keep. Remove one to make room.",
+  "full": "Sorry, 300 different things is as many as I can keep here for now. Remove one and send this again.",
+  "fullOne": "Sorry, 2,000 is as many as I can keep under one name for now. Remove some on the page and send this again.",
   "groupName": "🔢 NumberKeeper",
   "help": "*NumberKeeper*
 
@@ -14,7 +15,7 @@ Send a number with a word for what it is, in your own words. A few ready-made on
 
 • _Amma ring size 14_: kept
 • _weight 72.4_: kept, with the ones before it
-• _waist 34 hips 39_: two kept at once
+• _waist 34 hips 39_: 2 kept at once
 • _weight?_: the latest, with the first
 • _history weight_: every one, newest first
 • _list_: everything I keep
@@ -45,15 +46,17 @@ And 3 more on the page: app.zelfred.com/plugins/digits-store",
     "h1": "Send me a number once. Ask for it back whenever you like.",
     "title": "Remember any number: sizes, readings, weights | Zelfred",
   },
-  "lockedCard": "Kept, and hidden: I'll only ever show it by its last four, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
+  "lockedCard": "Kept, and hidden: I'll only ever show it by its last 4 digits, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
   "lockedPin": "Kept, and hidden: I'll only ever show it as dots, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
   "notFound": "Nothing kept as "shoe size". Send _list_ to see what I keep.",
   "nothingToUndo": "Nothing to take out.",
   "nothingYet": "Nothing kept yet. Send a number with a word for what it is, like _Amma ring size 14_.",
   "nowCounting": "Kept. Gym goes up one at a time, so from now on send "gym" and I'll add one. To see it without adding, send "gym?".",
   "page": "Everything I keep for you is on one page too, and a number that changes gets its graph: app.zelfred.com/plugins/digits-store",
-  "photoAlone": "I keep a photo with its number. Send it again with the number written under it.",
-  "photosFull": "That one already has four photos, so I left this one out.",
+  "photoAlone": "Sorry, I can't read a number off a photo yet. Not my proudest skill.
+
+What number is it?",
+  "photosFull": "Sorry, I can keep 4 photos with one number, so I left this one out.",
   "recall": "*Weight*: 72.4 kg, kept today. The first was 75, on 3 August. 6 kept.",
   "recallMany": "*Weight*: 72.4 kg, kept today.
 *Waist*: 34, kept today.",

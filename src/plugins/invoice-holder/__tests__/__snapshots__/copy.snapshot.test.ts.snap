@@ -1,0 +1,183 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`invoice-holder copy > 1.1.0: a deleted photo, the weekly reminder, the month's line 1`] = `
+{
+  "asked": [],
+  "reactTos": [
+    "🏢",
+  ],
+  "reactions": [
+    "👍",
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    "Kept. From now on a 👍 from me means a bill is kept.
+
+Whose bill is this? Your business, your home, or a person.",
+    "*Acme* is 🏢 from now on. That bill is filed there, and any bill you react to with 🏢 goes there too.
+
+More folders, and other emoji, on your page.",
+    "Read from your caption: for ₹1,200. If I read it wrong, change it on your page.",
+    "Your message is gone, but the bill is still kept on your page. I don't remove a bill because its message was deleted, so one is never lost by a slip. To remove it, do it on your page.",
+    "2 bills have no folder yet. They are kept either way.
+
+To file one, react to it with a folder's emoji, or use your page.",
+    "November 2026: 3 bills. 1 has an amount: ₹1,200. All 3 are on your page.",
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`invoice-holder copy > 1.4.0: the note question, first and after, for a company and a forward, and the first note 1`] = `
+{
+  "asked": [],
+  "reactTos": [],
+  "reactions": [],
+  "sent": [
+    "A bill from Monid came by mail and is kept. Sorry, I can't read a bill yet. Embarrassing, for a butler.
+
+What is it for?
+
+I keep your answer with the bill as its note.",
+    "Noted on the bill. Reply to my question again to change it.",
+    "2 bills from Monid came by mail. What are they for?",
+    "The bill you forwarded is kept. What is it for?",
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`invoice-holder copy > a first book whose name is already taken 1`] = `
+{
+  "asked": [],
+  "reactTos": [
+    "🏢",
+  ],
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    "Kept. From now on a 👍 from me means a bill is kept.
+
+Whose bill is this? Your business, your home, or a person.",
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`invoice-holder copy > books, a poll, a gone bill, and a message it can't read 1`] = `
+{
+  "asked": [
+    [
+      "Which folder is this bill for?",
+      [
+        "🏢 Acme",
+        "🏠 Home",
+        "🛒 Extra 0",
+        "🚗 Extra 1",
+        "🩺 Extra 2",
+        "🎓 Extra 3",
+        "🌱 Extra 4",
+        "Extra 5",
+        "Extra 6",
+      ],
+    ],
+  ],
+  "reactTos": [],
+  "reactions": [
+    "👍",
+    "👍",
+  ],
+  "sent": [
+    "No folders yet. Send a photo of a bill and tell me whose it is, or make one on your page.",
+    "Your folders:
+
+🏢 Acme
+🏠 Home
+🛒 Extra 0
+🚗 Extra 1
+🩺 Extra 2
+🎓 Extra 3
+🌱 Extra 4
+
+2 more on your page, without an emoji.",
+    "Kept. From now on a 👍 from me means a bill is kept. React with a folder's emoji to file it:
+
+🏢 Acme
+🏠 Home
+🛒 Extra 0
+🚗 Extra 1
+🩺 Extra 2
+🎓 Extra 3
+🌱 Extra 4",
+    "That bill isn't here any more.",
+  ],
+  "unsures": [
+    "I keep photos of bills here. Send one, or _help_ to see what else I can do.",
+  ],
+}
+`;
+
+exports[`invoice-holder copy > the first bill when books were made on the page 1`] = `
+{
+  "asked": [],
+  "reactTos": [],
+  "reactions": [
+    "👍",
+  ],
+  "sent": [
+    "Kept. From now on a 👍 from me means a bill is kept. React with a folder's emoji to file it:
+
+🏢 Acme
+🏠 Home",
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`invoice-holder copy > the first five minutes 1`] = `
+{
+  "asked": [],
+  "reactTos": [
+    "🏢",
+  ],
+  "reactions": [
+    "👍",
+    "👍",
+    "🏢",
+    "👍",
+  ],
+  "sent": [
+    "Kept. From now on a 👍 from me means a bill is kept.
+
+Whose bill is this? Your business, your home, or a person.",
+    "*Acme Traders* is 🏢 from now on. That bill is filed there, and any bill you react to with 🏢 goes there too.
+
+More folders, and other emoji, on your page.",
+    "Read from your caption: filed under 🏢 Acme Traders, for ₹450. If I read it wrong, change it on your page.",
+  ],
+  "unsures": [],
+}
+`;
+
+exports[`invoice-holder copy > welcome, help and group name 1`] = `
+{
+  "groupName": "📑 BillKeeper",
+  "help": "*BillKeeper*
+
+Send a photo of a bill and I keep it.
+React to it with a folder's emoji to file it there. Change the reaction to move it. Take the reaction off and the bill is in no folder.
+Or reply to it with the folder's name. A caption can say whose it is and how much.
+
+_folders_ shows your folders and their emoji
+
+Every bill, by month and by folder, is on your page, where you can also make and change folders.",
+  "welcome": "📑 You've added *BillKeeper*.
+
+Send me a photo of a bill and it is kept, sorted by whose it is: your business, your home, anyone you pay for.
+
+Send _help_ for more.",
+}
+`;
