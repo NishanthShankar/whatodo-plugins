@@ -111,7 +111,7 @@ export const copy = {
   /** Kept and locked: a card number or a PIN is shown by its last four, or not at all (the owner, 2026-11-26). */
   locked: msg<{ what: Secret }>([
     ({ what }) =>
-      `Kept, and hidden: I'll only ever show it ${what === "card" ? "by its last 4" : "as dots"}, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.`,
+      `Kept, and hidden: I'll only ever show it ${what === "card" ? "by its last 4 digits" : "as dots"}, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.`,
   ]),
 
   /** A date, said back in words so 12/03 is never read the wrong way round, and when it will be reminded. */
