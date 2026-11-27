@@ -102,7 +102,7 @@ export interface BillFile {
 
 export interface BillEvent {
   at: number;
-  what: "came" | "filed" | "unfiled" | "changed";
+  what: "came" | "filed" | "unfiled" | "changed" | "read";
   how?: How;
   book?: string | null;
   by?: string | null;
@@ -128,6 +128,8 @@ export interface Bill {
     of?: number;
     /** The PDF's file name as sent, when Zelfred passes one. Since 1.3.0. */
     name?: string | null;
+    /** The mail's Message-ID, only to link back to it in Gmail; never shown as text, sent or logged. Since 1.8.0. */
+    msg?: string | null;
   } | null;
   /** Who sent it (`sender.id`), even though only one person can today. */
   by: string | null;
@@ -144,6 +146,10 @@ export interface Bill {
   currency?: string | null;
   /** What the PDF reader found in this bill, when it could read it. Since 1.7.0. */
   facts?: BillFacts | null;
+  /** When "Read again" was asked and not answered yet. Since 1.8.0. */
+  reading?: number | null;
+  /** Why the last reading found nothing: "locked", "picture" or "failed"; null when it read. Since 1.8.0. */
+  unread?: "locked" | "picture" | "failed" | null;
   /** The bill's short name, its title on the page; apart from the note since 1.5.0. */
   name?: string | null;
   /** Pictures sent together share this. */
@@ -350,7 +356,11 @@ async function takeNote(kit: Kit, ids: string[], text: string, how: "now" | "rep
 
 /** The facts the reader found in one file, or null when it couldn't read it. */
 function factsOf(f: MailEvent["files"][number]): BillFacts | null {
-  const r = (f as { read?: { state?: string } & BillFacts }).read;
+  return factsFrom((f as { read?: unknown }).read);
+}
+
+function factsFrom(read: unknown): BillFacts | null {
+  const r = read as ({ state?: string } & BillFacts) | undefined;
   if (!r || r.state !== "read") return null;
   const facts: BillFacts = {};
   if (typeof r.amount === "number" && Number.isFinite(r.amount) && r.amount >= 0) facts.amount = r.amount;
@@ -370,11 +380,11 @@ const lettersOnly = (s: string) => s.replace(/[^\p{L}\s]/gu, " ").replace(/\s+/g
  * folder's; the folder the last bill from this proven sender went to (never for a forward); the seller's name against
  * folder names, in our own code. Null when none fits; jev is asked after, as a guess.
  */
-function folderFor(books: { id: string; book: Book }[], all: { data: Bill }[], e: MailEvent, facts: BillFacts | null): { book: string; how: How } | null {
+function folderFor(books: { id: string; book: Book }[], all: { data: Bill }[], e: MailEvent | null, facts: BillFacts | null): { book: string; how: How } | null {
   const gst = new Set(facts?.gstins ?? []);
   const byGst = books.filter((b) => b.book.gst && gst.has(b.book.gst));
   if (byGst.length === 1) return { book: byGst[0].id, how: "gstin" };
-  if (e.from.kind !== "mailbox") {
+  if (e && e.from.kind !== "mailbox") {
     const earlier = all.filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book).sort((a, b) => b.data.at - a.data.at)[0];
     if (earlier?.data.book && books.some((b) => b.id === earlier.data.book)) return { book: earlier.data.book, how: "sender" };
   }
@@ -403,7 +413,7 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
       v: 1,
       source: "mail",
       files: [{ id: f.id, type: f.type, size: f.size }],
-      mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id, kind: e.from.kind, part: i + 1, of: n, name },
+      mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id, kind: e.from.kind, part: i + 1, of: n, name, msg: typeof e.messageId === "string" ? e.messageId.slice(0, 200) || null : null },
       by: null,
       at: e.at,
       state: to ? "filed" : "to-tag",
@@ -548,6 +558,10 @@ function shown(id: string, b: Bill) {
     amount: b.amount,
     currency: b.currency ?? null,
     facts: b.facts ?? null,
+    reading: b.reading ?? null,
+    unread: b.unread ?? null,
+    // Built here so the page never holds the Message-ID as a value of its own (SDK 1.36.0's rule).
+    gmail: b.mail?.msg ? `https://mail.google.com/mail/u/0/#search/rfc822msgid:${encodeURIComponent(b.mail.msg)}` : null,
     billDate: b.billDate,
     note: b.note,
     name: b.name ?? null,
@@ -604,7 +618,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.7.0",
+  version: "1.8.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -740,6 +754,39 @@ export default definePlugin({
     }
   },
 
+  /** "Read again" answered: what the bill says, filling only what the person hasn't changed. */
+  async onFileRead(event, kit) {
+    const ref = event.ref as { kind?: string; bill?: unknown } | null;
+    if (!ref || ref.kind !== "reread" || typeof ref.bill !== "string") return;
+    const bill = await kit.store.get<Bill>("bills", ref.bill);
+    if (!bill || !bill.files.some((f) => f.id === event.fileId)) return;
+    const facts = factsFrom(event.read);
+    const next: Bill = { ...bill, reading: null };
+    if (!facts) {
+      const st = (event.read as { state?: string } | null)?.state;
+      next.unread = st === "locked" || st === "picture" ? st : "failed";
+      return void (await kit.store.put("bills", ref.bill, next as unknown as Json));
+    }
+    const before = bill.facts ?? {};
+    // A field is the person's once they changed it from what the bill said (or gave it with no reading).
+    const mine = <T>(now: T | null | undefined, said: T | undefined) => now !== null && now !== undefined && now !== said;
+    if (!mine(bill.amount, before.amount) && facts.amount !== undefined) {
+      next.amount = facts.amount;
+      next.currency = facts.currency ?? null;
+    }
+    if (!mine(bill.billDate, before.date) && facts.date) next.billDate = facts.date;
+    next.facts = facts;
+    next.unread = null;
+    next.history = [...bill.history, { at: kit.now, what: "read" }];
+    await kit.store.put("bills", ref.bill, next as unknown as Json);
+    if (bill.book) return;
+    const books = await allBooks(kit);
+    const to = folderFor(books, [], null, facts);
+    if (to) return void (await file(kit, ref.bill, to.book, to.how, null));
+    const words = facts.seller ? lettersOnly(facts.seller) : "";
+    if (words && books.length > 1) await kit.sort(words, Object.fromEntries(books.map((b) => [b.id, lettersOnly(b.book.name) || "folder"])), { kind: "guess", bills: [ref.bill] } as unknown as Json, { after: 0 });
+  },
+
   /** jev's pick for a mailed bill nothing else could place. Filed only if still unfiled, marked as a guess. */
   async onSorted(event, kit) {
     const ref = event.ref as { kind?: string; bills?: unknown } | null;
@@ -787,6 +834,23 @@ export default definePlugin({
         const book = typeof args.book === "string" && args.book ? args.book : null;
         if (book && !(await kit.store.get("books", book))) throw new Error("That folder isn't here any more.");
         for (const id of ids) await file(kit, id, book, "page", kit.person.id ?? null);
+      },
+      /** "Read again": Zelfred's bill reader reads this bill's PDF once more; the answer comes to onFileRead. */
+      async reread(kit, args) {
+        const id = String(args.id ?? "");
+        const bill = await kit.store.get<Bill>("bills", id);
+        if (!bill) throw new Error("That bill isn't here any more.");
+        const pdf = bill.files.find((f) => f.type === "application/pdf");
+        if (!pdf) throw new Error("Only a PDF can be read.");
+        if (bill.reading && kit.now - bill.reading < 2 * 60_000) return;
+        try {
+          await kit.files.read(pdf.id, { kind: "reread", bill: id } as unknown as Json);
+        } catch {
+          // Zelfred reads only PDFs that came by mail or were uploaded on the page.
+          await kit.store.put("bills", id, { ...bill, reading: null, unread: "failed" } as unknown as Json);
+          return;
+        }
+        await kit.store.put("bills", id, { ...bill, reading: kit.now } as unknown as Json);
       },
       /** Change a bill's amount, date or note. Leave a field out to keep it. */
       async edit(kit, args) {

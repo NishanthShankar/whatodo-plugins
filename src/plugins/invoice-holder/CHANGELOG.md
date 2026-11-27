@@ -2,6 +2,15 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.8.0] - 2026-11-27
+
+### Added
+- "Read again" on a bill with a PDF, uploaded or mailed (SDK 1.36.0, `kit.files.read`): Zelfred's bill reader reads it once more. What the bill says fills the amount, currency and date only where the person hasn't changed them, replaces what an earlier reading said, and files a bill with no folder by its GST number or seller, else a marked guess. When it can't, the page says why: locked, a picture, or not read.
+- "Open in Gmail" on a mailed bill, from the mail's own Message-ID, built by BillKeeper and never shown as text. Only for mail that came after this release.
+
+### Data
+- `bills`: `reading` (when Read again was asked), `unread` ("locked", "picture", "failed" or null), `mail.msg` (the Message-ID); history may say "read".
+
 ## [1.7.0] - 2026-11-27
 
 ### Added
