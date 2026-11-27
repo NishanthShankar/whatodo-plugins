@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.39.0] - 2026-11-27
+
+### Added
+
+- `MailEvent.sent`: when the mail was sent (for a forward from the person's own mailbox, when the original came), so an app can order mail as a mailbox would. Written by the sender, never trusted.
+
 ## [1.38.0] - 2026-11-27
 
 ### Added
