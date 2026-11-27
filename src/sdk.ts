@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.37.0";
+export const SDK_VERSION = "1.38.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -564,6 +564,11 @@ export interface MailRead {
   gstins?: string[];
   /** The seller's name as printed, at most 80 characters. */
   seller?: string;
+  /**
+   * The company it seems to be from: the one web domain that clearly wins in the PDF's own text ("airtel.in"), mail
+   * services left out. Printed by whoever made the PDF, so a name only, never proof. Since SDK 1.38.0.
+   */
+  site?: string;
   /**
    * Whether it is a bill at all, from words Zelfred found in it and its file's name (since SDK 1.37.0): "not-bill" only
    * when the signs are clear, "unsure" when they are mixed or thin. Treat "unsure" as a bill: nothing should be set

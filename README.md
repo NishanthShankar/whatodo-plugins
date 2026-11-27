@@ -38,7 +38,7 @@ The goal is a marketplace where developers publish plugins and **earn from them*
 | 🧹 [Chores](src/plugins/chores) | 1.1.0 | 1 | A shared home's jobs, taken in turns: the day's list each morning, credit to whoever ticks, the turn moves on, and a count of who did what when asked. Takes the group the home already has. Unlisted. |
 | 📦 [ShipmentTracker](src/plugins/shipment-tracker) | 1.0.0 | 2 | FedEx and UPS parcels, asked about every hour: a message when the status changes, and `updates` for where each one is. Unlisted. |
 | 🔢 [NumberKeeper](src/plugins/digits-store) | 1.4.0 | 1 | Any number with a word for what it is, kept with its day and given back when asked: the latest, the history, a graph on the page. Dates are reminded. Unlisted. |
-| 📑 [BillKeeper](src/plugins/invoice-holder) | 1.9.0 | 2 | Photos of bills, and PDFs mailed to your Zelfred address, filed under your businesses or people by an emoji, a reply or a tap on the page. Every bill by month and by business; a weekly count of bills waiting and a line on the 1st about the month. Unlisted. |
+| 📑 [BillKeeper](src/plugins/invoice-holder) | 1.10.0 | 2 | Photos of bills, and PDFs mailed to your Zelfred address, filed under your businesses or people by an emoji, a reply or a tap on the page. Every bill by month and by business; a weekly count of bills waiting and a line on the 1st about the month. Unlisted. |
 
 ## How a plugin works
 
