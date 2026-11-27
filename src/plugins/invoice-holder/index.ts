@@ -102,7 +102,7 @@ export interface BillFile {
 
 export interface BillEvent {
   at: number;
-  what: "came" | "filed" | "unfiled" | "changed" | "read";
+  what: "came" | "filed" | "unfiled" | "changed" | "read" | "aside" | "back";
   how?: How;
   book?: string | null;
   by?: string | null;
@@ -130,6 +130,8 @@ export interface Bill {
     name?: string | null;
     /** The mail's Message-ID, only to link back to it in Gmail; never shown as text, sent or logged. Since 1.8.0. */
     msg?: string | null;
+    /** For a forward: the original sender's domain as Zelfred read it from the forward, unchecked; to name it only. Since 1.9.0. */
+    forwarded?: string | null;
   } | null;
   /** Who sent it (`sender.id`), even though only one person can today. */
   by: string | null;
@@ -146,6 +148,11 @@ export interface Bill {
   currency?: string | null;
   /** What the PDF reader found in this bill, when it could read it. Since 1.7.0. */
   facts?: BillFacts | null;
+  /**
+   * Set aside as not a bill (a ticket, a statement): kept, in "Not bills", never in the lists, sums or WhatsApp lines.
+   * "reader" when Zelfred's reader said so, "person" when they put it there. Since 1.9.0.
+   */
+  aside?: { sort: string; by: "reader" | "person"; at: number } | null;
   /** When "Read again" was asked and not answered yet. Since 1.8.0. */
   reading?: number | null;
   /** Why the last reading found nothing: "locked", "picture" or "failed"; null when it read. Since 1.8.0. */
@@ -354,6 +361,37 @@ async function takeNote(kit: Kit, ids: string[], text: string, how: "now" | "rep
   kit.react(KEPT);
 }
 
+/** Who a bill is from, for learning what to set aside: the forward's original domain, else the sender's. */
+const whoOf = (b: Bill) => (b.mail?.forwarded ?? b.mail?.domain ?? "").toLowerCase() || null;
+
+/** Per sender: how often a bill set aside was brought back, and how often the person set one aside by hand. */
+interface Learned {
+  back: number;
+  hand: number;
+}
+
+/**
+ * Whether a bill is set aside (z-research-bot, docs/bill-or-not-research.md): when the reader says "not-bill", unless
+ * this sender's bills were brought back twice; and always once the person set two of this sender's aside by hand.
+ * "unsure" is a bill.
+ */
+function asideFor(read: unknown, learned: Learned | null, now: number): Bill["aside"] {
+  const r = read as { kind?: string; sort?: string } | undefined;
+  const sort = typeof r?.sort === "string" && /^[a-z]{1,20}$/.test(r.sort) ? r.sort : "other";
+  if ((learned?.hand ?? 0) >= 2) return { sort, by: "reader", at: now };
+  if (r?.kind === "not-bill" && (learned?.back ?? 0) < 2) return { sort, by: "reader", at: now };
+  return null;
+}
+
+/** Counts for measuring the reader, with no text: set aside by it, brought back, set aside by hand. */
+async function countAside(kit: Kit, who: string | null, field: "reader" | "back" | "hand") {
+  const stats = (await kit.store.get<Record<string, number>>("state", "notBills")) ?? {};
+  await kit.store.put("state", "notBills", { ...stats, [field]: (stats[field] ?? 0) + 1 } as unknown as Json);
+  if (!who || field === "reader") return;
+  const l = (await kit.store.get<Learned>("sorting", who)) ?? { back: 0, hand: 0 };
+  await kit.store.put("sorting", who, { ...l, [field]: l[field] + 1 } as unknown as Json);
+}
+
 /** The facts the reader found in one file, or null when it couldn't read it. */
 function factsOf(f: MailEvent["files"][number]): BillFacts | null {
   return factsFrom((f as { read?: unknown }).read);
@@ -404,16 +442,22 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
   const n = e.files.length;
   const ids: string[] = [];
   const unfiled: { id: string; seller: string }[] = [];
+  const asked: string[] = [];
+  // A forward's original sender, as Zelfred read it: a name for the bill, never a reason to trust it.
+  const fd = e.from.kind === "mailbox" ? (e as { forwarded?: { domain?: unknown } }).forwarded?.domain : undefined;
+  const forwarded = typeof fd === "string" && /^[a-z0-9.-]{3,253}$/i.test(fd) ? fd.toLowerCase() : null;
+  const learned = await kit.store.get<Learned>("sorting", (forwarded ?? e.from.domain).toLowerCase());
   for (let i = 0; i < n; i++) {
     const f = e.files[i];
     const name = typeof (f as { name?: unknown }).name === "string" ? ((f as { name?: string }).name ?? "").slice(0, 120) || null : null;
     const facts = factsOf(f);
-    const to = folderFor(books, all, e, facts);
+    const aside = asideFor((f as { read?: unknown }).read, learned, kit.now);
+    const to = aside ? null : folderFor(books, all, e, facts);
     const bill: Bill = {
       v: 1,
       source: "mail",
       files: [{ id: f.id, type: f.type, size: f.size }],
-      mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id, kind: e.from.kind, part: i + 1, of: n, name, msg: typeof e.messageId === "string" ? e.messageId.slice(0, 200) || null : null },
+      mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id, kind: e.from.kind, part: i + 1, of: n, name, forwarded, msg: typeof e.messageId === "string" ? e.messageId.slice(0, 200) || null : null },
       by: null,
       at: e.at,
       state: to ? "filed" : "to-tag",
@@ -425,21 +469,29 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
       billDate: facts?.date ?? null,
       note: null,
       facts,
+      aside,
       batch: n > 1 ? `mail:${e.id}` : null,
-      history: [{ at: kit.now, what: "came" }, ...(to ? [{ at: kit.now, what: "filed" as const, how: to.how, book: to.book, by: null }] : [])],
+      history: [
+        { at: kit.now, what: "came" },
+        ...(to ? [{ at: kit.now, what: "filed" as const, how: to.how, book: to.book, by: null }] : []),
+        ...(aside ? [{ at: kit.now, what: "aside" as const }] : []),
+      ],
     };
     // Sorted by arrival, the mail's own order kept within it.
     const bid = kit.id();
     ids.push(bid);
     await kit.store.put("bills", bid, bill as unknown as Json, e.at + i);
-    if (!to && facts?.seller) unfiled.push({ id: bid, seller: facts.seller });
+    if (aside) await countAside(kit, null, "reader");
+    else asked.push(bid);
+    if (!to && !aside && facts?.seller) unfiled.push({ id: bid, seller: facts.seller });
   }
   // Last, and only when nothing else fitted: jev picks a folder from the seller's name alone, as a guess.
   if (unfiled.length && books.length > 1) {
     const words = lettersOnly(unfiled[0].seller);
     if (words) await kit.sort(words, Object.fromEntries(books.map((b) => [b.id, lettersOnly(b.book.name) || "folder"])), { kind: "guess", bills: unfiled.map((u) => u.id) } as unknown as Json, { after: 0 });
   }
-  await noteQuestion(kit, e, ids);
+  // Nothing set aside is asked about: no note question for a ticket.
+  if (asked.length) await noteQuestion(kit, e, asked);
   return "took";
 }
 
@@ -547,7 +599,7 @@ function shown(id: string, b: Bill) {
     id,
     source: b.source,
     from: b.mail?.from ?? null,
-    mail: b.mail ? { domain: b.mail.domain, label: b.mail.label, kind: b.mail.kind ?? null, part: b.mail.part ?? 1, of: b.mail.of ?? b.files.length, name: b.mail.name ?? null } : null,
+    mail: b.mail ? { domain: b.mail.domain, label: b.mail.label, kind: b.mail.kind ?? null, part: b.mail.part ?? 1, of: b.mail.of ?? b.files.length, name: b.mail.name ?? null, forwarded: b.mail.forwarded ?? null } : null,
     asked: b.asked ?? null,
     noteBy: b.noteBy ?? null,
     files: b.files,
@@ -559,6 +611,7 @@ function shown(id: string, b: Bill) {
     currency: b.currency ?? null,
     facts: b.facts ?? null,
     reading: b.reading ?? null,
+    aside: b.aside ?? null,
     unread: b.unread ?? null,
     // Built here so the page never holds the Message-ID as a value of its own (SDK 1.36.0's rule).
     gmail: b.mail?.msg ? `https://mail.google.com/mail/u/0/#search/rfc822msgid:${encodeURIComponent(b.mail.msg)}` : null,
@@ -618,7 +671,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.8.0",
+  version: "1.9.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -727,7 +780,7 @@ export default definePlugin({
     if (event.id === "waiting") {
       if (weekday(kit.today) !== REMIND_DAY) return;
       if ((await kit.store.get<string>("state", "weekly")) === kit.today) return;
-      const count = (await kit.store.list<Bill>("bills")).filter((b) => b.data.state === "to-tag").length;
+      const count = (await kit.store.list<Bill>("bills")).filter((b) => b.data.state === "to-tag" && !b.data.aside).length;
       if (!count) return;
       await kit.store.put("state", "weekly", kit.today);
       return kit.send(copy.waiting({ count }));
@@ -736,7 +789,7 @@ export default definePlugin({
       if (!kit.today.endsWith("-01")) return;
       const month = monthBefore(kit.today);
       if ((await kit.store.get<string>("state", "month")) === month) return;
-      const bills = (await kit.store.list<Bill>("bills")).filter((b) => kit.time.day(b.data.at).startsWith(month));
+      const bills = (await kit.store.list<Bill>("bills")).filter((b) => !b.data.aside && kit.time.day(b.data.at).startsWith(month));
       if (!bills.length) return;
       await kit.store.put("state", "month", month);
       const priced = bills.filter((b) => b.data.amount !== null);
@@ -777,9 +830,15 @@ export default definePlugin({
     if (!mine(bill.billDate, before.date) && facts.date) next.billDate = facts.date;
     next.facts = facts;
     next.unread = null;
+    // Re-sorted by the reading, unless the person set it aside or brought it back themselves.
+    const chosen = bill.aside?.by === "person" || bill.history.some((h) => h.what === "back");
+    if (!chosen) {
+      const learned = whoOf(bill) ? await kit.store.get<Learned>("sorting", whoOf(bill)!) : null;
+      next.aside = asideFor(event.read, learned, kit.now);
+    }
     next.history = [...bill.history, { at: kit.now, what: "read" }];
     await kit.store.put("bills", ref.bill, next as unknown as Json);
-    if (bill.book) return;
+    if (bill.book || next.aside) return;
     const books = await allBooks(kit);
     const to = folderFor(books, [], null, facts);
     if (to) return void (await file(kit, ref.bill, to.book, to.how, null));
@@ -814,13 +873,14 @@ export default definePlugin({
       const bills = (await kit.store.list<Bill>("bills")).reverse();
       const limit = Math.min(2000, Math.max(1, Number(args.limit) || 2000));
       const counts = new Map<string, number>();
-      for (const { data } of bills) if (data.book) counts.set(data.book, (counts.get(data.book) ?? 0) + 1);
+      for (const { data } of bills) if (data.book && !data.aside) counts.set(data.book, (counts.get(data.book) ?? 0) + 1);
       return {
         currency: kit.person.currency,
         emojiBooks: EMOJI_BOOKS,
         suggest: nextEmoji(books),
         books: books.map(({ id, book }) => ({ id, ...book, count: counts.get(id) ?? 0 })),
-        toTag: bills.filter((b) => b.data.state === "to-tag").length,
+        toTag: bills.filter((b) => b.data.state === "to-tag" && !b.data.aside).length,
+        notBills: bills.filter((b) => b.data.aside).length,
         // Per sender, whether a note is asked for when their bill comes: "auto", "yes" or "no".
         senders: Object.fromEntries((await kit.store.list<SenderPref>("senders")).map((r) => [r.key, r.data.ask])),
         total: bills.length,
@@ -834,6 +894,24 @@ export default definePlugin({
         const book = typeof args.book === "string" && args.book ? args.book : null;
         if (book && !(await kit.store.get("books", book))) throw new Error("That folder isn't here any more.");
         for (const id of ids) await file(kit, id, book, "page", kit.person.id ?? null);
+      },
+      /** "Not a bill": set aside by hand. Counted, and twice for one sender sets that sender's aside from then on. */
+      async setAside(kit, args) {
+        const ids = Array.isArray(args.ids) ? args.ids.filter((x): x is string => typeof x === "string") : [String(args.id ?? "")];
+        for (const id of ids) {
+          const bill = await kit.store.get<Bill>("bills", id);
+          if (!bill || bill.aside) continue;
+          await kit.store.put("bills", id, { ...bill, aside: { sort: "other", by: "person", at: kit.now }, history: [...bill.history, { at: kit.now, what: "aside", by: kit.person.id ?? null }] } as unknown as Json);
+          await countAside(kit, whoOf(bill), "hand");
+        }
+      },
+      /** "It's a bill": back from "Not bills". Counted when the reader had set it aside; twice for one sender stops that. */
+      async bringBack(kit, args) {
+        const id = String(args.id ?? "");
+        const bill = await kit.store.get<Bill>("bills", id);
+        if (!bill?.aside) return;
+        await kit.store.put("bills", id, { ...bill, aside: null, history: [...bill.history, { at: kit.now, what: "back", by: kit.person.id ?? null }] } as unknown as Json);
+        if (bill.aside.by === "reader") await countAside(kit, whoOf(bill), "back");
       },
       /** "Read again": Zelfred's bill reader reads this bill's PDF once more; the answer comes to onFileRead. */
       async reread(kit, args) {

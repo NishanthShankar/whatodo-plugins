@@ -792,3 +792,61 @@ describe("invoice-holder: 1.8.0, read again", () => {
     if (photo) await expect(t.act(plugin, "reread", { id: photo.id })).rejects.toThrow(/PDF/);
   });
 });
+
+describe("invoice-holder: 1.9.0, not bills", () => {
+  const mmt = { address: "noreply@makemytrip.com", domain: "makemytrip.com", kind: "company" as const };
+  const kit = () => createTestKit({ today: "2026-11-27", hour: 10 });
+  const pdf = (id: string, read: Partial<MailRead>) => ({ id, type: "application/pdf" as const, size: 9000, read: { state: "read", ...read } as MailRead });
+  const byMail = (t: T, id: string) => bills(t).find((b) => b.mail?.id === id)!;
+
+  it("sets a not-bill aside: unfiled, no note question, out of the counts; unsure stays a bill", async () => {
+    const t = kit();
+    await t.act(plugin, "addBook", { name: "Travel" });
+    await t.act(plugin, "addBook", { name: "Home" });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: mmt, files: [pdf("f1", { kind: "not-bill", sort: "ticket", seller: "MakeMyTrip" })] }));
+    expect(byMail(t, "m1")).toMatchObject({ aside: { sort: "ticket", by: "reader" }, book: null });
+    expect(t.sorts).toHaveLength(0);
+    expect(t.sent.join("\n")).not.toMatch(/What is it for/);
+    const page = (await t.load(plugin)) as { toTag: number; notBills: number };
+    expect(page).toMatchObject({ toTag: 0, notBills: 1 });
+    await t.mail(plugin, mail({ id: "m2", at: t.kit.now, from: { ...mmt, address: "x@y.com", domain: "y.com" }, files: [pdf("f2", { kind: "unsure" })] }));
+    expect(byMail(t, "m2").aside ?? null).toBeNull();
+  });
+
+  it("brought back twice from one sender stops setting theirs aside", async () => {
+    const t = kit();
+    for (const id of ["m1", "m2"]) {
+      await t.mail(plugin, mail({ id, at: t.kit.now, from: mmt, files: [pdf(`f${id}`, { kind: "not-bill", sort: "ticket" })] }));
+      await t.act(plugin, "bringBack", { id: byMail(t, id).id });
+      expect(byMail(t, id).aside).toBeNull();
+    }
+    await t.mail(plugin, mail({ id: "m3", at: t.kit.now, from: mmt, files: [pdf("f3", { kind: "not-bill", sort: "ticket" })] }));
+    expect(byMail(t, "m3").aside).toBeNull();
+  });
+
+  it("set aside by hand twice sets that sender's aside from then on, by the forward's original domain", async () => {
+    const t = kit();
+    const me = { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" as const };
+    for (const id of ["m1", "m2"]) {
+      await t.mail(plugin, mail({ id, at: t.kit.now, from: me, forwarded: { domain: "Zerodha.com" }, files: [pdf(`f${id}`, { kind: "bill" })] }));
+      await t.act(plugin, "setAside", { ids: [byMail(t, id).id] });
+    }
+    expect(byMail(t, "m1").mail?.forwarded).toBe("zerodha.com");
+    await t.mail(plugin, mail({ id: "m3", at: t.kit.now, from: me, forwarded: { domain: "zerodha.com" }, files: [pdf("f3", { kind: "bill" })] }));
+    expect(byMail(t, "m3").aside).toMatchObject({ by: "reader" });
+    await t.mail(plugin, mail({ id: "m4", at: t.kit.now, from: me, forwarded: { domain: "airtel.com" }, files: [pdf("f4", { kind: "bill" })] }));
+    expect(byMail(t, "m4").aside ?? null).toBeNull();
+  });
+
+  it("read again re-sorts, unless the person chose", async () => {
+    const t = kit();
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: mmt, files: [{ id: "f1", type: "application/pdf", size: 9000 }] }));
+    await t.act(plugin, "reread", { id: byMail(t, "m1").id });
+    await t.fileRead(plugin, "f1", { state: "read", kind: "not-bill", sort: "ticket" } as MailRead);
+    expect(byMail(t, "m1").aside).toMatchObject({ sort: "ticket" });
+    await t.act(plugin, "bringBack", { id: byMail(t, "m1").id });
+    await t.act(plugin, "reread", { id: byMail(t, "m1").id });
+    await t.fileRead(plugin, "f1", { state: "read", kind: "not-bill", sort: "ticket" } as MailRead);
+    expect(byMail(t, "m1").aside).toBeNull();
+  });
+});
