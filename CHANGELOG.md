@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.37.0] - 2026-11-27
+
+### Added
+
+- `MailRead.kind` ("bill", "not-bill", "unsure") and `MailRead.sort` (ticket, statement, insurance, papers, quote, proforma, pay, other): whether a mailed PDF is a bill at all, from words Zelfred found and its file's name. "not-bill" only when the signs are clear; treat "unsure" as a bill.
+- `MailEvent.forwarded: { domain }`: for a forward from the person's own mailbox, the domain of the original sender in its forwarded header block. A domain only; not checked, so for naming and sorting, never trust.
+
 ## [1.36.0] - 2026-11-27
 
 ### Added
