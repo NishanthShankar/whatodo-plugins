@@ -36,8 +36,8 @@ import { dateOf, saysDate, directMatch, LOCKED, masked, overlap, readNumbers, re
  * it") are kept whole, not encrypted, but shown in WhatsApp and on the page only as "•••• 1111", or "••••" for a PIN.
  * The page shows one whole only through the "reveal" action, behind the same unlock as a vault: the
  * person's passkey or passphrase (the owner, 2026-11-26: "unlocks are same as vault. i'd love it if we
- * can use one lock/passkey through out zelfred app unless they want to change it on settings"). That
- * one lock is platform work; until it exists the page offers no reveal.
+ * can use one lock/passkey through out zelfred app unless they want to change it on settings"). The
+ * action is named in `web.locked` (SDK 1.39.0), so Zelfred runs it only for a call signed by that lock.
  *
  * Dates are said back in words ("12 March"), so a day written 12/03 is never read the wrong way
  * round, and reminded (the owner, 2026-11-26: "only nudges are birthdays and future dates"): a
@@ -520,7 +520,7 @@ async function countUp(kit: Kit, label: Row<Label>): Promise<void> {
 
 export default definePlugin({
   id: "digits-store",
-  version: "1.5.0",
+  version: "1.6.0",
   sdk: "1",
   name: "NumberKeeper",
   icon: "🔢",
@@ -716,6 +716,8 @@ export default definePlugin({
 
   web: {
     lockable: true,
+    /** A hidden value comes back whole only for a call signed by the person's lock: Zelfred checks, not Digits. */
+    locked: ["reveal"],
     async load(kit, args) {
       const id = args && typeof args === "object" && !Array.isArray(args) && typeof (args as { label?: unknown }).label === "string" ? (args as { label: string }).label : null;
       if (id) {
@@ -781,8 +783,8 @@ export default definePlugin({
         await refresh(kit, String(a.label));
       },
       /**
-       * A hidden value whole. The page calls it only behind the vault's unlock, the person's passkey or
-       * passphrase (the owner, 2026-11-26). Until Zelfred has that one lock for every page, no button calls it.
+       * A hidden value whole. Named in `web.locked`: Zelfred runs it only when the call is signed by the
+       * person's lock, their passkey, passphrase or recovery key (the owner, 2026-11-26).
        */
       async reveal(kit, args) {
         const a = (args ?? {}) as { label?: unknown; entry?: unknown };

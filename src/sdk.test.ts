@@ -85,6 +85,15 @@ describe("members and sender", () => {
   it("refuses members together with lock-members", () => {
     expect(() => definePlugin({ ...base, permissions: ["members", "lock-members"] })).toThrow(/can't be used together/);
   });
+
+  it("takes web.locked only for actions the page has, each named once", () => {
+    const web = { load: async () => null, actions: { reveal: async () => ({ text: "4821" }), remove: async () => {} } };
+    expect(definePlugin({ ...base, web: { ...web, locked: ["reveal"] } }).web?.locked).toEqual(["reveal"]);
+    expect(() => definePlugin({ ...base, web: { ...web, locked: ["show"] } })).toThrow(/web\.locked names "show", which is not one of web\.actions/);
+    expect(() => definePlugin({ ...base, web: { load: web.load, locked: ["reveal"] } })).toThrow(/not one of web\.actions/);
+    expect(() => definePlugin({ ...base, web: { ...web, locked: ["toString"] } })).toThrow(/not one of web\.actions/);
+    expect(() => definePlugin({ ...base, web: { ...web, locked: ["reveal", "reveal"] } })).toThrow(/names an action twice/);
+  });
 });
 
 describe("questions", () => {

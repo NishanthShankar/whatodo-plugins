@@ -65,7 +65,35 @@ Slots run at most once per install: a daily schedule once per local day, an hour
 | `lockable` | boolean | The person may lock the page behind their Zelfred PIN. Use it for anything personal. |
 | `load` | `(kit, args) => Promise<Json>` | Data for the page. Runs **read-only**: `store.put`, `store.delete`, `setSettings` and `send` throw. |
 | `actions` | `Record<string, (kit, args) => Promise<Json \| void>>` | Changes the page can ask for. Throw `Error("Plain sentence")` to show the person a message. |
+| `locked` | `string[]` | Names of `actions` that need the person's lock. See [Locked actions](#locked-actions). Since SDK 1.39.0. |
 | `shared` | `(kit, key) => Promise<SharedPage \| null>` | What the shared page for `key` shows to anyone holding its address. Read-only. Needs `"share"`. See [Shared pages](#shared-pages-a-page-anyone-can-open). Since SDK 1.24.0. |
+
+### Locked actions
+
+A person has one lock across Zelfred: a passkey (Face ID, a fingerprint, the screen lock), a passphrase, and a recovery key. It is the same one that opens their Journal, and they change it under Settings.
+
+List an action in `web.locked` and Zelfred runs it only when the call is signed by that lock:
+
+```ts
+web: {
+  lockable: true,
+  locked: ["reveal"],
+  async load(kit) { /* masked values only */ },
+  actions: {
+    async reveal(kit, args) { /* the whole value */ },
+  },
+}
+```
+
+- The signature covers the plugin, the action and the exact arguments, so one made for one entry opens no other.
+- It is good for ten minutes and never twice.
+- Without it the action does not run. Nothing it would return leaves the server.
+- A person with no lock yet is offered one by the page the first time they ask.
+- `lockable` (the page PIN) is separate and still applies. The lock comes on top of it.
+- `load` is never locked. Keep hidden things out of what it returns, and hand them over in a locked action.
+- The plugin makes no check of its own and cannot turn the check off. In tests `t.act` runs the action as if the person had unlocked.
+
+Do not describe this as "end to end encrypted". What a locked action returns is stored by Zelfred as the plugin stored it; the lock decides who may see it on the page.
 
 ## Tiers
 
