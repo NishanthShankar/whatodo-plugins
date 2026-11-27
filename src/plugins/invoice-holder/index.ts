@@ -676,7 +676,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.10.0",
+  version: "1.10.1",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -840,6 +840,8 @@ export default definePlugin({
     if (!bill || !bill.files.some((f) => f.id === event.fileId)) return;
     const facts = factsFrom(event.read);
     const next: Bill = { ...bill, reading: null };
+    // A reader older than SDK 1.37 says no kind: the catch-up didn't really get its try, so it may try again.
+    if (bill.caught && !(event.read as { kind?: unknown } | null)?.kind) next.caught = null;
     if (!facts) {
       const st = (event.read as { state?: string } | null)?.state;
       next.unread = st === "locked" || st === "picture" ? st : "failed";

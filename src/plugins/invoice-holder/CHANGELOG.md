@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.10.1] - 2026-11-27
+
+### Fixed
+- The nightly catch-up keeps its one try for a bill only when the reading came from a reader that knows what a bill is (SDK 1.37 or later); before that reader is live, it tries again the next night.
+
 ## [1.10.0] - 2026-11-27
 
 ### Added
