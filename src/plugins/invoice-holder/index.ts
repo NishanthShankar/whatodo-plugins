@@ -186,7 +186,7 @@ export interface Bill {
   /** When "Read again" was asked and not answered yet. Since 1.8.0. */
   reading?: number | null;
   /** Why the last reading found nothing: "locked", "picture" or "failed"; null when it read. Since 1.8.0. */
-  unread?: "locked" | "picture" | "failed" | null;
+  unread?: "locked" | "picture" | "failed" | "limit" | null;
   /** The bill's short name, its title on the page; apart from the note since 1.5.0. */
   name?: string | null;
   /** Pictures sent together share this. */
@@ -392,6 +392,18 @@ async function takeNote(kit: Kit, ids: string[], text: string, how: "now" | "rep
     return kit.send(copy.noteTaught());
   }
   kit.react(KEPT);
+}
+
+/** Reads asked today (UTC), counted here, since a capped answer looks like any failure. Since 1.14.0. */
+const READ_HINT = 20;
+const CATCHUP_SHARE = 10;
+async function readsToday(kit: Kit): Promise<number> {
+  const r = await kit.store.get<{ day: string; n: number }>("state", "reads");
+  return r?.day === new Date(kit.now).toISOString().slice(0, 10) ? r.n : 0;
+}
+async function countRead(kit: Kit) {
+  const day = new Date(kit.now).toISOString().slice(0, 10);
+  await kit.store.put("state", "reads", { day, n: (await readsToday(kit)) + 1 } as unknown as Json);
 }
 
 /** Who a bill is from, for learning what to set aside: the forward's original domain, else the sender's. */
@@ -730,7 +742,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.13.0",
+  version: "1.14.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -876,12 +888,14 @@ export default definePlugin({
       // the domain the PDF prints. 15 a day, leaving the person 5 of the 20 for their own "Read again". Silent.
       const todo = (await kit.store.list<Bill>("bills"))
         .filter(({ data: b }) => b.source === "mail" && !b.reading && !b.caught && !b.mail?.forwarded && !b.facts?.site && (b.mail?.kind === "mailbox" || !b.mail))
-        .slice(0, 15);
+        // At most 10 a day, and none once 10 reads are spent, so the person's own "Read again" always has some.
+        .slice(0, Math.max(0, CATCHUP_SHARE - (await readsToday(kit))));
       for (const { key, data } of todo) {
         const pdf = data.files.find((f) => f.type === "application/pdf");
         if (!pdf) continue;
         try {
           await kit.files.read(pdf.id, { kind: "reread", bill: key } as unknown as Json);
+          await countRead(kit);
           await kit.store.put("bills", key, { ...data, reading: kit.now, caught: kit.now } as unknown as Json);
         } catch {
           await kit.store.put("bills", key, { ...data, caught: kit.now } as unknown as Json);
@@ -920,10 +934,14 @@ export default definePlugin({
     const facts = factsFrom(event.read);
     const next: Bill = { ...bill, reading: null };
     // A reader older than SDK 1.37 says no kind: the catch-up didn't really get its try, so it may try again.
-    if (bill.caught && !(event.read as { kind?: unknown } | null)?.kind) next.caught = null;
+    const st = (event.read as { state?: string } | null)?.state;
+    // Only a real reading by an older reader earns another try; a failure never does (it spent the day's reads).
+    if (bill.caught && st === "read" && !(event.read as { kind?: unknown } | null)?.kind) next.caught = null;
     if (!facts) {
-      const st = (event.read as { state?: string } | null)?.state;
-      next.unread = st === "locked" || st === "picture" ? st : "failed";
+      // Past the day's cap Zelfred answers "failed" without reading (SDK, or "limit" if it ever says so): what the
+      // bill said before stays, and the page says to try tomorrow, not that it can't be read.
+      const limit = st === "limit" || (st === "failed" && (await readsToday(kit)) >= READ_HINT);
+      next.unread = limit ? "limit" : st === "locked" || st === "picture" ? st : "failed";
       return void (await kit.store.put("bills", ref.bill, next as unknown as Json));
     }
     const before = bill.facts ?? {};
@@ -1038,6 +1056,7 @@ export default definePlugin({
         if (bill.reading && kit.now - bill.reading < 2 * 60_000) return;
         try {
           await kit.files.read(pdf.id, { kind: "reread", bill: id } as unknown as Json);
+          await countRead(kit);
         } catch {
           // Zelfred reads only PDFs that came by mail or were uploaded on the page.
           await kit.store.put("bills", id, { ...bill, reading: null, unread: "failed" } as unknown as Json);
