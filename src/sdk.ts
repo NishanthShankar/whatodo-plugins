@@ -571,7 +571,7 @@ export interface MailRead {
    */
   kind?: "bill" | "not-bill" | "unsure";
   /** For what is not a bill (or may not be): what it seems to be. Since SDK 1.37.0. */
-  sort?: "ticket" | "statement" | "insurance" | "papers" | "quote" | "pay" | "other";
+  sort?: "ticket" | "statement" | "insurance" | "papers" | "quote" | "proforma" | "pay" | "other";
 }
 
 /**
