@@ -2,6 +2,17 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.11.0] - 2026-11-27
+
+### Added
+- Filed by the address a bill came through, first of all (the owner: "which email it came from ... thats a important what to auto file"):
+  1. Its +label ("maker+nverse@"): once the person files one bill sent to a label, that label's bills go to the same folder unasked. Settings shows each label's folder with Stop.
+  2. The Gmail account a forward came through, when at least 2 of its filed bills all went to one folder.
+  3. Then the GST number, the sender, the seller's name and jev's guess, as before.
+
+### Data
+- New collection `labels` (label to folder). `tagged.how` may be "label" or "mailbox".
+
 ## [1.10.1] - 2026-11-27
 
 ### Fixed

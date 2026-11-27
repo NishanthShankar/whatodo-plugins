@@ -79,7 +79,10 @@ export interface Book {
   at: number;
 }
 
-export type How = "reaction" | "reply" | "caption" | "poll" | "page" | "first" | "sender" | "gstin" | "seller" | "guess";
+export type How = "reaction" | "reply" | "caption" | "poll" | "page" | "first" | "sender" | "gstin" | "seller" | "guess" | "label" | "mailbox";
+
+/** Filed by the person's own hand: what Zelfred may learn from (a label's folder, since 1.11.0). */
+const BY_HAND: How[] = ["reaction", "reply", "caption", "poll", "page", "first"];
 
 /** What Zelfred read inside a mailed PDF (SDK 1.35.0): "the bill says", never stated as true. Since 1.7.0. */
 export interface BillFacts {
@@ -244,6 +247,9 @@ async function file(kit: Kit, id: string, bookId: string | null, how: How, by: s
     { at: kit.now, what: book ? "filed" : "unfiled", how, book: book ? bookId : null, by },
   );
   await kit.store.put("bills", id, next as unknown as Json);
+  // A bill sent to a +label address and filed by hand ties that label to the folder: the next ones go there unasked
+  // (the owner, 2026-11-27: "which email it came from ... thats a important what to auto file"). Settings can undo it.
+  if (book && bookId && BY_HAND.includes(how) && bill.mail?.label) await kit.store.put("labels", bill.mail.label.toLowerCase(), { book: bookId, at: kit.now } as unknown as Json);
   if (bill.source === "whatsapp") {
     if (opts.react) kit.react(markOf(book));
     else kit.reactTo(billRef(id), markOf(book));
@@ -423,7 +429,26 @@ const lettersOnly = (s: string) => s.replace(/[^\p{L}\s]/gu, " ").replace(/\s+/g
  * folder's; the folder the last bill from this proven sender went to (never for a forward); the seller's name against
  * folder names, in our own code. Null when none fits; jev is asked after, as a guess.
  */
-function folderFor(books: { id: string; book: Book }[], all: { data: Bill }[], e: MailEvent | null, facts: BillFacts | null): { book: string; how: How } | null {
+function folderFor(
+  books: { id: string; book: Book }[],
+  all: { data: Bill }[],
+  e: MailEvent | null,
+  facts: BillFacts | null,
+  labels: Map<string, string> = new Map(),
+): { book: string; how: How } | null {
+  const has = (id: string | null | undefined) => !!id && books.some((b) => b.id === id);
+  // 1. The +label it was sent to, once the person has filed one of its bills (owner, 2026-11-27).
+  const label = e?.label?.toLowerCase();
+  if (label && has(labels.get(label))) return { book: labels.get(label)!, how: "label" };
+  // 2. The Gmail account a forward came through, when every bill filed from it so far went to one folder (2 at least).
+  if (e && e.from.kind === "mailbox") {
+    const went = new Set(all.filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book && r.data.tagged?.how !== "guess").map((r) => r.data.book));
+    const count = all.filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book).length;
+    if (went.size === 1 && count >= 2) {
+      const only = [...went][0];
+      if (has(only)) return { book: only!, how: "mailbox" };
+    }
+  }
   const gst = new Set(facts?.gstins ?? []);
   const byGst = books.filter((b) => b.book.gst && gst.has(b.book.gst));
   if (byGst.length === 1) return { book: byGst[0].id, how: "gstin" };
@@ -443,6 +468,7 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
   const all = await kit.store.list<Bill>("bills");
   if (all.some((r) => r.data.mail?.id === e.id)) return "took";
   const books = await allBooks(kit);
+  const labels = new Map((await kit.store.list<{ book: string }>("labels")).map((r) => [r.key, r.data.book]));
   // Each PDF is its own bill, so each is filed on its own; "2 of 3" keeps them together on the page.
   const n = e.files.length;
   const ids: string[] = [];
@@ -457,7 +483,7 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
     const name = typeof (f as { name?: unknown }).name === "string" ? ((f as { name?: string }).name ?? "").slice(0, 120) || null : null;
     const facts = factsOf(f);
     const aside = asideFor((f as { read?: unknown }).read, learned, kit.now);
-    const to = aside ? null : folderFor(books, all, e, facts);
+    const to = aside ? null : folderFor(books, all, e, facts, labels);
     const bill: Bill = {
       v: 1,
       source: "mail",
@@ -676,7 +702,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.10.1",
+  version: "1.11.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -908,6 +934,8 @@ export default definePlugin({
         books: books.map(({ id, book }) => ({ id, ...book, count: counts.get(id) ?? 0 })),
         toTag: bills.filter((b) => b.data.state === "to-tag" && !b.data.aside).length,
         notBills: bills.filter((b) => b.data.aside).length,
+        // Which +label files to which folder by itself, learnt from the person's own filing.
+        labels: (await kit.store.list<{ book: string }>("labels")).map((r) => ({ label: r.key, book: r.data.book })),
         // Per sender, whether a note is asked for when their bill comes: "auto", "yes" or "no".
         senders: Object.fromEntries((await kit.store.list<SenderPref>("senders")).map((r) => [r.key, r.data.ask])),
         total: bills.length,
@@ -921,6 +949,10 @@ export default definePlugin({
         const book = typeof args.book === "string" && args.book ? args.book : null;
         if (book && !(await kit.store.get("books", book))) throw new Error("That folder isn't here any more.");
         for (const id of ids) await file(kit, id, book, "page", kit.person.id ?? null);
+      },
+      /** Stop filing a +label's bills by itself. */
+      async unlinkLabel(kit, args) {
+        await kit.store.delete("labels", String(args.label ?? "").toLowerCase());
       },
       /** "Not a bill": set aside by hand. Counted, and twice for one sender sets that sender's aside from then on. */
       async setAside(kit, args) {
