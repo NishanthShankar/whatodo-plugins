@@ -2,6 +2,17 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.9.0] - 2026-11-27
+
+### Added
+- Not bills (SDK 1.37.0): a PDF Zelfred's reader calls "not-bill" (a ticket, a statement, insurance papers, a quotation, a payslip) is set aside. It is kept, in "Not bills", and never in To file, the folders, the month's line, the Sunday line or a note question; one tap brings it back. "unsure" stays a bill.
+- "Not a bill" by hand. Per sender: brought back twice stops setting theirs aside; set aside by hand twice sets theirs aside from then on. Counts of each, with no text, for measuring the reader.
+- A forward's original sender's domain (SDK 1.37.0) is kept to name the bill, never to trust it, and is who a forwarded bill is from when learning what to set aside.
+- "Read again" re-sorts a bill unless the person chose.
+
+### Data
+- `bills`: `aside` ({ sort, by, at } or null), `mail.forwarded`; history may say "aside" or "back". New collection `sorting` (per sender domain: back, hand); `state.notBills` counts.
+
 ## [1.8.0] - 2026-11-27
 
 ### Added
