@@ -65,7 +65,7 @@ Slots run at most once per install: a daily schedule once per local day, an hour
 | `lockable` | boolean | The person may lock the page behind their Zelfred PIN. Use it for anything personal. |
 | `load` | `(kit, args) => Promise<Json>` | Data for the page. Runs **read-only**: `store.put`, `store.delete`, `setSettings` and `send` throw. |
 | `actions` | `Record<string, (kit, args) => Promise<Json \| void>>` | Changes the page can ask for. Throw `Error("Plain sentence")` to show the person a message. |
-| `locked` | `string[]` | Names of `actions` that need the person's lock. See [Locked actions](#locked-actions). Since SDK 1.38.0. |
+| `locked` | `string[]` | Names of `actions` that need the person's lock. See [Locked actions](#locked-actions). Since SDK 1.39.0. |
 | `shared` | `(kit, key) => Promise<SharedPage \| null>` | What the shared page for `key` shows to anyone holding its address. Read-only. Needs `"share"`. See [Shared pages](#shared-pages-a-page-anyone-can-open). Since SDK 1.24.0. |
 
 ### Locked actions

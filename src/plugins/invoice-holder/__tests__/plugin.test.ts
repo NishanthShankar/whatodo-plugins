@@ -850,3 +850,43 @@ describe("invoice-holder: 1.9.0, not bills", () => {
     expect(byMail(t, "m1").aside).toBeNull();
   });
 });
+
+describe("invoice-holder: 1.10.0, old forwards named by their PDF", () => {
+  const me = { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" as const };
+  const kit = () => createTestKit({ today: "2026-11-27", hour: 10 });
+  const byMail = (t: T, id: string) => bills(t).find((b) => b.mail?.id === id)!;
+
+  it("keeps the site the reader found", async () => {
+    const t = kit();
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: me, files: [{ id: "f1", type: "application/pdf", size: 9000, read: { state: "read", site: "Airtel.in" } as MailRead }] }));
+    expect(byMail(t, "m1").facts?.site).toBe("airtel.in");
+  });
+
+  it("reads old unnamed forwards again once, 15 a day, silently", async () => {
+    const t = kit();
+    for (let i = 0; i < 17; i++) await t.mail(plugin, mail({ id: `m${i}`, at: t.kit.now, from: me, files: [{ id: `f${i}`, type: "application/pdf", size: 9000 }] }));
+    const sent = t.sent.length;
+    await t.schedule(plugin, "catchup");
+    expect(t.fileReads).toHaveLength(15);
+    expect(t.sent.length).toBe(sent);
+    await t.fileRead(plugin, t.fileReads[0].id, { state: "read", site: "monid.com" } as MailRead);
+    await t.schedule(plugin, "catchup");
+    // The 2 left, never the 15 already tried.
+    expect(t.fileReads.length).toBe(14 + 2);
+  });
+});
+
+describe("invoice-holder: 1.10.1, the catch-up waits for the new reader", () => {
+  it("tries again when the reading had no kind", async () => {
+    const t = createTestKit({ today: "2026-11-27", hour: 10 });
+    const me = { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" as const };
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: me, files: [{ id: "f1", type: "application/pdf", size: 9000 }] }));
+    await t.schedule(plugin, "catchup");
+    await t.fileRead(plugin, "f1", { state: "read" } as MailRead);
+    await t.schedule(plugin, "catchup");
+    expect(t.fileReads).toHaveLength(1);
+    await t.fileRead(plugin, "f1", { state: "read", kind: "bill", site: "monid.com" } as MailRead);
+    await t.schedule(plugin, "catchup");
+    expect(t.fileReads).toHaveLength(0);
+  });
+});

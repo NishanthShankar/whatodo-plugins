@@ -4,7 +4,7 @@
 
 ### Security
 
-- Showing a hidden value whole (a card number, a PIN) now takes the person's lock: their passkey, passphrase or recovery key, the same one across Zelfred. The page's `reveal` action is named in `web.locked`, so Zelfred refuses it without a fresh signature from that lock. Needs SDK 1.38.0.
+- Showing a hidden value whole (a card number, a PIN) now takes the person's lock: their passkey, passphrase or recovery key, the same one across Zelfred. The page's `reveal` action is named in `web.locked`, so Zelfred refuses it without a fresh signature from that lock. Needs SDK 1.39.0.
 
 ## [1.5.0] - 2026-11-27
 

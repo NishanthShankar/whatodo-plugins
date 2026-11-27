@@ -90,6 +90,8 @@ export interface BillFacts {
   number?: string;
   gstins?: string[];
   seller?: string;
+  /** The company domain the PDF itself prints most ("airtel.in"): a name only, never proof. Since 1.10.0. */
+  site?: string;
 }
 
 export interface BillFile {
@@ -153,6 +155,8 @@ export interface Bill {
    * "reader" when Zelfred's reader said so, "person" when they put it there. Since 1.9.0.
    */
   aside?: { sort: string; by: "reader" | "person"; at: number } | null;
+  /** When the daily catch-up read it again for its company's name, so it is read once. Since 1.10.0. */
+  caught?: number | null;
   /** When "Read again" was asked and not answered yet. Since 1.8.0. */
   reading?: number | null;
   /** Why the last reading found nothing: "locked", "picture" or "failed"; null when it read. Since 1.8.0. */
@@ -407,6 +411,7 @@ function factsFrom(read: unknown): BillFacts | null {
   if (typeof r.number === "string" && r.number.trim()) facts.number = r.number.trim().slice(0, 40);
   if (Array.isArray(r.gstins)) facts.gstins = r.gstins.filter((g) => typeof g === "string" && /^\d{2}[A-Z0-9]{13}$/.test(g)).slice(0, 4);
   if (typeof r.seller === "string" && r.seller.trim()) facts.seller = r.seller.replace(/\s+/g, " ").trim().slice(0, 80);
+  if (typeof (r as { site?: unknown }).site === "string" && /^[a-z0-9.-]{3,253}\.[a-z]{2,}$/i.test((r as { site: string }).site)) facts.site = (r as { site: string }).site.toLowerCase();
   return facts;
 }
 
@@ -671,7 +676,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.9.0",
+  version: "1.10.1",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -694,6 +699,8 @@ export default definePlugin({
   schedules: [
     { id: "waiting", hour: REMIND_HOUR },
     { id: "month", hour: MONTH_HOUR },
+    // Old mailed bills with no company to name them by are read again, a few a day (since 1.10.0).
+    { id: "catchup", hour: 3 },
   ],
   // Zelfred's 8pm line when the day's mail lines were held back past the cap (og-copy-bot's words, SDK 1.34.0).
   mailSummary: { one: MAIL_SUMMARY_ONE, many: MAIL_SUMMARY_MANY },
@@ -785,6 +792,24 @@ export default definePlugin({
       await kit.store.put("state", "weekly", kit.today);
       return kit.send(copy.waiting({ count }));
     }
+    if (event.id === "catchup") {
+      // Zelfred does this, not the person: bills forwarded before Zelfred could tell the company are read again for
+      // the domain the PDF prints. 15 a day, leaving the person 5 of the 20 for their own "Read again". Silent.
+      const todo = (await kit.store.list<Bill>("bills"))
+        .filter(({ data: b }) => b.source === "mail" && !b.reading && !b.caught && !b.mail?.forwarded && !b.facts?.site && (b.mail?.kind === "mailbox" || !b.mail))
+        .slice(0, 15);
+      for (const { key, data } of todo) {
+        const pdf = data.files.find((f) => f.type === "application/pdf");
+        if (!pdf) continue;
+        try {
+          await kit.files.read(pdf.id, { kind: "reread", bill: key } as unknown as Json);
+          await kit.store.put("bills", key, { ...data, reading: kit.now, caught: kit.now } as unknown as Json);
+        } catch {
+          await kit.store.put("bills", key, { ...data, caught: kit.now } as unknown as Json);
+        }
+      }
+      return;
+    }
     if (event.id === "month") {
       if (!kit.today.endsWith("-01")) return;
       const month = monthBefore(kit.today);
@@ -815,6 +840,8 @@ export default definePlugin({
     if (!bill || !bill.files.some((f) => f.id === event.fileId)) return;
     const facts = factsFrom(event.read);
     const next: Bill = { ...bill, reading: null };
+    // A reader older than SDK 1.37 says no kind: the catch-up didn't really get its try, so it may try again.
+    if (bill.caught && !(event.read as { kind?: unknown } | null)?.kind) next.caught = null;
     if (!facts) {
       const st = (event.read as { state?: string } | null)?.state;
       next.unread = st === "locked" || st === "picture" ? st : "failed";

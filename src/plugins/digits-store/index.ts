@@ -37,7 +37,7 @@ import { dateOf, saysDate, directMatch, LOCKED, masked, overlap, readNumbers, re
  * The page shows one whole only through the "reveal" action, behind the same unlock as a vault: the
  * person's passkey or passphrase (the owner, 2026-11-26: "unlocks are same as vault. i'd love it if we
  * can use one lock/passkey through out zelfred app unless they want to change it on settings"). The
- * action is named in `web.locked` (SDK 1.38.0), so Zelfred runs it only for a call signed by that lock.
+ * action is named in `web.locked` (SDK 1.39.0), so Zelfred runs it only for a call signed by that lock.
  *
  * Dates are said back in words ("12 March"), so a day written 12/03 is never read the wrong way
  * round, and reminded (the owner, 2026-11-26: "only nudges are birthdays and future dates"): a

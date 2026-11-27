@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.38.0";
+export const SDK_VERSION = "1.39.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -565,6 +565,11 @@ export interface MailRead {
   /** The seller's name as printed, at most 80 characters. */
   seller?: string;
   /**
+   * The company it seems to be from: the one web domain that clearly wins in the PDF's own text ("airtel.in"), mail
+   * services left out. Printed by whoever made the PDF, so a name only, never proof. Since SDK 1.38.0.
+   */
+  site?: string;
+  /**
    * Whether it is a bill at all, from words Zelfred found in it and its file's name (since SDK 1.37.0): "not-bill" only
    * when the signs are clear, "unsure" when they are mixed or thin. Treat "unsure" as a bill: nothing should be set
    * aside on a guess. Locked or unreadable PDFs are "unsure" unless their name alone says otherwise.
@@ -927,7 +932,7 @@ export interface WebDef {
    * most and never twice. Without that the action does not run, so what it returns never leaves
    * the server. The plugin does nothing else: no check of its own, and no way to switch it off.
    * Use it for an action that hands back something kept hidden (a card number whole). Not for
-   * `load`, which runs with a login alone: keep what is hidden out of it. Since SDK 1.38.0.
+   * `load`, which runs with a login alone: keep what is hidden out of it. Since SDK 1.39.0.
    */
   locked?: string[];
   /**
