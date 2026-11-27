@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.36.0";
+export const SDK_VERSION = "1.37.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -564,6 +564,14 @@ export interface MailRead {
   gstins?: string[];
   /** The seller's name as printed, at most 80 characters. */
   seller?: string;
+  /**
+   * Whether it is a bill at all, from words Zelfred found in it and its file's name (since SDK 1.37.0): "not-bill" only
+   * when the signs are clear, "unsure" when they are mixed or thin. Treat "unsure" as a bill: nothing should be set
+   * aside on a guess. Locked or unreadable PDFs are "unsure" unless their name alone says otherwise.
+   */
+  kind?: "bill" | "not-bill" | "unsure";
+  /** For what is not a bill (or may not be): what it seems to be. Since SDK 1.37.0. */
+  sort?: "ticket" | "statement" | "insurance" | "papers" | "quote" | "pay" | "other";
 }
 
 /**
@@ -596,6 +604,12 @@ export interface MailEvent {
    * show it as text, never put it in a message, a log or a count. Missing when the mail had none. Since SDK 1.36.0.
    */
   messageId?: string;
+  /**
+   * For a mail the person forwarded from their own mailbox: the domain of the original sender, read from the one
+   * forwarded header block in the mail ("airtel.com"). A domain only, never a name or an address; the original sender
+   * was not checked, so use it to name or sort, never to trust. Missing otherwise. Since SDK 1.37.0.
+   */
+  forwarded?: { domain: string };
 }
 
 /** What a plugin says about a mail it was told of. Since SDK 1.33.0. */
