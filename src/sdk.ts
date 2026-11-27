@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.39.0";
+export const SDK_VERSION = "1.40.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -365,8 +365,8 @@ export interface Kit {
     /**
      * Read one of this install's PDFs again with Zelfred's bill reader (as a mailed bill is read before `onMail`):
      * a moment later `onFileRead` gets what the bill says and the `ref` given here. Every call is answered, with
-     * `read.state` "failed" when it could not be read. For a page button such as "Read again". At most 20 a day for a
-     * person. Needs the "mail" permission. Since SDK 1.36.0.
+     * `read.state` "failed" when it could not be read, or "limit" past the day's readings. For a page button such as
+     * "Read again". At most 20 a day for a person (more for the owners). Needs the "mail" permission. Since SDK 1.36.0.
      */
     read(id: string, ref: Json): Promise<void>;
   };
@@ -831,8 +831,12 @@ export interface FileReadEvent {
   fileId: string;
   /** The ref given to `kit.files.read`. */
   ref: Json;
-  /** What the bill says, as `MailFile.read`; state "failed" when it could not be read or the day's limit was reached. */
-  read: MailRead;
+  /**
+   * What the bill says, as `MailFile.read`; state "failed" when it could not be read, and "limit" when it was not read
+   * because the person's readings for the day (UTC) are used up: say so ("try again tomorrow") and keep what you had.
+   * "limit" since SDK 1.40.0.
+   */
+  read: MailRead | { state: "limit" };
 }
 
 /** A person deleted, for everyone, a message of theirs that the plugin had marked. Since SDK 1.30.0. */
