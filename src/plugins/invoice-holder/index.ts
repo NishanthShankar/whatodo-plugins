@@ -137,6 +137,8 @@ export interface Bill {
     msg?: string | null;
     /** For a forward: the original sender's domain as Zelfred read it from the forward, unchecked; to name it only. Since 1.9.0. */
     forwarded?: string | null;
+    /** When the mail (for a forward, the original) was sent, as its sender wrote it: to order bills as a mailbox would. Since 1.12.0. */
+    sent?: number | null;
   } | null;
   /** Who sent it (`sender.id`), even though only one person can today. */
   by: string | null;
@@ -440,11 +442,11 @@ function folderFor(
   // 1. The +label it was sent to, once the person has filed one of its bills (owner, 2026-11-27).
   const label = e?.label?.toLowerCase();
   if (label && has(labels.get(label))) return { book: labels.get(label)!, how: "label" };
-  // 2. The Gmail account a forward came through, when every bill filed from it so far went to one folder (2 at least).
+  // 2. The Gmail account a forward came through, when every bill filed from it so far went to one folder (3 at least), shown as a guess.
   if (e && e.from.kind === "mailbox") {
     const went = new Set(all.filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book && r.data.tagged?.how !== "guess").map((r) => r.data.book));
     const count = all.filter((r) => r.data.source === "mail" && r.data.mail?.from === e.from.address && r.data.book).length;
-    if (went.size === 1 && count >= 2) {
+    if (went.size === 1 && count >= 3) {
       const only = [...went][0];
       if (has(only)) return { book: only!, how: "mailbox" };
     }
@@ -488,7 +490,7 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
       v: 1,
       source: "mail",
       files: [{ id: f.id, type: f.type, size: f.size }],
-      mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id, kind: e.from.kind, part: i + 1, of: n, name, forwarded, msg: typeof e.messageId === "string" ? e.messageId.slice(0, 200) || null : null },
+      mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id, kind: e.from.kind, part: i + 1, of: n, name, forwarded, sent: typeof e.sent === "number" && Number.isFinite(e.sent) ? e.sent : null, msg: typeof e.messageId === "string" ? e.messageId.slice(0, 200) || null : null },
       by: null,
       at: e.at,
       state: to ? "filed" : "to-tag",
@@ -496,7 +498,7 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
       tagged: to ? { how: to.how, by: null, at: kit.now } : null,
       // What the bill says, kept as the bill's own until the person changes it.
       amount: facts?.amount ?? null,
-      currency: facts?.amount !== undefined ? (facts?.currency ?? null) : null,
+      currency: facts?.amount !== undefined ? (facts?.currency ?? (facts?.gstins?.length ? "INR" : null)) : null,
       billDate: facts?.date ?? null,
       note: null,
       facts,
@@ -630,7 +632,7 @@ function shown(id: string, b: Bill) {
     id,
     source: b.source,
     from: b.mail?.from ?? null,
-    mail: b.mail ? { domain: b.mail.domain, label: b.mail.label, kind: b.mail.kind ?? null, part: b.mail.part ?? 1, of: b.mail.of ?? b.files.length, name: b.mail.name ?? null, forwarded: b.mail.forwarded ?? null } : null,
+    mail: b.mail ? { domain: b.mail.domain, label: b.mail.label, kind: b.mail.kind ?? null, part: b.mail.part ?? 1, of: b.mail.of ?? b.files.length, name: b.mail.name ?? null, forwarded: b.mail.forwarded ?? null, sent: b.mail.sent ?? null } : null,
     asked: b.asked ?? null,
     noteBy: b.noteBy ?? null,
     files: b.files,
@@ -702,7 +704,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.11.0",
+  version: "1.12.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -878,7 +880,8 @@ export default definePlugin({
     const mine = <T>(now: T | null | undefined, said: T | undefined) => now !== null && now !== undefined && now !== said;
     if (!mine(bill.amount, before.amount) && facts.amount !== undefined) {
       next.amount = facts.amount;
-      next.currency = facts.currency ?? null;
+      // A GST number means an Indian bill: rupees, when the reader found no sign (Printo.in showed as dollars).
+      next.currency = facts.currency ?? (facts.gstins?.length ? "INR" : null);
     }
     if (!mine(bill.billDate, before.date) && facts.date) next.billDate = facts.date;
     next.facts = facts;
