@@ -82,7 +82,7 @@ export const copy = {
       "",
       `• _${EXAMPLE}_: kept`,
       `• _${EXAMPLE_WEIGHT}_: kept, with the ones before it`,
-      `• _${EXAMPLE_SEVERAL}_: two kept at once`,
+      `• _${EXAMPLE_SEVERAL}_: 2 kept at once`,
       `• _${EXAMPLE_ASK}_: the latest, with the first`,
       `• _${HISTORY_EXAMPLE}_: every one, newest first`,
       `• _${LIST}_: everything I keep`,
@@ -111,7 +111,7 @@ export const copy = {
   /** Kept and locked: a card number or a PIN is shown by its last four, or not at all (the owner, 2026-11-26). */
   locked: msg<{ what: Secret }>([
     ({ what }) =>
-      `Kept, and hidden: I'll only ever show it ${what === "card" ? "by its last four" : "as dots"}, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.`,
+      `Kept, and hidden: I'll only ever show it ${what === "card" ? "by its last 4" : "as dots"}, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.`,
   ]),
 
   /** A date, said back in words so 12/03 is never read the wrong way round, and when it will be reminded. */
@@ -185,7 +185,7 @@ export const copy = {
 
   /** A photo with no number and nothing kept just now to go with. The photo is kept and goes with the answer. */
   photoAlone: msg(["Sorry, I can't read a number off a photo yet. Not my proudest skill.\n\nWhat number is it?"]),
-  photosFull: msg(["Sorry, I can keep four photos with one number, so I left this one out."]),
+  photosFull: msg(["Sorry, I can keep 4 photos with one number, so I left this one out."]),
 
   /** The most labels an install keeps. */
   full: msg<{ max: number }>([({ max }) => `Sorry, ${max} different things is as many as I can keep here for now. Remove one and send this again.`]),

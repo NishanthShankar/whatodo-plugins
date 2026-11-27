@@ -15,7 +15,7 @@ Send a number with a word for what it is, in your own words. A few ready-made on
 
 • _Amma ring size 14_: kept
 • _weight 72.4_: kept, with the ones before it
-• _waist 34 hips 39_: two kept at once
+• _waist 34 hips 39_: 2 kept at once
 • _weight?_: the latest, with the first
 • _history weight_: every one, newest first
 • _list_: everything I keep
@@ -46,7 +46,7 @@ And 3 more on the page: app.zelfred.com/plugins/digits-store",
     "h1": "Send me a number once. Ask for it back whenever you like.",
     "title": "Remember any number: sizes, readings, weights | Zelfred",
   },
-  "lockedCard": "Kept, and hidden: I'll only ever show it by its last four, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
+  "lockedCard": "Kept, and hidden: I'll only ever show it by its last 4, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
   "lockedPin": "Kept, and hidden: I'll only ever show it as dots, here and on the page. It still sits in your message above, so you may want to delete that one for everyone.",
   "notFound": "Nothing kept as "shoe size". Send _list_ to see what I keep.",
   "nothingToUndo": "Nothing to take out.",
@@ -56,7 +56,7 @@ And 3 more on the page: app.zelfred.com/plugins/digits-store",
   "photoAlone": "Sorry, I can't read a number off a photo yet. Not my proudest skill.
 
 What number is it?",
-  "photosFull": "Sorry, I can keep four photos with one number, so I left this one out.",
+  "photosFull": "Sorry, I can keep 4 photos with one number, so I left this one out.",
   "recall": "*Weight*: 72.4 kg, kept today. The first was 75, on 3 August. 6 kept.",
   "recallMany": "*Weight*: 72.4 kg, kept today.
 *Waist*: 34, kept today.",
