@@ -862,17 +862,16 @@ describe("invoice-holder: 1.10.0, old forwards named by their PDF", () => {
     expect(byMail(t, "m1").facts?.site).toBe("airtel.in");
   });
 
-  it("reads old unnamed forwards again once, 15 a day, silently", async () => {
+  it("reads old unnamed forwards again once, 10 a day (1.14.0), silently", async () => {
     const t = kit();
     for (let i = 0; i < 17; i++) await t.mail(plugin, mail({ id: `m${i}`, at: t.kit.now, from: me, files: [{ id: `f${i}`, type: "application/pdf", size: 9000 }] }));
     const sent = t.sent.length;
     await t.schedule(plugin, "catchup");
-    expect(t.fileReads).toHaveLength(15);
+    expect(t.fileReads).toHaveLength(10);
     expect(t.sent.length).toBe(sent);
-    await t.fileRead(plugin, t.fileReads[0].id, { state: "read", site: "monid.com" } as MailRead);
+    // The day's share is spent: no more today.
     await t.schedule(plugin, "catchup");
-    // The 2 left, never the 15 already tried.
-    expect(t.fileReads.length).toBe(14 + 2);
+    expect(t.fileReads).toHaveLength(10);
   });
 });
 
@@ -972,5 +971,18 @@ describe("invoice-holder: 1.13.0 upgrade", () => {
     expect(bills(t).filter((b) => b.mail?.id === "m1")).toHaveLength(1);
     expect(bills(t).find((b) => b.mail?.id === "m1")!.files).toHaveLength(2);
     expect(bills(t).filter((b) => b.mail?.id === "m2")).toHaveLength(2);
+  });
+});
+
+describe("invoice-holder: 1.14.0, the day's reads", () => {
+  it("a limit answer says so and keeps what the bill said", async () => {
+    const t = createTestKit({ today: "2026-11-27", hour: 10 });
+    const me = { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" as const };
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: me, files: [{ id: "f1", type: "application/pdf", size: 9000, read: { state: "read", amount: 5 } as MailRead }] }));
+    const id = bills(t)[0].id;
+    await t.kit.store.put("state", "reads", { day: new Date(t.kit.now).toISOString().slice(0, 10), n: 20 } as unknown as Json);
+    await t.act(plugin, "reread", { id });
+    await t.fileRead(plugin, "f1", { state: "limit" } as unknown as MailRead);
+    expect(bills(t)[0]).toMatchObject({ unread: "limit", amount: 5 });
   });
 });

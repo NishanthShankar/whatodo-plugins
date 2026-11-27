@@ -2,6 +2,18 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.14.0] - 2026-11-27
+
+### Fixed
+- The nightly catch-up retried a bill whose reading failed, so it spent the day's reads on the same bills. Only a real reading by an older reader earns another try.
+
+### Changed
+- The catch-up reads at most 10 a day, and none once 10 reads are spent, so the person's own "Read again" always has some.
+- Past the day's limit Zelfred says so (SDK 1.40.0, state "limit"): the bill shows "try tomorrow" and keeps what it said before. Reads asked are counted per day for the catch-up's share.
+
+### Data
+- `state.reads` ({ day, n }); `bills.unread` may be "limit".
+
 ## [1.13.0] - 2026-11-27
 
 ### Added
