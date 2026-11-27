@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.38.0] - 2026-11-27
+
+### Added
+
+- `MailRead.site`: the company a PDF seems to be from, the one web domain that clearly wins in its own text, mail services left out. A name only, never proof. Lets "Read again" name bills forwarded before `MailEvent.forwarded` existed.
+
 ## [1.37.0] - 2026-11-27
 
 ### Added
