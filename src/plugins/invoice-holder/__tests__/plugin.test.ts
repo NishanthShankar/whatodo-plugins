@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import plugin, { type Bill, type Book, weekday } from "..";
-import type { MailRead } from "../../../sdk";
+import type { Json, MailRead } from "../../../sdk";
 import { createTestKit, mail, photo } from "../../../testing";
 import { readWords } from "../words";
 
@@ -940,5 +940,37 @@ describe("invoice-holder: 1.12.0, when it was sent, and rupees for GST bills", (
     const b = bills(t).find((x) => x.mail?.id === "m1")!;
     expect(b.mail?.sent).toBe(t.kit.now - 40 * 86400000);
     expect(b).toMatchObject({ amount: 29372, currency: "INR" });
+  });
+});
+
+describe("invoice-holder: 1.13.0, an invoice and its receipt are one bill", () => {
+  const stripe = { address: "invoice@stripe.com", domain: "stripe.com", kind: "company" as const };
+  const pdf = (id: string, name: string, read: Partial<MailRead>) => ({ id, type: "application/pdf" as const, size: 9000, name, read: { state: "read", ...read } as MailRead });
+
+  it("joins a receipt with the same amount and number to its invoice; different numbers stay apart", async () => {
+    const t = createTestKit({ today: "2026-11-27", hour: 10 });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: stripe, files: [pdf("r", "Receipt-2194.pdf", { amount: 31.5, number: "2194-1234" }), pdf("i", "Invoice-2194.pdf", { amount: 31.5, number: "21941234" })] }));
+    const one = bills(t).filter((b) => b.mail?.id === "m1");
+    expect(one).toHaveLength(1);
+    expect(one[0].files.map((f) => [f.id, f.role ?? null])).toEqual([["i", null], ["r", "receipt"]]);
+    expect(one[0].mail).toMatchObject({ part: 1, of: 1 });
+    await t.mail(plugin, mail({ id: "m2", at: t.kit.now, from: stripe, files: [pdf("a", "A.pdf", { amount: 10, number: "1" }), pdf("b", "B.pdf", { amount: 10, number: "2" })] }));
+    expect(bills(t).filter((b) => b.mail?.id === "m2")).toHaveLength(2);
+  });
+});
+
+describe("invoice-holder: 1.13.0 upgrade", () => {
+  it("joins a receipt kept apart before, and leaves one the person named", async () => {
+    const t = createTestKit({ today: "2026-11-27", hour: 10 });
+    const mk = (id: string, mailId: string, part: number, name: string, extra: Partial<Bill> = {}) =>
+      ({ v: 1, source: "mail", files: [{ id: `f${id}`, type: "application/pdf", size: 9 }], mail: { from: "a@stripe.com", domain: "stripe.com", label: "", id: mailId, kind: "company", part, of: 2, name }, by: null, at: t.kit.now, state: "to-tag", book: null, tagged: null, amount: 31.5, billDate: null, note: null, facts: { amount: 31.5, number: "X1" }, batch: `mail:${mailId}`, history: [], ...extra }) as unknown as Json;
+    await t.kit.store.put("bills", "i1", mk("i1", "m1", 1, "Invoice.pdf"));
+    await t.kit.store.put("bills", "r1", mk("r1", "m1", 2, "Receipt.pdf"));
+    await t.kit.store.put("bills", "i2", mk("i2", "m2", 1, "Invoice.pdf"));
+    await t.kit.store.put("bills", "r2", mk("r2", "m2", 2, "Receipt.pdf", { name: "Kept apart" } as Partial<Bill>));
+    await t.upgrade(plugin, "1.12.0");
+    expect(bills(t).filter((b) => b.mail?.id === "m1")).toHaveLength(1);
+    expect(bills(t).find((b) => b.mail?.id === "m1")!.files).toHaveLength(2);
+    expect(bills(t).filter((b) => b.mail?.id === "m2")).toHaveLength(2);
   });
 });
