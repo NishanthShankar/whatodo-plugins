@@ -911,7 +911,9 @@ export default definePlugin({
         const bill = await kit.store.get<Bill>("bills", id);
         if (!bill?.aside) return;
         await kit.store.put("bills", id, { ...bill, aside: null, history: [...bill.history, { at: kit.now, what: "back", by: kit.person.id ?? null }] } as unknown as Json);
-        if (bill.aside.by === "reader") await countAside(kit, whoOf(bill), "back");
+        // Every move by hand is counted, both ways (the owner: "I just want the boss to do less work"); only a reader's
+        // mistake teaches the sender rule.
+        await countAside(kit, bill.aside.by === "reader" ? whoOf(bill) : null, "back");
       },
       /** "Read again": Zelfred's bill reader reads this bill's PDF once more; the answer comes to onFileRead. */
       async reread(kit, args) {
