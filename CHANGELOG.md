@@ -2,6 +2,13 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.36.0] - 2026-11-27
+
+### Added
+
+- `kit.files.read(id, ref)` and `onFileRead({ fileId, ref, read })`: read one of the install's PDFs again with Zelfred's bill reader, for a page button such as "Read again"; `read` is a `MailRead`. At most 20 a day for a person. Needs "mail". Test kit: `t.fileRead(plugin, id, read)` and `t.fileReads`.
+- `MailEvent.messageId`: the mail's own Message-ID, cleaned and capped at 200 characters, to link back to it in the person's Gmail (`#search/rfc822msgid:`, URL-encoded). Works only in Gmail and only in the mailbox it came through. Never shown as text, sent, logged or counted.
+
 ## [1.35.0] - 2026-11-27
 
 ### Added
