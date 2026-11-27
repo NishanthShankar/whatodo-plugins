@@ -520,7 +520,7 @@ async function countUp(kit: Kit, label: Row<Label>): Promise<void> {
 
 export default definePlugin({
   id: "digits-store",
-  version: "1.4.0",
+  version: "1.5.0",
   sdk: "1",
   name: "NumberKeeper",
   icon: "🔢",
