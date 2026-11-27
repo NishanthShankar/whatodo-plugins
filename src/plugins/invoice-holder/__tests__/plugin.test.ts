@@ -975,14 +975,14 @@ describe("invoice-holder: 1.13.0 upgrade", () => {
 });
 
 describe("invoice-holder: 1.14.0, the day's reads", () => {
-  it("a failed answer once 20 reads are spent says limit, keeps what the bill said, and earns no catch-up retry", async () => {
+  it("a limit answer says so and keeps what the bill said", async () => {
     const t = createTestKit({ today: "2026-11-27", hour: 10 });
     const me = { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" as const };
     await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: me, files: [{ id: "f1", type: "application/pdf", size: 9000, read: { state: "read", amount: 5 } as MailRead }] }));
     const id = bills(t)[0].id;
     await t.kit.store.put("state", "reads", { day: new Date(t.kit.now).toISOString().slice(0, 10), n: 20 } as unknown as Json);
     await t.act(plugin, "reread", { id });
-    await t.fileRead(plugin, "f1", { state: "failed" } as MailRead);
+    await t.fileRead(plugin, "f1", { state: "limit" } as unknown as MailRead);
     expect(bills(t)[0]).toMatchObject({ unread: "limit", amount: 5 });
   });
 });

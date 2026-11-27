@@ -9,7 +9,7 @@ All notable changes to this plugin. The format follows [Keep a Changelog](https:
 
 ### Changed
 - The catch-up reads at most 10 a day, and none once 10 reads are spent, so the person's own "Read again" always has some.
-- Reads asked are counted per day. A failed answer once 20 are spent is shown as the day's limit ("try tomorrow"), and what the bill said before stays.
+- Past the day's limit Zelfred says so (SDK 1.40.0, state "limit"): the bill shows "try tomorrow" and keeps what it said before. Reads asked are counted per day for the catch-up's share.
 
 ### Data
 - `state.reads` ({ day, n }); `bills.unread` may be "limit".

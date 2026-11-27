@@ -394,8 +394,7 @@ async function takeNote(kit: Kit, ids: string[], text: string, how: "now" | "rep
   kit.react(KEPT);
 }
 
-/** Reads asked today (UTC), counted here, since a capped answer looks like any failure. Since 1.14.0. */
-const READ_HINT = 20;
+/** Reads asked today (UTC), counted here so the nightly catch-up leaves the person their share. Since 1.14.0. */
 const CATCHUP_SHARE = 10;
 async function readsToday(kit: Kit): Promise<number> {
   const r = await kit.store.get<{ day: string; n: number }>("state", "reads");
@@ -938,9 +937,9 @@ export default definePlugin({
     // Only a real reading by an older reader earns another try; a failure never does (it spent the day's reads).
     if (bill.caught && st === "read" && !(event.read as { kind?: unknown } | null)?.kind) next.caught = null;
     if (!facts) {
-      // Past the day's cap Zelfred answers "failed" without reading (SDK, or "limit" if it ever says so): what the
-      // bill said before stays, and the page says to try tomorrow, not that it can't be read.
-      const limit = st === "limit" || (st === "failed" && (await readsToday(kit)) >= READ_HINT);
+      // Past the day's cap Zelfred answers "limit" without reading (SDK 1.40.0): what the bill said before stays,
+      // and the page says to try tomorrow, not that it can't be read.
+      const limit = st === "limit";
       next.unread = limit ? "limit" : st === "locked" || st === "picture" ? st : "failed";
       return void (await kit.store.put("bills", ref.bill, next as unknown as Json));
     }
