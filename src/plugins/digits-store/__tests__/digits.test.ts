@@ -470,11 +470,34 @@ describe("photos", () => {
     expect(entries(t, "meter")[0].photos).toEqual(["p3"]);
   });
 
-  it("turns a photo away when there is nothing to put it with, and lets it go", async () => {
+  it("keeps a photo with nothing to go with, asks its number, and puts it with the answer", async () => {
     const t = taught();
     await t.message(digits, "", null, null, undefined, undefined, { photos: [photo("p4")] });
     expect(last(t)).toBe(copy.photoAlone());
-    expect(t.removedFiles).toEqual(["p4"]);
+    expect(t.removedFiles).toEqual([]);
+    await t.message(digits, "meter 4512");
+    expect(entries(t, "meter")[0].photos).toEqual(["p4"]);
+  });
+
+  it("puts a waiting photo with a bare number once its word comes", async () => {
+    const t = taught();
+    await t.message(digits, "weight 70");
+    await t.message(digits, "height 170");
+    t.setHour(23);
+    await t.message(digits, "", null, null, undefined, undefined, { photos: [photo("p5")] });
+    await t.message(digits, "4512");
+    await t.message(digits, "meter");
+    expect(entries(t, "meter")[0].photos).toEqual(["p5"]);
+  });
+
+  it("lets a waiting photo go when no number comes within the hour", async () => {
+    const t = taught();
+    t.setHour(9);
+    await t.message(digits, "", null, null, undefined, undefined, { photos: [photo("p6")] });
+    t.setHour(12);
+    await t.message(digits, "meter 4512");
+    expect(entries(t, "meter")[0].photos).toEqual([]);
+    expect(t.removedFiles).toEqual(["p6"]);
   });
 });
 

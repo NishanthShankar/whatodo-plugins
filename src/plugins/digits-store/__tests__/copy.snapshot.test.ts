@@ -51,5 +51,6 @@ it("digits copy", () => {
     photoAlone: copy.photoAlone(),
     photosFull: copy.photosFull(),
     full: copy.full({ max: 300 }),
+    fullOne: copy.fullOne({ max: "2,000" }),
   }).toMatchSnapshot();
 });

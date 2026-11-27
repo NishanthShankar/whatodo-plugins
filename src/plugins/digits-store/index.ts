@@ -26,6 +26,7 @@ import { dateOf, saysDate, directMatch, LOCKED, masked, overlap, readNumbers, re
  *   state    key: "recalled"         data: 1 once the first answer was given
  *   state    key: "hiddenTaught"     data: 1 once a hidden value was explained in words
  *   state    key: "pending"          data: Pending: a number sent with no word, waiting for one
+ *   state    key: "photos"           data: Waiting: photos sent with no number, waiting for one
  *   state    key: "last"             data: Last: what the last message kept, for undo and a photo after it
  *   state    key: "aliases"          data: { word: [words] }: names the person said are one ("amma" and "mom")
  *   state    key: "asked:<a>|<b>"    data: 1 once whether two names are one was asked
@@ -115,6 +116,11 @@ interface Pending {
   day: string;
   photos: string[];
   ref: Json;
+}
+
+interface Waiting {
+  photos: string[];
+  at: number;
 }
 
 interface Last {
@@ -456,7 +462,9 @@ async function photoOnly(kit: Kit, text: string, photos: string[]): Promise<void
   if (!key && last && kit.now - last.at <= PHOTO_AFTER_MS) key = last.ids[0] ?? null;
   const e = key ? await kit.store.get<Entry>("entries", key) : null;
   if (!key || !e) {
-    for (const p of photos) await kit.files.remove(p);
+    // Kept, and asked for its number: the person never sends the photo twice (voice 10, the owner, 2026-11-26).
+    const before = await waitingPhotos(kit);
+    await kit.store.put("state", "photos", j({ photos: [...before, ...photos], at: kit.now } satisfies Waiting));
     return kit.send(copy.photoAlone());
   }
   const room = Math.max(0, MAX_PHOTOS - e.photos.length);
@@ -465,6 +473,16 @@ async function photoOnly(kit: Kit, text: string, photos: string[]): Promise<void
   await kit.store.put("entries", key, j({ ...e, photos: [...e.photos, ...photos.slice(0, room)] }));
   await refresh(kit, key.split(":")[0]);
   kit.react(SAVED);
+}
+
+/** Photos still waiting for their number, taken out of waiting. Too old, and they are let go. */
+async function waitingPhotos(kit: Kit): Promise<string[]> {
+  const w = await kit.store.get<Waiting>("state", "photos");
+  if (!w) return [];
+  await kit.store.delete("state", "photos");
+  if (kit.now - w.at <= PENDING_MS) return w.photos;
+  for (const p of w.photos) await kit.files.remove(p);
+  return [];
 }
 
 /** The label's last three values are whole numbers with no unit, each one more than the one before. */
@@ -493,7 +511,7 @@ async function countUp(kit: Kit, label: Row<Label>): Promise<void> {
   const e = await kit.store.get<Entry>("entries", `${label.key}:${label.data.current!.id}`);
   const n = (isWhole(e?.num) ? e!.num! : 0) + 1;
   const key = await keep(kit, label, { text: String(n), num: n, num2: null, unit: null, shape: "number" }, kit.today, [], "whatsapp");
-  if (!key) return kit.send(copy.full({ max: MAX_ENTRIES }));
+  if (!key) return kit.send(copy.fullOne({ max: MAX_ENTRIES.toLocaleString("en-IN") }));
   const ref: MessageRef = { k: "m", ids: [key] };
   kit.mark(j(ref));
   await kit.store.put("state", "last", j({ ids: [key], at: kit.now, ref } satisfies Last));
@@ -502,7 +520,7 @@ async function countUp(kit: Kit, label: Row<Label>): Promise<void> {
 
 export default definePlugin({
   id: "digits-store",
-  version: "1.4.0",
+  version: "1.5.0",
   sdk: "1",
   name: "NumberKeeper",
   icon: "🔢",
@@ -547,7 +565,7 @@ export default definePlugin({
 
   async onMessage(event, kit) {
     const text = event.text.replace(/\s+/g, " ").trim();
-    const photos = (event.photos ?? []).map((p) => p.id);
+    let photos = (event.photos ?? []).map((p) => p.id);
     const quoted = event.quotedRef;
 
     // A reply to the person's own message that kept numbers: correct it, or take it out.
@@ -611,6 +629,9 @@ export default definePlugin({
 
     const reading = readNumbers(text);
     if (reading) {
+      // Photos sent first, then their number: they go with it.
+      const waiting = await waitingPhotos(kit);
+      if (waiting.length) photos = [...waiting, ...photos];
       const day = kit.time.shiftDay(kit.today, -reading.daysBack);
       const pieces = reading.pieces;
       // A number alone: it goes under the only label there is, or waits for its word.
@@ -731,9 +752,9 @@ export default definePlugin({
           const l = await kit.store.get<Label>("labels", a.label);
           label = l ? { key: a.label, data: l } : null;
         } else if (typeof a.name === "string" && tidyLabel(a.name)) label = await labelFor(kit, all, tidyLabel(a.name));
-        if (!label) throw new Error(all.length >= MAX_LABELS ? `I keep up to ${MAX_LABELS} different things.` : "Give it a name.");
+        if (!label) throw new Error(all.length >= MAX_LABELS ? `Sorry, I can keep up to ${MAX_LABELS} different things for now.` : "Give it a name.");
         const key = await keep(kit, label, v, day, [], "page");
-        if (!key) throw new Error("That one is full.");
+        if (!key) throw new Error(`Sorry, ${label.data.name} is full for now. Remove some of its older values first.`);
         if (!(await kit.store.get("state", "firstDay"))) await kit.store.put("state", "firstDay", kit.today);
         return { label: label.key, entry: key.split(":")[1] };
       },
@@ -799,7 +820,7 @@ export default definePlugin({
       /** Everything, for good. The page asks first. */
       async removeAll(kit) {
         for (const l of await labels(kit)) await removeLabel(kit, l.key);
-        for (const k of ["last", "pending"]) await kit.store.delete("state", k);
+        for (const k of ["last", "pending", "photos"]) await kit.store.delete("state", k);
       },
     },
   },
