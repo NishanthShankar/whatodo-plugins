@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.38.0";
+export const SDK_VERSION = "1.39.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -615,6 +615,13 @@ export interface MailEvent {
    * was not checked, so use it to name or sort, never to trust. Missing otherwise. Since SDK 1.37.0.
    */
   forwarded?: { domain: string };
+  /**
+   * When the mail was sent, in ms: for a mail the person forwarded from their own mailbox, the date in its one
+   * forwarded header block (when the original came), else the mail's own Date line. Use it to order mail as a mailbox
+   * would, newest first; `at` is when it reached Zelfred, which for an old bill forwarded today is today. Written by
+   * the sender, so never trusted: missing when unreadable, more than a day ahead, or before 2000. Since SDK 1.39.0.
+   */
+  sent?: number;
 }
 
 /** What a plugin says about a mail it was told of. Since SDK 1.33.0. */
