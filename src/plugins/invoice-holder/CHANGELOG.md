@@ -2,6 +2,14 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.13.0] - 2026-11-27
+
+### Added
+- An invoice and its receipt in one mail, with the same amount and the same invoice number, are one bill (the owner): the receipt is its second file, so the payment counts once. A file named like a receipt is the receipt. Bills kept apart before are joined once on upgrade, unless the receipt has a name, a note or another folder of the person's own.
+
+### Data
+- `bills.files[].role`: "receipt".
+
 ## [1.12.0] - 2026-11-27
 
 ### Added

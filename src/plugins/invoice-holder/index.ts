@@ -103,6 +103,27 @@ export interface BillFile {
   type: string;
   /** Bytes, when known (mailed PDFs, since 1.3.0). */
   size?: number;
+  /** "receipt": the receipt that came with the bill's invoice in the same mail, same amount and number. Since 1.13.0. */
+  role?: "receipt";
+}
+
+/**
+ * A mail's PDFs, with each receipt joined to its invoice (the owner, 2026-11-27: "same amount and same invoice number"):
+ * Stripe and the like send both, and the payment must count once. A file named like a receipt is the receipt.
+ */
+function joinReceipts<T extends { name: string | null; facts: BillFacts | null }>(items: T[]): { main: T; receipts: T[] }[] {
+  const key = (x: T) => (x.facts?.amount !== undefined && x.facts?.number ? `${x.facts.amount}|${x.facts.number.replace(/[^a-z0-9]/gi, "").toUpperCase()}` : null);
+  const groups: { main: T; receipts: T[] }[] = [];
+  for (const it of items) {
+    const k = key(it);
+    const g = k ? groups.find((x) => key(x.main) === k) : undefined;
+    if (!g) groups.push({ main: it, receipts: [] });
+    else if (/receipt/i.test(g.main.name ?? "") && !/receipt/i.test(it.name ?? "")) {
+      g.receipts.unshift(g.main);
+      g.main = it;
+    } else g.receipts.push(it);
+  }
+  return groups;
 }
 
 export interface BillEvent {
@@ -471,8 +492,15 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
   if (all.some((r) => r.data.mail?.id === e.id)) return "took";
   const books = await allBooks(kit);
   const labels = new Map((await kit.store.list<{ book: string }>("labels")).map((r) => [r.key, r.data.book]));
-  // Each PDF is its own bill, so each is filed on its own; "2 of 3" keeps them together on the page.
-  const n = e.files.length;
+  // Each PDF is its own bill, so each is filed on its own; "2 of 3" keeps them together on the page. A receipt for
+  // the same amount and number joins its invoice as a second file.
+  const items = e.files.map((f) => ({
+    f,
+    name: typeof (f as { name?: unknown }).name === "string" ? ((f as { name?: string }).name ?? "").slice(0, 120) || null : null,
+    facts: factsOf(f),
+  }));
+  const groups = joinReceipts(items);
+  const n = groups.length;
   const ids: string[] = [];
   const unfiled: { id: string; seller: string }[] = [];
   const asked: string[] = [];
@@ -481,15 +509,13 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
   const forwarded = typeof fd === "string" && /^[a-z0-9.-]{3,253}$/i.test(fd) ? fd.toLowerCase() : null;
   const learned = await kit.store.get<Learned>("sorting", (forwarded ?? e.from.domain).toLowerCase());
   for (let i = 0; i < n; i++) {
-    const f = e.files[i];
-    const name = typeof (f as { name?: unknown }).name === "string" ? ((f as { name?: string }).name ?? "").slice(0, 120) || null : null;
-    const facts = factsOf(f);
+    const { f, name, facts } = groups[i].main;
     const aside = asideFor((f as { read?: unknown }).read, learned, kit.now);
     const to = aside ? null : folderFor(books, all, e, facts, labels);
     const bill: Bill = {
       v: 1,
       source: "mail",
-      files: [{ id: f.id, type: f.type, size: f.size }],
+      files: [{ id: f.id, type: f.type, size: f.size }, ...groups[i].receipts.map((r) => ({ id: r.f.id, type: r.f.type, size: r.f.size, role: "receipt" as const }))],
       mail: { from: e.from.address, domain: e.from.domain, label: e.label, id: e.id, kind: e.from.kind, part: i + 1, of: n, name, forwarded, sent: typeof e.sent === "number" && Number.isFinite(e.sent) ? e.sent : null, msg: typeof e.messageId === "string" ? e.messageId.slice(0, 200) || null : null },
       by: null,
       at: e.at,
@@ -704,7 +730,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.12.0",
+  version: "1.13.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -803,6 +829,31 @@ export default definePlugin({
   /** A bill that came to the person's Zelfred mail address (SDK 1.33.0). */
   async onMail(event, kit) {
     return await keepMail(kit, event);
+  },
+
+  /**
+   * 1.13.0: a mail's receipt kept as its own bill joins its invoice, when both have the same amount and number and the
+   * receipt carries nothing of the person's own (no name, no note, no other folder). Its file moves; nothing is lost.
+   */
+  async onUpgrade(from, kit) {
+    const [maj, min] = from.split(".").map(Number);
+    if (maj > 1 || (maj === 1 && min >= 13)) return;
+    const mailed = (await kit.store.list<Bill>("bills")).filter((r) => r.data.source === "mail" && r.data.mail?.id && r.data.files.length === 1);
+    const byMail = new Map<string, typeof mailed>();
+    for (const r of mailed) byMail.set(r.data.mail!.id, [...(byMail.get(r.data.mail!.id) ?? []), r]);
+    for (const rows of byMail.values()) {
+      if (rows.length < 2) continue;
+      const groups = joinReceipts(rows.map((r) => ({ r, name: r.data.mail?.name ?? null, facts: r.data.facts ?? null })));
+      let part = 0;
+      for (const g of groups) {
+        part++;
+        const keep = g.receipts.filter(({ r }) => !r.data.name && !r.data.note && (!r.data.book || r.data.book === g.main.r.data.book));
+        const main = g.main.r.data;
+        const files = [...main.files, ...keep.map(({ r }) => ({ ...r.data.files[0], role: "receipt" as const }))];
+        await kit.store.put("bills", g.main.r.key, { ...main, files, mail: { ...main.mail!, part, of: groups.length } } as unknown as Json);
+        for (const { r } of keep) await kit.store.delete("bills", r.key);
+      }
+    }
   },
 
   async onDeleted(event, kit) {
