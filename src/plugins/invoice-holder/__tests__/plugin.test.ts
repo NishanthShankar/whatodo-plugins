@@ -875,3 +875,18 @@ describe("invoice-holder: 1.10.0, old forwards named by their PDF", () => {
     expect(t.fileReads.length).toBe(14 + 2);
   });
 });
+
+describe("invoice-holder: 1.10.1, the catch-up waits for the new reader", () => {
+  it("tries again when the reading had no kind", async () => {
+    const t = createTestKit({ today: "2026-11-27", hour: 10 });
+    const me = { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" as const };
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: me, files: [{ id: "f1", type: "application/pdf", size: 9000 }] }));
+    await t.schedule(plugin, "catchup");
+    await t.fileRead(plugin, "f1", { state: "read" } as MailRead);
+    await t.schedule(plugin, "catchup");
+    expect(t.fileReads).toHaveLength(1);
+    await t.fileRead(plugin, "f1", { state: "read", kind: "bill", site: "monid.com" } as MailRead);
+    await t.schedule(plugin, "catchup");
+    expect(t.fileReads).toHaveLength(0);
+  });
+});
