@@ -923,7 +923,22 @@ describe("invoice-holder: 1.11.0, filed by the address it came through", () => {
       await t.mail(plugin, mail({ id, at: t.kit.now, from: work, files: [pdf(`f${id}`)] }));
       await t.act(plugin, "tag", { ids: [byMail(t, id).id], book: uyir.id });
     }
+    // 2 aren't enough since 1.12.0: one personal Gmail carries many folders' bills.
     await t.mail(plugin, mail({ id: "m3", at: t.kit.now, from: work, files: [pdf("f3")] }));
-    expect(byMail(t, "m3")).toMatchObject({ book: uyir.id, tagged: { how: "mailbox" } });
+    expect(byMail(t, "m3").book).toBeNull();
+    await t.act(plugin, "tag", { ids: [byMail(t, "m3").id], book: uyir.id });
+    await t.mail(plugin, mail({ id: "m4", at: t.kit.now, from: work, files: [pdf("f4")] }));
+    expect(byMail(t, "m4")).toMatchObject({ book: uyir.id, tagged: { how: "mailbox" } });
+  });
+});
+
+describe("invoice-holder: 1.12.0, when it was sent, and rupees for GST bills", () => {
+  it("keeps the mail's sent time, and a GST bill with no currency read is in rupees", async () => {
+    const t = createTestKit({ today: "2026-11-27", hour: 10 });
+    const me = { address: "me@gmail.com", domain: "gmail.com", kind: "mailbox" as const };
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, sent: t.kit.now - 40 * 86400000, from: me, files: [{ id: "f1", type: "application/pdf", size: 9000, read: { state: "read", amount: 29372, gstins: ["29ABCDE1234F1Z5"] } as MailRead }] }));
+    const b = bills(t).find((x) => x.mail?.id === "m1")!;
+    expect(b.mail?.sent).toBe(t.kit.now - 40 * 86400000);
+    expect(b).toMatchObject({ amount: 29372, currency: "INR" });
   });
 });

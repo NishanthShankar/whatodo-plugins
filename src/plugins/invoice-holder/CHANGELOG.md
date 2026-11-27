@@ -2,6 +2,18 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.12.0] - 2026-11-27
+
+### Added
+- A mailed bill keeps when its mail was sent (SDK 1.39.0, `sent`; for a forward, the original's date), so the page orders bills as a mailbox would.
+
+### Changed
+- A bill with a GST number whose currency the reader didn't find is in rupees (an Indian printer's bill showed as dollars).
+- Filing by the Gmail account a forward came through needs 3 bills, all filed to one folder, not 2: one personal Gmail carries many folders' bills.
+
+### Data
+- `bills`: `mail.sent`.
+
 ## [1.11.0] - 2026-11-27
 
 ### Added
