@@ -2,6 +2,15 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.10.0] - 2026-11-27
+
+### Added
+- The company domain a PDF prints (SDK 1.38.0, `site`) is kept with the bill, to name it; never to trust or file it.
+- Bills forwarded before Zelfred could tell the company are read again by Zelfred itself, 15 a day at 3am, once each, with no message: so old forwards get their names without the person asking.
+
+### Data
+- `bills`: `facts.site`; `caught` (when the catch-up read it).
+
 ## [1.9.0] - 2026-11-27
 
 ### Added
