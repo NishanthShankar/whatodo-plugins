@@ -183,6 +183,8 @@ export interface Bill {
   aside?: { sort: string; by: "reader" | "person"; at: number } | null;
   /** When the daily catch-up read it again for its company's name, so it is read once. Since 1.10.0. */
   caught?: number | null;
+  /** A PDF sent in WhatsApp: its file name, for the small line under the title. Since 1.16.0. */
+  fileName?: string | null;
   /** When "Read again" was asked and not answered yet. Since 1.8.0. */
   reading?: number | null;
   /** Why the last reading found nothing: "locked", "picture" or "failed"; null when it read. Since 1.8.0. */
@@ -566,7 +568,7 @@ async function keepMail(kit: Kit, e: MailEvent): Promise<"took" | "not-for-me"> 
 }
 
 /** A photo in the group: a bill. Its caption may say whose it is, how much, and a note. */
-async function keepPhoto(kit: Kit, photo: Photo, text: string, sender: Sender | undefined) {
+async function keepPhoto(kit: Kit, photo: Photo | { id: string; type: string; size: number; name?: string }, text: string, sender: Sender | undefined) {
   const books = await allBooks(kit);
   const read = text ? readWords(text, books.map((b) => ({ id: b.id, name: b.book.name }))) : null;
   const id = kit.id();
@@ -574,7 +576,9 @@ async function keepPhoto(kit: Kit, photo: Photo, text: string, sender: Sender | 
   const bill: Bill = {
     v: 1,
     source: "whatsapp",
-    files: [{ id: photo.id, type: photo.type }],
+    files: [{ id: photo.id, type: photo.type, ...(photo.type === "application/pdf" ? { size: photo.size } : {}) }],
+    // A PDF's own name, as WhatsApp gave it: a small line under the title, never the title.
+    ...(typeof (photo as { name?: unknown }).name === "string" ? { fileName: ((photo as { name: string }).name).slice(0, 120) || null } : {}),
     by,
     at: kit.now,
     state: "to-tag",
@@ -680,6 +684,7 @@ function shown(id: string, b: Bill) {
     amount: b.amount,
     currency: b.currency ?? null,
     facts: b.facts ?? null,
+    fileName: b.fileName ?? null,
     reading: b.reading ?? null,
     aside: b.aside ?? null,
     unread: b.unread ?? null,
@@ -741,7 +746,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.14.0",
+  version: "1.16.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -774,10 +779,13 @@ export default definePlugin({
 
   async onMessage(event, kit) {
     const text = event.text.trim().replace(/\s+/g, " ");
-    if (event.photos?.length) {
+    // A PDF sent in the group (SDK 1.41.0) is a bill like a photo; Zelfred reads it right after and answers onFileRead.
+    const pdfs = (event as { files?: { id: string; type: string; size: number; name?: string }[] }).files ?? [];
+    if (event.photos?.length || pdfs.length) {
       // A photo closes the window for a plain-line note.
       await kit.store.delete("state", "noteOpen");
-      for (const photo of event.photos) await keepPhoto(kit, photo, text, event.sender);
+      for (const photo of event.photos ?? []) await keepPhoto(kit, photo, text, event.sender);
+      for (const f of pdfs) await keepPhoto(kit, f, text, event.sender);
       return;
     }
     if (!text) return;
@@ -927,8 +935,11 @@ export default definePlugin({
   /** "Read again" answered: what the bill says, filling only what the person hasn't changed. */
   async onFileRead(event, kit) {
     const ref = event.ref as { kind?: string; bill?: unknown } | null;
-    if (!ref || ref.kind !== "reread" || typeof ref.bill !== "string") return;
-    const bill = await kit.store.get<Bill>("bills", ref.bill);
+    // A PDF sent in the group is read by Zelfred unasked (ref null, SDK 1.41.0): its bill is the one holding the file.
+    let billId: string | null = ref && ref.kind === "reread" && typeof ref.bill === "string" ? ref.bill : null;
+    if (!billId && ref === null) billId = (await kit.store.list<Bill>("bills")).find((r) => r.data.source === "whatsapp" && r.data.files.some((f) => f.id === event.fileId))?.key ?? null;
+    if (!billId) return;
+    const bill = await kit.store.get<Bill>("bills", billId);
     if (!bill || !bill.files.some((f) => f.id === event.fileId)) return;
     const facts = factsFrom(event.read);
     const next: Bill = { ...bill, reading: null };
@@ -941,7 +952,7 @@ export default definePlugin({
       // and the page says to try tomorrow, not that it can't be read.
       const limit = st === "limit";
       next.unread = limit ? "limit" : st === "locked" || st === "picture" ? st : "failed";
-      return void (await kit.store.put("bills", ref.bill, next as unknown as Json));
+      return void (await kit.store.put("bills", billId, next as unknown as Json));
     }
     const before = bill.facts ?? {};
     // A field is the person's once they changed it from what the bill said (or gave it with no reading).
@@ -961,13 +972,13 @@ export default definePlugin({
       next.aside = asideFor(event.read, learned, kit.now);
     }
     next.history = [...bill.history, { at: kit.now, what: "read" }];
-    await kit.store.put("bills", ref.bill, next as unknown as Json);
+    await kit.store.put("bills", billId, next as unknown as Json);
     if (bill.book || next.aside) return;
     const books = await allBooks(kit);
     const to = folderFor(books, [], null, facts);
-    if (to) return void (await file(kit, ref.bill, to.book, to.how, null));
+    if (to) return void (await file(kit, billId, to.book, to.how, null));
     const words = facts.seller ? lettersOnly(facts.seller) : "";
-    if (words && books.length > 1) await kit.sort(words, Object.fromEntries(books.map((b) => [b.id, lettersOnly(b.book.name) || "folder"])), { kind: "guess", bills: [ref.bill] } as unknown as Json, { after: 0 });
+    if (words && books.length > 1) await kit.sort(words, Object.fromEntries(books.map((b) => [b.id, lettersOnly(b.book.name) || "folder"])), { kind: "guess", bills: [billId] } as unknown as Json, { after: 0 });
   },
 
   /** jev's pick for a mailed bill nothing else could place. Filed only if still unfiled, marked as a guess. */
@@ -1020,6 +1031,16 @@ export default definePlugin({
         const book = typeof args.book === "string" && args.book ? args.book : null;
         if (book && !(await kit.store.get("books", book))) throw new Error("That folder isn't here any more.");
         for (const id of ids) await file(kit, id, book, "page", kit.person.id ?? null);
+      },
+      /**
+       * Start afresh (the owner, 2026-11-28: "clean my list. I want to start using it for production"): every bill and
+       * its file is deleted; folders, their GST numbers and the +label ties stay. The page asks first; `sure` must be
+       * the exact word, so no stray call can empty the list.
+       */
+      async removeAll(kit, args) {
+        if (args.sure !== "remove all bills") throw new Error("Not removed: the page must ask first.");
+        for (const { key } of await kit.store.list<Bill>("bills")) await removeBill(kit, key);
+        for (const k of ["noteOpen", "notBills", "weekly", "month"]) await kit.store.delete("state", k);
       },
       /** Stop filing a +label's bills by itself. */
       async unlinkLabel(kit, args) {

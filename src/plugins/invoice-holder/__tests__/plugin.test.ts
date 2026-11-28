@@ -986,3 +986,28 @@ describe("invoice-holder: 1.14.0, the day's reads", () => {
     expect(bills(t)[0]).toMatchObject({ unread: "limit", amount: 5 });
   });
 });
+
+describe("invoice-holder: 1.15.0, start afresh", () => {
+  it("removes every bill and its file, keeps folders, and refuses without the word", async () => {
+    const t = createTestKit({ today: "2026-11-28", hour: 10 });
+    await t.act(plugin, "addBook", { name: "NVerse" });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: { address: "a@b.com", domain: "b.com", kind: "company" }, files: [{ id: "f1", type: "application/pdf", size: 9 }] }));
+    await expect(t.act(plugin, "removeAll", {})).rejects.toThrow(/ask first/);
+    expect(bills(t)).toHaveLength(1);
+    await t.act(plugin, "removeAll", { sure: "remove all bills" });
+    expect(bills(t)).toHaveLength(0);
+    expect(books(t)).toHaveLength(1);
+  });
+});
+
+describe("invoice-holder: 1.16.0, a PDF sent in the group", () => {
+  it("is kept as a bill with its name, its caption read, then filled by Zelfred's reading", async () => {
+    const t = createTestKit({ today: "2026-11-28", hour: 10 });
+    await t.act(plugin, "addBook", { name: "NVerse", gst: "29ABCDE1234F1Z5" });
+    await t.message(plugin, "", null, null, undefined, undefined, { files: [{ id: "p1", type: "application/pdf", size: 5000, name: "Invoice-77.pdf" }] });
+    const b = bills(t)[0];
+    expect(b).toMatchObject({ source: "whatsapp", fileName: "Invoice-77.pdf", files: [{ id: "p1", type: "application/pdf", size: 5000 }] });
+    await t.fileRead(plugin, "p1", { state: "read", amount: 1180, currency: "INR", date: "2026-11-20", gstins: ["29ABCDE1234F1Z5"], kind: "bill" } as MailRead);
+    expect(bills(t)[0]).toMatchObject({ amount: 1180, billDate: "2026-11-20", state: "filed", tagged: { how: "gstin" } });
+  });
+});
