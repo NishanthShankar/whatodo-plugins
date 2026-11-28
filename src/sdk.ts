@@ -16,7 +16,7 @@
  * The SDK's own version. Plugins are written against a major version; Zelfred refuses a
  * plugin whose `sdk` major differs from the one it runs.
  */
-export const SDK_VERSION = "1.40.0";
+export const SDK_VERSION = "1.41.0";
 
 /**
  * How much a plugin costs the platform to run (not its price): 1 = no or low cost,
@@ -363,7 +363,7 @@ export interface Kit {
      */
     get(id: string): Promise<{ id: string; type: string; size: number } | null>;
     /**
-     * Read one of this install's PDFs again with Zelfred's bill reader (as a mailed bill is read before `onMail`):
+     * Read one of this install's PDFs (mailed, uploaded on the page or sent in the group) again with Zelfred's bill reader (as a mailed bill is read before `onMail`):
      * a moment later `onFileRead` gets what the bill says and the `ref` given here. Every call is answered, with
      * `read.state` "failed" when it could not be read, or "limit" past the day's readings. For a page button such as
      * "Read again". At most 20 a day for a person (more for the owners). Needs the "mail" permission. Since SDK 1.36.0.
@@ -658,6 +658,13 @@ export interface MessageEvent {
    * carries the caption has a text. Only with the "photos" permission. Since SDK 1.25.0.
    */
   photos?: Photo[];
+  /**
+   * The PDF sent in the message, as a document, kept like a mailed one (`MailFile`, with no `read`). Zelfred reads it
+   * with the bill reader at once and `onFileRead` follows a moment later with `ref` null (or `read.state` "limit" past
+   * the day's readings). Show it with `kit.files.read` and the page's file link, as a mailed PDF. Only for apps that
+   * are given mail (the "mail" permission and `onMail`). Since SDK 1.41.0.
+   */
+  files?: MailFile[];
   /** The position shared in the message. Only with the "location" permission. Since SDK 1.25.0. */
   place?: Place;
   /** The key of the extra group it was sent in; null or unset for the main group. Since SDK 1.6.0. */
@@ -829,7 +836,7 @@ export interface SortEvent {
 export interface FileReadEvent {
   /** The file's id, as given. */
   fileId: string;
-  /** The ref given to `kit.files.read`. */
+  /** The ref given to `kit.files.read`; null for a PDF sent in the group (`MessageEvent.files`). */
   ref: Json;
   /**
    * What the bill says, as `MailFile.read`; state "failed" when it could not be read, and "limit" when it was not read

@@ -2,6 +2,12 @@
 
 Changes to the plugin SDK (`src/sdk.ts`) and the test kit (`src/testing.ts`). Each plugin has its own CHANGELOG in its folder. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions: [Semantic Versioning](https://semver.org/). The package version and `SDK_VERSION` are the same number.
 
+## [1.41.0] - 2026-11-28
+
+### Added
+
+- `MessageEvent.files`: a PDF sent as a document in the group of an app given mail, kept like a mailed one. Zelfred reads it with the bill reader and `onFileRead` follows with `ref` null; it counts in the person's readings for the day. `kit.files.read` takes it too.
+
 ## [1.40.0] - 2026-11-27
 
 ### Added
