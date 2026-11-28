@@ -382,6 +382,24 @@ describe("the mail permission", () => {
     await expect(t.act(without, "again")).rejects.toThrow(/needs the "mail" permission/);
   });
 
+  it("hands over a PDF sent in the group and its reading (sdk 1.41.0)", async () => {
+    const got: unknown[] = [];
+    const plugin = definePlugin({
+      ...base,
+      permissions: ["mail"],
+      onMail: async () => "took",
+      onMessage: async (e) => void got.push(e.files),
+      onFileRead: async (e) => void got.push(e),
+    });
+    const t = createTestKit();
+    await t.message(plugin, "", null, null, undefined, undefined, { files: [{ id: "f9", type: "application/pdf", size: 900, name: "bill.pdf" }] });
+    expect(t.fileReads).toEqual([{ id: "f9", ref: null }]);
+    await t.fileRead(plugin, "f9", { state: "read", amount: 5 });
+    expect(got).toEqual([[{ id: "f9", type: "application/pdf", size: 900, name: "bill.pdf" }], { fileId: "f9", ref: null, read: { state: "read", amount: 5 } }]);
+    const noMail = definePlugin({ ...base, onMessage: async () => {} });
+    await expect(t.message(noMail, "", null, null, undefined, undefined, { files: [{ id: "f8", type: "application/pdf", size: 1 }] })).rejects.toThrow(/"mail" permission/);
+  });
+
   it("hands over a mail's sender and files, keeps the files only when the plugin took them", async () => {
     const seen: string[] = [];
     const plugin = definePlugin({
