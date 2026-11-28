@@ -741,7 +741,7 @@ function wordsOf(text: string | null): { name: string | null; note: string | nul
 
 export default definePlugin({
   id: "invoice-holder",
-  version: "1.14.0",
+  version: "1.15.0",
   sdk: "1",
   name: "BillKeeper",
   icon: "📑",
@@ -1020,6 +1020,16 @@ export default definePlugin({
         const book = typeof args.book === "string" && args.book ? args.book : null;
         if (book && !(await kit.store.get("books", book))) throw new Error("That folder isn't here any more.");
         for (const id of ids) await file(kit, id, book, "page", kit.person.id ?? null);
+      },
+      /**
+       * Start afresh (the owner, 2026-11-28: "clean my list. I want to start using it for production"): every bill and
+       * its file is deleted; folders, their GST numbers and the +label ties stay. The page asks first; `sure` must be
+       * the exact word, so no stray call can empty the list.
+       */
+      async removeAll(kit, args) {
+        if (args.sure !== "remove all bills") throw new Error("Not removed: the page must ask first.");
+        for (const { key } of await kit.store.list<Bill>("bills")) await removeBill(kit, key);
+        for (const k of ["noteOpen", "notBills", "weekly", "month"]) await kit.store.delete("state", k);
       },
       /** Stop filing a +label's bills by itself. */
       async unlinkLabel(kit, args) {

@@ -2,6 +2,11 @@
 
 All notable changes to this plugin. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.15.0] - 2026-11-28
+
+### Added
+- "Remove all bills" in Settings, to start afresh (the owner): every bill and its file goes; folders, GST numbers and +label ties stay. The page asks first.
+
 ## [1.14.0] - 2026-11-27
 
 ### Fixed

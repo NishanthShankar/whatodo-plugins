@@ -986,3 +986,16 @@ describe("invoice-holder: 1.14.0, the day's reads", () => {
     expect(bills(t)[0]).toMatchObject({ unread: "limit", amount: 5 });
   });
 });
+
+describe("invoice-holder: 1.15.0, start afresh", () => {
+  it("removes every bill and its file, keeps folders, and refuses without the word", async () => {
+    const t = createTestKit({ today: "2026-11-28", hour: 10 });
+    await t.act(plugin, "addBook", { name: "NVerse" });
+    await t.mail(plugin, mail({ id: "m1", at: t.kit.now, from: { address: "a@b.com", domain: "b.com", kind: "company" }, files: [{ id: "f1", type: "application/pdf", size: 9 }] }));
+    await expect(t.act(plugin, "removeAll", {})).rejects.toThrow(/ask first/);
+    expect(bills(t)).toHaveLength(1);
+    await t.act(plugin, "removeAll", { sure: "remove all bills" });
+    expect(bills(t)).toHaveLength(0);
+    expect(books(t)).toHaveLength(1);
+  });
+});
